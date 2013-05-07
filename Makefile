@@ -27,9 +27,9 @@ default:	all
 
 .SUFFIXES: .o .d
 
-TUI_SRC =	tui.d base.d widgets.d codepage.d
+TUI_SRC =	tui.d base.d codepage.d twidget.d tapplication.d twindow.d
 
-TUI_OBJS =	tui.o base.o widgets.o codepage.o
+TUI_OBJS =	tui.o base.o codepage.o twidget.o tapplication.o twindow.o
 
 DC = dmd
 INC = -I@srcdir@
@@ -45,7 +45,7 @@ demo1:	tui demo1.d
 	$(DC) $(DFLAGS) -ofdemo1 demo1.d libtui.a
 
 clean:
-	rm libtui.a core *.o
+	rm libtui.a core *.o demo1
 
 tui:	$(TUI_OBJS)
 	$(DC) $(LDFLAGS) -oflibtui $(TUI_OBJS)

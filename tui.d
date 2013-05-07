@@ -37,4 +37,6 @@
 
 public import codepage;
 public import base;
-public import widgets;
+public import twidget;
+public import tapplication;
+public import twindow;

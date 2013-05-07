@@ -883,9 +883,9 @@ public class Screen {
 }
 
 /**
- * This class represents keystrokes.
+ * This struct represents keystrokes.
  */
-public class TKeypress {
+public struct TKeypress {
 
     // Various special keystrokes
 
@@ -960,8 +960,29 @@ public class TKeypress {
     /// The character received
     public dchar ch;
 
+    /// Convenience constructor for immutable instance
+    public this(bool isKey, ubyte fnKey, dchar ch, bool alt, bool ctrl, bool shift) {
+	this.isKey = isKey;
+	this.fnKey = fnKey;
+	this.ch = ch;
+	this.alt = alt;
+	this.ctrl = ctrl;
+	this.shift = shift;
+    }
+
+    /// Comparison.  All fields must match to return true.
+    bool opEquals(ref const TKeypress that) {
+	return ((isKey == that.isKey) &&
+	    (fnKey == that.fnKey) &&
+	    (ch == that.ch) &&
+	    (alt == that.alt) &&
+	    (ctrl == that.ctrl) &&
+	    (shift == that.shift)
+	);
+    }
+
     /// Make human-readable description of this Keystroke.
-    override public string toString() {
+    public string toString() {
 	auto writer = appender!string();
 	if (isKey) {
 	    switch (fnKey) {
@@ -1060,6 +1081,211 @@ public class TKeypress {
     }
 }
 
+public immutable TKeypress kbF1 = TKeypress(true, TKeypress.F1, ' ', false, false, false);
+public immutable TKeypress kbF2 = TKeypress(true, TKeypress.F2, ' ', false, false, false);
+public immutable TKeypress kbF3 = TKeypress(true, TKeypress.F3, ' ', false, false, false);
+public immutable TKeypress kbF4 = TKeypress(true, TKeypress.F4, ' ', false, false, false);
+public immutable TKeypress kbF5 = TKeypress(true, TKeypress.F5, ' ', false, false, false);
+public immutable TKeypress kbF6 = TKeypress(true, TKeypress.F6, ' ', false, false, false);
+public immutable TKeypress kbF7 = TKeypress(true, TKeypress.F7, ' ', false, false, false);
+public immutable TKeypress kbF8 = TKeypress(true, TKeypress.F8, ' ', false, false, false);
+public immutable TKeypress kbF9 = TKeypress(true, TKeypress.F9, ' ', false, false, false);
+public immutable TKeypress kbF10 = TKeypress(true, TKeypress.F10, ' ', false, false, false);
+public immutable TKeypress kbF11 = TKeypress(true, TKeypress.F11, ' ', false, false, false);
+public immutable TKeypress kbF12 = TKeypress(true, TKeypress.F12, ' ', false, false, false);
+public immutable TKeypress kbAltF1 = TKeypress(true, TKeypress.F1, ' ', true, false, false);
+public immutable TKeypress kbAltF2 = TKeypress(true, TKeypress.F2, ' ', true, false, false);
+public immutable TKeypress kbAltF3 = TKeypress(true, TKeypress.F3, ' ', true, false, false);
+public immutable TKeypress kbAltF4 = TKeypress(true, TKeypress.F4, ' ', true, false, false);
+public immutable TKeypress kbAltF5 = TKeypress(true, TKeypress.F5, ' ', true, false, false);
+public immutable TKeypress kbAltF6 = TKeypress(true, TKeypress.F6, ' ', true, false, false);
+public immutable TKeypress kbAltF7 = TKeypress(true, TKeypress.F7, ' ', true, false, false);
+public immutable TKeypress kbAltF8 = TKeypress(true, TKeypress.F8, ' ', true, false, false);
+public immutable TKeypress kbAltF9 = TKeypress(true, TKeypress.F9, ' ', true, false, false);
+public immutable TKeypress kbAltF10 = TKeypress(true, TKeypress.F10, ' ', true, false, false);
+public immutable TKeypress kbAltF11 = TKeypress(true, TKeypress.F11, ' ', true, false, false);
+public immutable TKeypress kbAltF12 = TKeypress(true, TKeypress.F12, ' ', true, false, false);
+public immutable TKeypress kbCtrlF1 = TKeypress(true, TKeypress.F1, ' ', false, true, false);
+public immutable TKeypress kbCtrlF2 = TKeypress(true, TKeypress.F2, ' ', false, true, false);
+public immutable TKeypress kbCtrlF3 = TKeypress(true, TKeypress.F3, ' ', false, true, false);
+public immutable TKeypress kbCtrlF4 = TKeypress(true, TKeypress.F4, ' ', false, true, false);
+public immutable TKeypress kbCtrlF5 = TKeypress(true, TKeypress.F5, ' ', false, true, false);
+public immutable TKeypress kbCtrlF6 = TKeypress(true, TKeypress.F6, ' ', false, true, false);
+public immutable TKeypress kbCtrlF7 = TKeypress(true, TKeypress.F7, ' ', false, true, false);
+public immutable TKeypress kbCtrlF8 = TKeypress(true, TKeypress.F8, ' ', false, true, false);
+public immutable TKeypress kbCtrlF9 = TKeypress(true, TKeypress.F9, ' ', false, true, false);
+public immutable TKeypress kbCtrlF10 = TKeypress(true, TKeypress.F10, ' ', false, true, false);
+public immutable TKeypress kbCtrlF11 = TKeypress(true, TKeypress.F11, ' ', false, true, false);
+public immutable TKeypress kbCtrlF12 = TKeypress(true, TKeypress.F12, ' ', false, true, false);
+public immutable TKeypress kbShiftF1 = TKeypress(true, TKeypress.F1, ' ', false, false, true);
+public immutable TKeypress kbShiftF2 = TKeypress(true, TKeypress.F2, ' ', false, false, true);
+public immutable TKeypress kbShiftF3 = TKeypress(true, TKeypress.F3, ' ', false, false, true);
+public immutable TKeypress kbShiftF4 = TKeypress(true, TKeypress.F4, ' ', false, false, true);
+public immutable TKeypress kbShiftF5 = TKeypress(true, TKeypress.F5, ' ', false, false, true);
+public immutable TKeypress kbShiftF6 = TKeypress(true, TKeypress.F6, ' ', false, false, true);
+public immutable TKeypress kbShiftF7 = TKeypress(true, TKeypress.F7, ' ', false, false, true);
+public immutable TKeypress kbShiftF8 = TKeypress(true, TKeypress.F8, ' ', false, false, true);
+public immutable TKeypress kbShiftF9 = TKeypress(true, TKeypress.F9, ' ', false, false, true);
+public immutable TKeypress kbShiftF10 = TKeypress(true, TKeypress.F10, ' ', false, false, true);
+public immutable TKeypress kbShiftF11 = TKeypress(true, TKeypress.F11, ' ', false, false, true);
+public immutable TKeypress kbShiftF12 = TKeypress(true, TKeypress.F12, ' ', false, false, true);
+public immutable TKeypress kbEnter = TKeypress(true, TKeypress.ENTER, ' ', false, false, false);
+public immutable TKeypress kbTab = TKeypress(true, TKeypress.TAB, ' ', false, false, false);
+public immutable TKeypress kbEsc = TKeypress(true, TKeypress.ESC, ' ', false, false, false);
+public immutable TKeypress kbHome = TKeypress(true, TKeypress.HOME, ' ', false, false, false);
+public immutable TKeypress kbEnd = TKeypress(true, TKeypress.END, ' ', false, false, false);
+public immutable TKeypress kbPgUp = TKeypress(true, TKeypress.PGUP, ' ', false, false, false);
+public immutable TKeypress kbPgDn = TKeypress(true, TKeypress.PGDN, ' ', false, false, false);
+public immutable TKeypress kbIns = TKeypress(true, TKeypress.INS, ' ', false, false, false);
+public immutable TKeypress kbDel = TKeypress(true, TKeypress.INS, ' ', false, false, false);
+public immutable TKeypress kbUp = TKeypress(true, TKeypress.UP, ' ', false, false, false);
+public immutable TKeypress kbDown = TKeypress(true, TKeypress.DOWN, ' ', false, false, false);
+public immutable TKeypress kbLeft = TKeypress(true, TKeypress.LEFT, ' ', false, false, false);
+public immutable TKeypress kbRight = TKeypress(true, TKeypress.RIGHT, ' ', false, false, false);
+public immutable TKeypress kbAltEnter = TKeypress(true, TKeypress.ENTER, ' ', true, false, false);
+public immutable TKeypress kbAltTab = TKeypress(true, TKeypress.TAB, ' ', true, false, false);
+public immutable TKeypress kbAltEsc = TKeypress(true, TKeypress.ESC, ' ', true, false, false);
+public immutable TKeypress kbAltHome = TKeypress(true, TKeypress.HOME, ' ', true, false, false);
+public immutable TKeypress kbAltEnd = TKeypress(true, TKeypress.END, ' ', true, false, false);
+public immutable TKeypress kbAltPgUp = TKeypress(true, TKeypress.PGUP, ' ', true, false, false);
+public immutable TKeypress kbAltPgDn = TKeypress(true, TKeypress.PGDN, ' ', true, false, false);
+public immutable TKeypress kbAltIns = TKeypress(true, TKeypress.INS, ' ', true, false, false);
+public immutable TKeypress kbAltDel = TKeypress(true, TKeypress.INS, ' ', true, false, false);
+public immutable TKeypress kbAltUp = TKeypress(true, TKeypress.UP, ' ', true, false, false);
+public immutable TKeypress kbAltDown = TKeypress(true, TKeypress.DOWN, ' ', true, false, false);
+public immutable TKeypress kbAltLeft = TKeypress(true, TKeypress.LEFT, ' ', true, false, false);
+public immutable TKeypress kbAltRight = TKeypress(true, TKeypress.RIGHT, ' ', true, false, false);
+public immutable TKeypress kbCtrlEnter = TKeypress(true, TKeypress.ENTER, ' ', false, true, false);
+public immutable TKeypress kbCtrlTab = TKeypress(true, TKeypress.TAB, ' ', false, true, false);
+public immutable TKeypress kbCtrlEsc = TKeypress(true, TKeypress.ESC, ' ', false, true, false);
+public immutable TKeypress kbCtrlHome = TKeypress(true, TKeypress.HOME, ' ', false, true, false);
+public immutable TKeypress kbCtrlEnd = TKeypress(true, TKeypress.END, ' ', false, true, false);
+public immutable TKeypress kbCtrlPgUp = TKeypress(true, TKeypress.PGUP, ' ', false, true, false);
+public immutable TKeypress kbCtrlPgDn = TKeypress(true, TKeypress.PGDN, ' ', false, true, false);
+public immutable TKeypress kbCtrlIns = TKeypress(true, TKeypress.INS, ' ', false, true, false);
+public immutable TKeypress kbCtrlDel = TKeypress(true, TKeypress.INS, ' ', false, true, false);
+public immutable TKeypress kbCtrlUp = TKeypress(true, TKeypress.UP, ' ', false, true, false);
+public immutable TKeypress kbCtrlDown = TKeypress(true, TKeypress.DOWN, ' ', false, true, false);
+public immutable TKeypress kbCtrlLeft = TKeypress(true, TKeypress.LEFT, ' ', false, true, false);
+public immutable TKeypress kbCtrlRight = TKeypress(true, TKeypress.RIGHT, ' ', false, true, false);
+public immutable TKeypress kbShiftEnter = TKeypress(true, TKeypress.ENTER, ' ', false, false, true);
+public immutable TKeypress kbShiftTab = TKeypress(true, TKeypress.TAB, ' ', false, false, true);
+public immutable TKeypress kbShiftEsc = TKeypress(true, TKeypress.ESC, ' ', false, false, true);
+public immutable TKeypress kbShiftHome = TKeypress(true, TKeypress.HOME, ' ', false, false, true);
+public immutable TKeypress kbShiftEnd = TKeypress(true, TKeypress.END, ' ', false, false, true);
+public immutable TKeypress kbShiftPgUp = TKeypress(true, TKeypress.PGUP, ' ', false, false, true);
+public immutable TKeypress kbShiftPgDn = TKeypress(true, TKeypress.PGDN, ' ', false, false, true);
+public immutable TKeypress kbShiftIns = TKeypress(true, TKeypress.INS, ' ', false, false, true);
+public immutable TKeypress kbShiftDel = TKeypress(true, TKeypress.INS, ' ', false, false, true);
+public immutable TKeypress kbShiftUp = TKeypress(true, TKeypress.UP, ' ', false, false, true);
+public immutable TKeypress kbShiftDown = TKeypress(true, TKeypress.DOWN, ' ', false, false, true);
+public immutable TKeypress kbShiftLeft = TKeypress(true, TKeypress.LEFT, ' ', false, false, true);
+public immutable TKeypress kbShiftRight = TKeypress(true, TKeypress.RIGHT, ' ', false, false, true);
+public immutable TKeypress kbA = TKeypress(false, 0, 'a', false, false, false);
+public immutable TKeypress kbB = TKeypress(false, 0, 'b', false, false, false);
+public immutable TKeypress kbC = TKeypress(false, 0, 'c', false, false, false);
+public immutable TKeypress kbD = TKeypress(false, 0, 'd', false, false, false);
+public immutable TKeypress kbE = TKeypress(false, 0, 'e', false, false, false);
+public immutable TKeypress kbF = TKeypress(false, 0, 'f', false, false, false);
+public immutable TKeypress kbG = TKeypress(false, 0, 'g', false, false, false);
+public immutable TKeypress kbH = TKeypress(false, 0, 'h', false, false, false);
+public immutable TKeypress kbI = TKeypress(false, 0, 'i', false, false, false);
+public immutable TKeypress kbJ = TKeypress(false, 0, 'j', false, false, false);
+public immutable TKeypress kbK = TKeypress(false, 0, 'k', false, false, false);
+public immutable TKeypress kbL = TKeypress(false, 0, 'l', false, false, false);
+public immutable TKeypress kbM = TKeypress(false, 0, 'm', false, false, false);
+public immutable TKeypress kbN = TKeypress(false, 0, 'n', false, false, false);
+public immutable TKeypress kbO = TKeypress(false, 0, 'o', false, false, false);
+public immutable TKeypress kbP = TKeypress(false, 0, 'p', false, false, false);
+public immutable TKeypress kbQ = TKeypress(false, 0, 'q', false, false, false);
+public immutable TKeypress kbR = TKeypress(false, 0, 'r', false, false, false);
+public immutable TKeypress kbS = TKeypress(false, 0, 's', false, false, false);
+public immutable TKeypress kbT = TKeypress(false, 0, 't', false, false, false);
+public immutable TKeypress kbU = TKeypress(false, 0, 'u', false, false, false);
+public immutable TKeypress kbV = TKeypress(false, 0, 'v', false, false, false);
+public immutable TKeypress kbW = TKeypress(false, 0, 'w', false, false, false);
+public immutable TKeypress kbX = TKeypress(false, 0, 'x', false, false, false);
+public immutable TKeypress kbY = TKeypress(false, 0, 'y', false, false, false);
+public immutable TKeypress kbZ = TKeypress(false, 0, 'z', false, false, false);
+public immutable TKeypress kbAltA = TKeypress(false, 0, 'a', true, false, false);
+public immutable TKeypress kbAltB = TKeypress(false, 0, 'b', true, false, false);
+public immutable TKeypress kbAltC = TKeypress(false, 0, 'c', true, false, false);
+public immutable TKeypress kbAltD = TKeypress(false, 0, 'd', true, false, false);
+public immutable TKeypress kbAltE = TKeypress(false, 0, 'e', true, false, false);
+public immutable TKeypress kbAltF = TKeypress(false, 0, 'f', true, false, false);
+public immutable TKeypress kbAltG = TKeypress(false, 0, 'g', true, false, false);
+public immutable TKeypress kbAltH = TKeypress(false, 0, 'h', true, false, false);
+public immutable TKeypress kbAltI = TKeypress(false, 0, 'i', true, false, false);
+public immutable TKeypress kbAltJ = TKeypress(false, 0, 'j', true, false, false);
+public immutable TKeypress kbAltK = TKeypress(false, 0, 'k', true, false, false);
+public immutable TKeypress kbAltL = TKeypress(false, 0, 'l', true, false, false);
+public immutable TKeypress kbAltM = TKeypress(false, 0, 'm', true, false, false);
+public immutable TKeypress kbAltN = TKeypress(false, 0, 'n', true, false, false);
+public immutable TKeypress kbAltO = TKeypress(false, 0, 'o', true, false, false);
+public immutable TKeypress kbAltP = TKeypress(false, 0, 'p', true, false, false);
+public immutable TKeypress kbAltQ = TKeypress(false, 0, 'q', true, false, false);
+public immutable TKeypress kbAltR = TKeypress(false, 0, 'r', true, false, false);
+public immutable TKeypress kbAltS = TKeypress(false, 0, 's', true, false, false);
+public immutable TKeypress kbAltT = TKeypress(false, 0, 't', true, false, false);
+public immutable TKeypress kbAltU = TKeypress(false, 0, 'u', true, false, false);
+public immutable TKeypress kbAltV = TKeypress(false, 0, 'v', true, false, false);
+public immutable TKeypress kbAltW = TKeypress(false, 0, 'w', true, false, false);
+public immutable TKeypress kbAltX = TKeypress(false, 0, 'x', true, false, false);
+public immutable TKeypress kbAltY = TKeypress(false, 0, 'y', true, false, false);
+public immutable TKeypress kbAltZ = TKeypress(false, 0, 'z', true, false, false);
+public immutable TKeypress kbCtrlA = TKeypress(false, 0, 'A', false, true, false);
+public immutable TKeypress kbCtrlB = TKeypress(false, 0, 'B', false, true, false);
+public immutable TKeypress kbCtrlC = TKeypress(false, 0, 'C', false, true, false);
+public immutable TKeypress kbCtrlD = TKeypress(false, 0, 'D', false, true, false);
+public immutable TKeypress kbCtrlE = TKeypress(false, 0, 'E', false, true, false);
+public immutable TKeypress kbCtrlF = TKeypress(false, 0, 'F', false, true, false);
+public immutable TKeypress kbCtrlG = TKeypress(false, 0, 'G', false, true, false);
+public immutable TKeypress kbCtrlH = TKeypress(false, 0, 'H', false, true, false);
+public immutable TKeypress kbCtrlI = TKeypress(false, 0, 'I', false, true, false);
+public immutable TKeypress kbCtrlJ = TKeypress(false, 0, 'J', false, true, false);
+public immutable TKeypress kbCtrlK = TKeypress(false, 0, 'K', false, true, false);
+public immutable TKeypress kbCtrlL = TKeypress(false, 0, 'L', false, true, false);
+public immutable TKeypress kbCtrlM = TKeypress(false, 0, 'M', false, true, false);
+public immutable TKeypress kbCtrlN = TKeypress(false, 0, 'N', false, true, false);
+public immutable TKeypress kbCtrlO = TKeypress(false, 0, 'O', false, true, false);
+public immutable TKeypress kbCtrlP = TKeypress(false, 0, 'P', false, true, false);
+public immutable TKeypress kbCtrlQ = TKeypress(false, 0, 'Q', false, true, false);
+public immutable TKeypress kbCtrlR = TKeypress(false, 0, 'R', false, true, false);
+public immutable TKeypress kbCtrlS = TKeypress(false, 0, 'S', false, true, false);
+public immutable TKeypress kbCtrlT = TKeypress(false, 0, 'T', false, true, false);
+public immutable TKeypress kbCtrlU = TKeypress(false, 0, 'U', false, true, false);
+public immutable TKeypress kbCtrlV = TKeypress(false, 0, 'V', false, true, false);
+public immutable TKeypress kbCtrlW = TKeypress(false, 0, 'W', false, true, false);
+public immutable TKeypress kbCtrlX = TKeypress(false, 0, 'X', false, true, false);
+public immutable TKeypress kbCtrlY = TKeypress(false, 0, 'Y', false, true, false);
+public immutable TKeypress kbCtrlZ = TKeypress(false, 0, 'Z', false, true, false);
+public immutable TKeypress kbAltShiftA = TKeypress(false, 0, 'A', true, false, true);
+public immutable TKeypress kbAltShiftB = TKeypress(false, 0, 'B', true, false, true);
+public immutable TKeypress kbAltShiftC = TKeypress(false, 0, 'C', true, false, true);
+public immutable TKeypress kbAltShiftD = TKeypress(false, 0, 'D', true, false, true);
+public immutable TKeypress kbAltShiftE = TKeypress(false, 0, 'E', true, false, true);
+public immutable TKeypress kbAltShiftF = TKeypress(false, 0, 'F', true, false, true);
+public immutable TKeypress kbAltShiftG = TKeypress(false, 0, 'G', true, false, true);
+public immutable TKeypress kbAltShiftH = TKeypress(false, 0, 'H', true, false, true);
+public immutable TKeypress kbAltShiftI = TKeypress(false, 0, 'I', true, false, true);
+public immutable TKeypress kbAltShiftJ = TKeypress(false, 0, 'J', true, false, true);
+public immutable TKeypress kbAltShiftK = TKeypress(false, 0, 'K', true, false, true);
+public immutable TKeypress kbAltShiftL = TKeypress(false, 0, 'L', true, false, true);
+public immutable TKeypress kbAltShiftM = TKeypress(false, 0, 'M', true, false, true);
+public immutable TKeypress kbAltShiftN = TKeypress(false, 0, 'N', true, false, true);
+public immutable TKeypress kbAltShiftO = TKeypress(false, 0, 'O', true, false, true);
+public immutable TKeypress kbAltShiftP = TKeypress(false, 0, 'P', true, false, true);
+public immutable TKeypress kbAltShiftQ = TKeypress(false, 0, 'Q', true, false, true);
+public immutable TKeypress kbAltShiftR = TKeypress(false, 0, 'R', true, false, true);
+public immutable TKeypress kbAltShiftS = TKeypress(false, 0, 'S', true, false, true);
+public immutable TKeypress kbAltShiftT = TKeypress(false, 0, 'T', true, false, true);
+public immutable TKeypress kbAltShiftU = TKeypress(false, 0, 'U', true, false, true);
+public immutable TKeypress kbAltShiftV = TKeypress(false, 0, 'V', true, false, true);
+public immutable TKeypress kbAltShiftW = TKeypress(false, 0, 'W', true, false, true);
+public immutable TKeypress kbAltShiftX = TKeypress(false, 0, 'X', true, false, true);
+public immutable TKeypress kbAltShiftY = TKeypress(false, 0, 'Y', true, false, true);
+public immutable TKeypress kbAltShiftZ = TKeypress(false, 0, 'Z', true, false, true);
+
 /**
  * This class encapsulates keystrokes and mouse events received from the
  * Terminal.
@@ -1120,7 +1346,7 @@ public class TInputEvent {
 	    (type == MOUSE_DOWN) ||
 	    (type == KEYPRESS));
 
-	key = new TKeypress();
+	key = TKeypress(false, 0, ' ', false, false, false);
     }
 
     /// Make human-readable description of this event
@@ -1363,26 +1589,21 @@ public class Terminal {
 	switch (ch) {
 	case '\r':
 	    // ENTER
-	    event.key.isKey = true;
-	    event.key.fnKey = TKeypress.ENTER;
+	    event.key = kbEnter;
 	    break;
 	case C_ESC:
 	    // ESC
-	    event.key.isKey = true;
-	    event.key.fnKey = TKeypress.ESC;
+	    event.key = kbEsc;
 	    break;
 	case '\t':
 	    // TAB
-	    event.key.isKey = true;
-	    event.key.fnKey = TKeypress.TAB;
+	    event.key = kbTab;
 	    break;
 	default:
-	    event.key.isKey = false;
 	    // Make all other control characters come back as the
 	    // alphabetic character with the ctrl field set.  So SOH
 	    // would be 'A' + ctrl.
-	    event.key.ch = ch + 0x40;
-	    event.key.ctrl = true;
+	    event.key = TKeypress(false, 0, ch + 0x40, false, true, false);
 	    break;
 	}
 	return event;
@@ -1404,71 +1625,220 @@ public class Terminal {
 	    modifier = to!(int)(params[1]);
 	}
 	TInputEvent event = new TInputEvent(TInputEvent.KEYPRESS);
-	event.key.isKey = true;
-	switch (key) {
-	case 1:
-	    event.key.fnKey = TKeypress.HOME;
+
+	switch (modifier) {
+	case 0:
+	    // No modifier
+	    switch (key) {
+	    case 1:
+		event.key = kbHome;
+		break;
+	    case 2:
+		event.key = kbIns;
+		break;
+	    case 3:
+		event.key = kbDel;
+		break;
+	    case 4:
+		event.key = kbEnd;
+		break;
+	    case 5:
+		event.key = kbPgUp;
+		break;
+	    case 6:
+		event.key = kbPgDn;
+		break;
+	    case 15:
+		event.key = kbF5;
+		break;
+	    case 17:
+		event.key = kbF6;
+		break;
+	    case 18:
+		event.key = kbF7;
+		break;
+	    case 19:
+		event.key = kbF8;
+		break;
+	    case 20:
+		event.key = kbF9;
+		break;
+	    case 21:
+		event.key = kbF10;
+		break;
+	    case 23:
+		event.key = kbF11;
+		break;
+	    case 24:
+		event.key = kbF12;
+		break;
+	    default:
+		// Unknown
+		delete event;
+		return null;
+	    }
+
 	    break;
 	case 2:
-	    event.key.fnKey = TKeypress.INS;
+	    // Shift
+	    switch (key) {
+	    case 1:
+		event.key = kbShiftHome;
+		break;
+	    case 2:
+		event.key = kbShiftIns;
+		break;
+	    case 3:
+		event.key = kbShiftDel;
+		break;
+	    case 4:
+		event.key = kbShiftEnd;
+		break;
+	    case 5:
+		event.key = kbShiftPgUp;
+		break;
+	    case 6:
+		event.key = kbShiftPgDn;
+		break;
+	    case 15:
+		event.key = kbShiftF5;
+		break;
+	    case 17:
+		event.key = kbShiftF6;
+		break;
+	    case 18:
+		event.key = kbShiftF7;
+		break;
+	    case 19:
+		event.key = kbShiftF8;
+		break;
+	    case 20:
+		event.key = kbShiftF9;
+		break;
+	    case 21:
+		event.key = kbShiftF10;
+		break;
+	    case 23:
+		event.key = kbShiftF11;
+		break;
+	    case 24:
+		event.key = kbShiftF12;
+		break;
+	    default:
+		// Unknown
+		delete event;
+		return null;
+	    }
 	    break;
+
 	case 3:
-	    event.key.fnKey = TKeypress.DEL;
+	    // Alt
+	    switch (key) {
+	    case 1:
+		event.key = kbAltHome;
+		break;
+	    case 2:
+		event.key = kbAltIns;
+		break;
+	    case 3:
+		event.key = kbAltDel;
+		break;
+	    case 4:
+		event.key = kbAltEnd;
+		break;
+	    case 5:
+		event.key = kbAltPgUp;
+		break;
+	    case 6:
+		event.key = kbAltPgDn;
+		break;
+	    case 15:
+		event.key = kbAltF5;
+		break;
+	    case 17:
+		event.key = kbAltF6;
+		break;
+	    case 18:
+		event.key = kbAltF7;
+		break;
+	    case 19:
+		event.key = kbAltF8;
+		break;
+	    case 20:
+		event.key = kbAltF9;
+		break;
+	    case 21:
+		event.key = kbAltF10;
+		break;
+	    case 23:
+		event.key = kbAltF11;
+		break;
+	    case 24:
+		event.key = kbAltF12;
+		break;
+	    default:
+		// Unknown
+		delete event;
+		return null;
+	    }
 	    break;
-	case 4:
-	    event.key.fnKey = TKeypress.END;
-	    break;
+
 	case 5:
-	    event.key.fnKey = TKeypress.PGUP;
+	    // Ctrl
+	    switch (key) {
+	    case 1:
+		event.key = kbCtrlHome;
+		break;
+	    case 2:
+		event.key = kbCtrlIns;
+		break;
+	    case 3:
+		event.key = kbCtrlDel;
+		break;
+	    case 4:
+		event.key = kbCtrlEnd;
+		break;
+	    case 5:
+		event.key = kbCtrlPgUp;
+		break;
+	    case 6:
+		event.key = kbCtrlPgDn;
+		break;
+	    case 15:
+		event.key = kbCtrlF5;
+		break;
+	    case 17:
+		event.key = kbCtrlF6;
+		break;
+	    case 18:
+		event.key = kbCtrlF7;
+		break;
+	    case 19:
+		event.key = kbCtrlF8;
+		break;
+	    case 20:
+		event.key = kbCtrlF9;
+		break;
+	    case 21:
+		event.key = kbCtrlF10;
+		break;
+	    case 23:
+		event.key = kbCtrlF11;
+		break;
+	    case 24:
+		event.key = kbCtrlF12;
+		break;
+	    default:
+		// Unknown
+		delete event;
+		return null;
+	    }
 	    break;
-	case 6:
-	    event.key.fnKey = TKeypress.PGDN;
-	    break;
-	case 15:
-	    event.key.fnKey = TKeypress.F5;
-	    break;
-	case 17:
-	    event.key.fnKey = TKeypress.F6;
-	    break;
-	case 18:
-	    event.key.fnKey = TKeypress.F7;
-	    break;
-	case 19:
-	    event.key.fnKey = TKeypress.F8;
-	    break;
-	case 20:
-	    event.key.fnKey = TKeypress.F9;
-	    break;
-	case 21:
-	    event.key.fnKey = TKeypress.F10;
-	    break;
-	case 23:
-	    event.key.fnKey = TKeypress.F11;
-	    break;
-	case 24:
-	    event.key.fnKey = TKeypress.F12;
-	    break;
+
 	default:
 	    // Unknown
 	    delete event;
 	    return null;
-	}
-	switch (modifier) {
-	case 2:
-	    // Shift
-	    event.key.shift = true;
-	    break;
-	case 3:
-	    // Alt
-	    event.key.alt = true;
-	    break;
-	case 5:
-	    // Ctrl
-	    event.key.ctrl = true;
-	    break;
-	default:
-	    // Unknown
-	    break;
 	}
 
 	return event;
@@ -1667,6 +2037,9 @@ public class Terminal {
 	    events[$ - 1].key.isKey = false;
 	    events[$ - 1].key.ch = ch;
 	    events[$ - 1].key.alt = true;
+	    if ((ch >= 'A') && (ch <= 'Z')) {
+		events[$ - 1].key.shift = true;
+	    }
 	    return events;
 
 	case STATE.ESCAPE_INTERMEDIATE:
