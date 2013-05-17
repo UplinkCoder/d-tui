@@ -37,7 +37,7 @@ applications somewhat as follows:
             super();
             // Create an editor window that has support for
             // copy/paste, search text, arrow keys, horizontal
-	    // and vertical scrollbar, etc.
+            // and vertical scrollbar, etc.
             TEditor editor = new TEditor(this);
 
             // Create a menu
@@ -73,8 +73,11 @@ calling this version 1.0:
   - [ ] SMARTPLACE (use smart placement for x, y)
   - [ ] Horizontal scrollbar
   - [ ] Vertical scrollbar
+- TMessageBox
+  - [ ] Override secondaryFiber for handleEvent
 - TApplication
-  - [ ] Switch to Alt-X to exit, add confirmation dialog
+  - [x] Switch to Alt-X to exit
+  - [ ] Confirmation dialog on exit
   - [ ] Timers:
     - [ ] setTimer
     - [ ] getSleepTime
