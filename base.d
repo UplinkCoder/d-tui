@@ -1307,11 +1307,11 @@ public class TInputEvent {
     /// Type of event, one of MOUSE_MOTION, MOUSE_UP/DOWN, or KEYPRESS
     public ubyte type;
 
-    /// Mouse X
-    public uint x;
+    /// Mouse X - relative coordinates
+    public int x;
 
-    /// Mouse Y
-    public uint y;
+    /// Mouse Y - relative coordinates
+    public int y;
 
     /// Mouse X - absolute screen coordinates
     public uint absoluteX;
@@ -2358,11 +2358,9 @@ public class Terminal {
      */
     public static string normal(bool header = true) {
 	if (header) {
-	    // return "\033[0;37;40m";
-	    return "\033[0m";
+	    return "\033[0;37;40m";
 	}
-	// return "0;37;40;";
-	return "0;";
+	return "0;37;40;";
     }
 
     /**

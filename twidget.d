@@ -88,7 +88,7 @@ public class TWidget {
 	if (cast(TWindow)parent) {
 	    // Widgets on a TWindow have (0,0) as their top-left, but
 	    // this is actually the TWindow's (1,1).
-	    return parent.getAbsoluteX() + 1;
+	    return parent.getAbsoluteX() + x + 1;
 	}
 	return parent.getAbsoluteX() + x;
     }
@@ -108,7 +108,7 @@ public class TWidget {
 	if (cast(TWindow)parent) {
 	    // Widgets on a TWindow have (0,0) as their top-left, but
 	    // this is actually the TWindow's (1,1).
-	    return parent.getAbsoluteY() + 1;
+	    return parent.getAbsoluteY() + y + 1;
 	}
 	return parent.getAbsoluteY() + y;
     }
@@ -127,6 +127,27 @@ public class TWidget {
 
 	window.screen.clipX = width;
 	window.screen.clipY = height;
+
+	int absoluteRightEdge = window.getAbsoluteX() + window.width;
+	int absoluteBottomEdge = window.getAbsoluteY() + window.height;
+	if (!cast(TWindow)this) {
+	    absoluteRightEdge -= 1;
+	    absoluteBottomEdge -= 1;
+	}
+	int myRightEdge = getAbsoluteX() + width;
+	int myBottomEdge = getAbsoluteY() + height;
+	if (getAbsoluteX() > absoluteRightEdge) {
+	    // I am offscreen
+	    window.screen.clipX = 0;
+	} else if (myRightEdge > absoluteRightEdge) {
+	    window.screen.clipX -= myRightEdge - absoluteRightEdge;
+	}
+	if (getAbsoluteY() > absoluteBottomEdge) {
+	    // I am offscreen
+	    window.screen.clipY = 0;
+	} else if (myBottomEdge > absoluteBottomEdge) {
+	    window.screen.clipY -= myBottomEdge - absoluteBottomEdge;
+	}
 
 	// Set my offset
 	window.screen.offsetX = getAbsoluteX();
@@ -217,6 +238,26 @@ public class TWidget {
 	}
 	// Do nothing
 	return;
+    }
+
+    /**
+     * Check if a mouse press/release event coordinate is contained in
+     * this widget.
+     *
+     * Params:
+     *    mouse = a mouse-based event
+     */
+    public bool mouseWouldHit(TInputEvent mouse) {
+	assert(mouse.type != TInputEvent.KEYPRESS);
+
+	if ((mouse.absoluteX >= getAbsoluteX()) &&
+	    (mouse.absoluteX <  getAbsoluteX() + width) &&
+	    (mouse.absoluteY >= getAbsoluteY()) &&
+	    (mouse.absoluteY <  getAbsoluteY() + height)
+	) {
+	    return true;
+	}
+	return false;
     }
 
 }

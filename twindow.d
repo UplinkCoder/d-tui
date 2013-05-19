@@ -218,35 +218,50 @@ public class TWindow : TWidget {
 	return false;
     }    
 
+    /// Retrieve the background color
+    public CellAttributes getBackground() {
+	if (!isModal() && (inWindowMove || inWindowResize)) {
+	    assert(active == 1);
+	    return application.theme.getColor("twindow.background.windowmove");
+	} else if (isModal() && inWindowMove) {
+	    assert(active == 1);
+	    return application.theme.getColor("twindow.background.modal");
+	} else if (isModal()) {
+	    assert(active == 1);
+	    return application.theme.getColor("twindow.background.modal");
+	} else if (active) {
+	    assert(!isModal());
+	    return application.theme.getColor("twindow.background");
+	} else {
+	    assert(!isModal());
+	    return application.theme.getColor("twindow.background.inactive");
+	}
+    }
+
     /// Called by TApplication.drawChildren() to render on screen.
     override public void draw() {
 	// Draw the box and background first.
 	CellAttributes border;
-	CellAttributes background;
+	CellAttributes background = getBackground();
 	uint borderType = 1;
 
 	if (!isModal() && (inWindowMove || inWindowResize)) {
 	    assert(active == 1);
 	    border = application.theme.getColor("twindow.border.windowmove");
-	    background = application.theme.getColor("twindow.background.windowmove");
 	} else if (isModal() && inWindowMove) {
 	    assert(active == 1);
 	    border = application.theme.getColor("twindow.border.modal.windowmove");
-	    background = application.theme.getColor("twindow.background.modal");
 	} else if (isModal()) {
 	    assert(active == 1);
 	    border = application.theme.getColor("twindow.border.modal");
-	    background = application.theme.getColor("twindow.background.modal");
 	    borderType = 2;
 	} else if (active) {
 	    assert(!isModal());
 	    border = application.theme.getColor("twindow.border");
-	    background = application.theme.getColor("twindow.background");
 	    borderType = 2;
 	} else {
 	    assert(!isModal());
 	    border = application.theme.getColor("twindow.border.inactive");
-	    background = application.theme.getColor("twindow.background.inactive");
 	}
 	drawBox(0, 0, width, height, border, background, borderType, true);
 
@@ -358,11 +373,7 @@ public class TWindow : TWidget {
 
 	// I didn't take it, pass it on to my children
 	foreach (w; children) {
-	    if ((mouse.absoluteX >= w.getAbsoluteX()) &&
-		(mouse.absoluteX < w.getAbsoluteX() + w.width) &&
-		(mouse.absoluteY >= w.getAbsoluteY()) &&
-		(mouse.absoluteY < w.getAbsoluteY() + w.height)
-	    ) {
+	    if (w.mouseWouldHit(mouse)) {
 		// Dispatch to this child
 		// Set x and y relative to the child's coordinates
 		mouse.x = mouse.absoluteX - w.getAbsoluteX();
@@ -429,11 +440,7 @@ public class TWindow : TWidget {
 
 	// I didn't take it, pass it on to my children
 	foreach (w; children) {
-	    if ((mouse.absoluteX >= w.getAbsoluteX()) &&
-		(mouse.absoluteX < w.getAbsoluteX() + w.width) &&
-		(mouse.absoluteY >= w.getAbsoluteY()) &&
-		(mouse.absoluteY < w.getAbsoluteY() + w.height)
-	    ) {
+	    if (w.mouseWouldHit(mouse)) {
 		// Dispatch to this child
 		// Set x and y relative to the child's coordinates
 		mouse.x = mouse.absoluteX - w.getAbsoluteX();
@@ -477,9 +484,11 @@ public class TWindow : TWidget {
 	    }
 	    if (width < 10) {
 		width = 10;
+		inWindowResize = false;
 	    }
 	    if (height < 2) {
 		height = 2;
+		inWindowResize = false;
 	    }
 	    return;
 	}

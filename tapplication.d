@@ -241,11 +241,7 @@ public class TApplication {
 
 	foreach (w; windows) {
 	    assert(!w.isModal());
-	    if ((mouse.absoluteX >= w.x) &&
-		(mouse.absoluteX <= w.x + w.width - 1) &&
-		(mouse.absoluteY >= w.y) &&
-		(mouse.absoluteY <= w.y + w.height - 1)
-	    ) {
+	    if (w.mouseWouldHit(mouse)) {
 		if (w is windows[0]) {
 		    // Clicked on the same window, nothing to do
 		    return;
@@ -366,22 +362,10 @@ public class TApplication {
 	    if (w.active) {
 		if (event.type != TInputEvent.KEYPRESS) {
 		    // Convert the mouse relative x/y to window coordinates
-		    if (event.x > w.x) {
-			event.x -= w.x;
-		    } else {
-			event.x = 0;
-		    }
-		    if (event.y > w.y) {
-			event.y -= w.y;
-		    } else {
-			event.y = 0;
-		    }
-		    if (event.x > w.width - 1) {
-			event.x = w.width - 1;
-		    }
-		    if (event.y > w.height - 1) {
-			event.y = w.height - 1;
-		    }
+		    assert(event.x == event.absoluteX);
+		    assert(event.y == event.absoluteY);
+		    event.x -= w.x;
+		    event.y -= w.y;
 		}
 		w.handleEvent(event);
 		break;

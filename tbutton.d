@@ -60,9 +60,12 @@ public class TButton : TWidget {
     /// True when the button is being pressed
     private bool inButtonPress = false;
 
-    /// Public constructor.
-    public this(TWidget parent, dstring text, uint x, uint y) {
+    /// The action to perform on button press
+    private void delegate() actionDelegate;
+    private void function() actionFunction;
 
+    /// Public constructor
+    private this(TWidget parent, dstring text, uint x, uint y) {
 	// Set parent and window
 	this.parent = parent;
 	this.window = parent.window;
@@ -75,12 +78,34 @@ public class TButton : TWidget {
 	this.width = cast(uint)(codeLength!dchar(text) + 3);
     }
 
+    /// Public constructor
+    public this(TWidget parent, dstring text, uint x, uint y,
+	void delegate() actionFn) {
+
+	this.actionFunction = null;
+	this.actionDelegate = actionFn;
+	this(parent, text, x, y);
+    }
+
+    /// Public constructor
+    public this(TWidget parent, dstring text, uint x, uint y,
+	void function() actionFn) {
+
+	this.actionFunction = actionFn;
+	this.actionDelegate = null;
+	this(parent, text, x, y);
+    }
+
     /// Returns true if the mouse is currently on the button
     private bool mouseOnButton() {
+	int rightEdge = width - 1;
+	if (inButtonPress) {
+	    rightEdge++;
+	}
 	if ((mouse !is null) &&
-	    (mouse.y == y) &&
-	    (mouse.x >= x) &&
-	    (mouse.x < x + width)
+	    (mouse.y == 0) &&
+	    (mouse.x >= 0) &&
+	    (mouse.x < rightEdge)
 	) {
 	    return true;
 	}
@@ -90,7 +115,10 @@ public class TButton : TWidget {
     /// Draw a button with a shadow
     override public void draw() {
 	CellAttributes buttonColor = window.application.theme.getColor("tbutton.inactive");
-	CellAttributes shadowColor = window.application.theme.getColor("tbutton.shadow");
+	CellAttributes shadowColor = new CellAttributes();
+	shadowColor.setTo(window.getBackground());
+	shadowColor.foreColor = COLOR_BLACK;
+	shadowColor.bold = false;
 
 	if (inButtonPress) {
 	    window.putCharXY(1, 0, ' ', buttonColor);
@@ -102,7 +130,7 @@ public class TButton : TWidget {
 	    window.putCharXY(width - 2, 0, ' ', buttonColor);
 
 	    window.putCharXY(width - 1, 0, cp437_chars[0xDC], shadowColor);
-	    window.hLineXY(1, 1, width, cp437_chars[0xDF], shadowColor);
+	    window.hLineXY(1, 1, width - 1, cp437_chars[0xDF], shadowColor);
 	}
     }
 
@@ -133,7 +161,12 @@ public class TButton : TWidget {
 	if ((inButtonPress == true) && (mouse.mouse1)) {
 	    inButtonPress = false;
 	    // Dispatch the event
-	    // TODO
+	    if (actionFunction !is null) {
+		actionFunction();
+	    }
+	    if (actionDelegate !is null) {
+		actionDelegate();
+	    }
 	}
 
     }

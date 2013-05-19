@@ -33,12 +33,26 @@
 import std.stdio;
 import tui;
 
+private TApplication app;
+private TWindow window1;
+private TWindow window2;
+
+private void doSomething1() {
+    window2 = new TWindow(app, "Demo modal", 0, 0, 70, 15, TWindow.MODAL);
+    TButton button = new TButton(window2, "Close", 20, 1, &doSomething2);
+}
+
+private void doSomething2() {
+    app.closeWindow(window2);
+}
+
 public void main(string [] args) {
-    TApplication app = new TApplication();
-    TWindow window = new TWindow(app, "Demo window", 20, 3, 60, 10, TWindow.CENTERED);
-    TButton button = new TButton(window, "Button!", 0, 0);
-    // window = new TWindow(app, "Demo no-resize", 10, 10, 50, 10, 0);
-    // window = new TWindow(app, "Demo modal", 0, 0, 70, 15, TWindow.MODAL);
+    app = new TApplication();
+    TWindow window;
+    window = new TWindow(app, "Demo boring", 10, 10, 50, 10);
+    window1 = new TWindow(app, "Demo buttonized", 20, 3, 60, 10,
+	TWindow.CENTERED | TWindow.RESIZABLE);
+    TButton button = new TButton(window1, "Open modal dialog", 20, 1, &doSomething1);
     app.run();
 }
 
