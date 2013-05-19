@@ -93,7 +93,7 @@ calling this version 1.0:
 - [ ] TTextArea
 - [ ] TCheckBox
 - [ ] TRadioButton / TRadioGroup
-- [ ] TButton
+- [*] TButton
 - [ ] TApplicationSocket - socket that knows about environment variables and
         rows X cols
       - [ ] this(TApplication application)

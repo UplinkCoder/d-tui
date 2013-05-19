@@ -40,3 +40,5 @@ public import base;
 public import twidget;
 public import tapplication;
 public import twindow;
+public import tbutton;
+public import tmessagebox;

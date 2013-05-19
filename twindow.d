@@ -1,5 +1,5 @@
 /**
- * D Text User Interface library - TWindow classes
+ * D Text User Interface library - TWindow class
  *
  * Version: $Id$
  *
@@ -43,6 +43,9 @@ import codepage;
 import tapplication;
 import twidget;
 
+import std.stdio;
+
+
 // Defines -------------------------------------------------------------------
 
 // Globals -------------------------------------------------------------------
@@ -56,7 +59,7 @@ import twidget;
 public class TWindow : TWidget {
 
     /// Window's parent application.
-    private TApplication application;
+    public TApplication application;
 
     /// application's screen
     public Screen screen;
@@ -304,11 +307,11 @@ public class TWindow : TWidget {
 	if (mouse !is null) {
 	    auto writer = appender!string();
 	    formattedWrite(writer, "Mouse relative %u %u", mouse.x, mouse.y);
-	    putStrXY(1, 1, toUTF32(writer.data));
+	    putStrXY(1, 4, toUTF32(writer.data));
 	    writer = appender!string();
 	    formattedWrite(writer, "Mouse absolute %u %u", mouse.absoluteX,
 		mouse.absoluteY);
-	    putStrXY(1, 2, toUTF32(writer.data));
+	    putStrXY(1, 5, toUTF32(writer.data));
 	}
     }
 
@@ -338,6 +341,7 @@ public class TWindow : TWidget {
 	    if (maximized) {
 		maximized = false;
 	    }
+	    return;
 	}
 	if (mouseOnResize()) {
 	    // Begin window resize
@@ -349,7 +353,25 @@ public class TWindow : TWidget {
 	    if (maximized) {
 		maximized = false;
 	    }
+	    return;
 	}
+
+	// I didn't take it, pass it on to my children
+	foreach (w; children) {
+	    if ((mouse.absoluteX >= w.getAbsoluteX()) &&
+		(mouse.absoluteX < w.getAbsoluteX() + w.width) &&
+		(mouse.absoluteY >= w.getAbsoluteY()) &&
+		(mouse.absoluteY < w.getAbsoluteY() + w.height)
+	    ) {
+		// Dispatch to this child
+		// Set x and y relative to the child's coordinates
+		mouse.x = mouse.absoluteX - w.getAbsoluteX();
+		mouse.y = mouse.absoluteY - w.getAbsoluteY();
+		w.handleEvent(event);
+		return;
+	    }
+	}
+
     }
 
     /**
@@ -365,16 +387,19 @@ public class TWindow : TWidget {
 	if ((inWindowMove == true) && (mouse.mouse1)) {
 	    // Stop moving window
 	    inWindowMove = false;
+	    return;
 	}
 
 	if ((inWindowResize == true) && (mouse.mouse1)) {
 	    // Stop resizing window
 	    inWindowResize = false;
+	    return;
 	}
 
 	if (mouse.mouse1 && mouseOnClose()) {
 	    // Close window
 	    application.closeWindow(this);
+	    return;
 	}
 
 	if ((mouse.absoluteY == y) && mouse.mouse1 &&
@@ -399,6 +424,23 @@ public class TWindow : TWidget {
 		y = 1;
 		maximized = true;
 	    }
+	    return;
+	}
+
+	// I didn't take it, pass it on to my children
+	foreach (w; children) {
+	    if ((mouse.absoluteX >= w.getAbsoluteX()) &&
+		(mouse.absoluteX < w.getAbsoluteX() + w.width) &&
+		(mouse.absoluteY >= w.getAbsoluteY()) &&
+		(mouse.absoluteY < w.getAbsoluteY() + w.height)
+	    ) {
+		// Dispatch to this child
+		// Set x and y relative to the child's coordinates
+		mouse.x = mouse.absoluteX - w.getAbsoluteX();
+		mouse.y = mouse.absoluteY - w.getAbsoluteY();
+		w.handleEvent(event);
+		return;
+	    }
 	}
     }
 
@@ -420,6 +462,7 @@ public class TWindow : TWidget {
 	    if (y < 1) {
 		y = 1;
 	    }
+	    return;
 	}
 
 	if (inWindowResize == true) {
@@ -438,6 +481,16 @@ public class TWindow : TWidget {
 	    if (height < 2) {
 		height = 2;
 	    }
+	    return;
+	}
+
+	// I didn't take it, pass it on to ALL of my children.  This
+	// way the children can see the mouse "leaving" their area.
+	foreach (w; children) {
+	    // Set x and y relative to the child's coordinates
+	    mouse.x = mouse.absoluteX - w.getAbsoluteX();
+	    mouse.y = mouse.absoluteY - w.getAbsoluteY();
+	    w.handleEvent(event);
 	}
     }
 

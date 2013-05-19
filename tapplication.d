@@ -35,11 +35,13 @@
 
 // Imports -------------------------------------------------------------------
 
+import core.thread;
 import std.stdio;
 import base;
 import codepage;
 import twidget;
 import twindow;
+import tmessagebox;
 
 // Defines -------------------------------------------------------------------
 
@@ -63,6 +65,12 @@ public class TApplication {
 
     /// Actual mouse coordinate Y
     private uint mouseY;
+
+    /// Fiber for main handleEvent loop
+    private Fiber primaryEventFiber;
+    
+    /// Fiber for scondary handleEvent loop - used by TMessageBox
+    private Fiber secondaryEventFiber;
 
     /// Public constructor.
     public this() {
@@ -295,6 +303,9 @@ public class TApplication {
      */
     private void handleEvent(TInputEvent event) {
 
+	// TODO: use primaryEventFiber and secondaryEventFiber
+
+
 	// Special application-wide events -----------------------------------
 
 	// Alt-TAB
@@ -416,6 +427,12 @@ public class TApplication {
 
 	// TODO: now run any timers that have timed out
 
+    }
+
+    /// Obtain a TMessageBox
+    public TMessageBox MessageBox(string title, string text) {
+	// TODO
+	return null;
     }
 
     /// Run this application until it exits, using stdin and stdout

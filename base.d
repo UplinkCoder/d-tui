@@ -2358,9 +2358,11 @@ public class Terminal {
      */
     public static string normal(bool header = true) {
 	if (header) {
-	    return "\033[0;37;40m";
+	    // return "\033[0;37;40m";
+	    return "\033[0m";
 	}
-	return "0;37;40;";
+	// return "0;37;40;";
+	return "0;";
     }
 
     /**
@@ -2639,6 +2641,18 @@ public class ColorTheme {
 	color.backColor = COLOR_WHITE;
 	color.bold = false;
 	colors["tapplication.background"] = color;
+
+	// TButton text
+	color = new CellAttributes();
+	color.foreColor = COLOR_BLACK;
+	color.backColor = COLOR_GREEN;
+	color.bold = false;
+	colors["tbutton.inactive"] = color;
+	color = new CellAttributes();
+	color.foreColor = COLOR_BLACK;
+	color.backColor = COLOR_BLUE;
+	color.bold = false;
+	colors["tbutton.shadow"] = color;
 	
     }
 

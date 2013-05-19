@@ -1,5 +1,5 @@
 /**
- * D Text User Interface library - demonstration program
+ * D Text User Interface library - TMessageBox class
  *
  * Version: $Id$
  *
@@ -30,15 +30,32 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301 USA
  */
-import std.stdio;
-import tui;
 
-public void main(string [] args) {
-    TApplication app = new TApplication();
-    TWindow window = new TWindow(app, "Demo window", 20, 3, 60, 10, TWindow.CENTERED);
-    TButton button = new TButton(window, "Button!", 0, 0);
-    // window = new TWindow(app, "Demo no-resize", 10, 10, 50, 10, 0);
-    // window = new TWindow(app, "Demo modal", 0, 0, 70, 15, TWindow.MODAL);
-    app.run();
+// Description ---------------------------------------------------------------
+
+// Imports -------------------------------------------------------------------
+
+import tapplication;
+import twindow;
+
+// Defines -------------------------------------------------------------------
+
+// Globals -------------------------------------------------------------------
+
+// Classes -------------------------------------------------------------------
+
+/**
+ * TMessageBox is a system-modal dialog with OK and/or Cancel buttons.
+ */
+public class TMessageBox : TWindow {
+
+    /// Public constructor
+    public this(TApplication application, dstring title,
+	uint width, uint height) {
+
+	super(application, title, 0, 0, width, height, MODAL);
+    }
+
 }
 
+// Functions -----------------------------------------------------------------

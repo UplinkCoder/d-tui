@@ -53,13 +53,13 @@ public class TWidget {
     /// Every widget has a parent widget that it may be "contained"
     /// in.  For example, a TWindow might contain several TTextFields,
     /// or a TComboBox may contain a TScrollBar.
-    protected TWidget parent = null;
+    public TWidget parent = null;
 
     /// Child widgets that this widget contains.
-    protected TWidget [] children;
+    public TWidget [] children;
 
     /// The window that this widget draws to.
-    protected TWindow window = null;
+    public TWindow window = null;
 
     /// Absolute X position of the top-left corner.
     public int x = 0;
