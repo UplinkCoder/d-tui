@@ -53,6 +53,7 @@ public void main(string [] args) {
     window1 = new TWindow(app, "Demo buttonized", 20, 3, 60, 10,
 	TWindow.CENTERED | TWindow.RESIZABLE);
     TButton button = new TButton(window1, "Open modal dialog", 20, 1, &doSomething1);
+    button = new TButton(window1, "Open modal dialog", 20, 3, &doSomething1);
     app.run();
 }
 

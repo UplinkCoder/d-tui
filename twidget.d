@@ -58,6 +58,12 @@ public class TWidget {
     /// Child widgets that this widget contains.
     public TWidget [] children;
 
+    /// The currently active child widget that will receive keypress events.
+    private TWidget activeChild;
+
+    /// If true, this widget will receive events.
+    public bool active = false;
+
     /// The window that this widget draws to.
     public TWindow window = null;
 
@@ -72,6 +78,18 @@ public class TWidget {
 
     /// Height
     public uint height = 0;
+
+    /// My tab order inside a window or containing widget
+    private uint tabOrder = 0;
+
+    /// Comparison operator sorts on tabOrder
+    public override int opCmp(Object rhs) {
+	auto that = cast(TWidget)rhs;
+	if (!that) {
+	    return 0;
+	}
+	return tabOrder - that.tabOrder;
+    }
 
     /**
      * Compute my absolute X position as the sum of my X plus all my
@@ -169,6 +187,49 @@ public class TWidget {
     public this(TWidget parent) {
 	this.parent = parent;
 	this.window = parent.window;
+
+	parent.addChild(this);
+    }
+
+    /**
+     * Add a child widget to my list of children.  We set its tabOrder
+     * to 0 and increment the tabOrder of all other children.
+     *
+     * Params:
+     *    child = TWidget to add
+     */
+    private void addChild(TWidget child) {
+	foreach (w; children) {
+	    w.active = false;
+	}
+	children ~= child;
+	child.active = true;
+	activeChild = child;
+	for (auto i = 0; i < children.length; i++) {
+	    children[i].tabOrder = i;
+	}
+    }
+
+    /**
+     * Switch the active widget with the next in the tab order.
+     *
+     * Param:
+     *    tabOrder = make widget with this tabOrder the active one.
+     *               Wraps when out of bounds.
+     */
+    private void switchWidget(int tabOrder) {
+	// Only switch if there are multiple widgets
+	if (children.length < 2) {
+	    return;
+	}
+
+	activeChild.active = false;
+	tabOrder %= children.length;
+	children[tabOrder].active = true;
+	activeChild = children[tabOrder];
+
+	// Refresh
+	window.application.repaint = true;
     }
 
     /**
@@ -178,7 +239,21 @@ public class TWidget {
      *    event = keystroke event
      */
     protected void onKeypress(TInputEvent event) {
-	// Default: do nothing
+	// Defaults:
+	//   tab / shift-tab - switch to next/previous widget
+	//   right-arrow or down-arrow: same as tab
+	//   left-arrow or up-arrow: same as shift-tab
+	if ((event.key == kbTab) ||
+	    (event.key == kbRight) ||
+	    (event.key == kbDown)
+	) {
+	    parent.switchWidget(tabOrder + 1);
+	} else if ((event.key == kbShiftTab) ||
+	    (event.key == kbLeft) ||
+	    (event.key == kbUp)
+	) {
+	    parent.switchWidget(tabOrder - 1);
+	}
     }
 
     /**

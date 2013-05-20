@@ -1207,6 +1207,7 @@ public immutable TKeypress kbW = TKeypress(false, 0, 'w', false, false, false);
 public immutable TKeypress kbX = TKeypress(false, 0, 'x', false, false, false);
 public immutable TKeypress kbY = TKeypress(false, 0, 'y', false, false, false);
 public immutable TKeypress kbZ = TKeypress(false, 0, 'z', false, false, false);
+public immutable TKeypress kbSpace = TKeypress(false, 0, ' ', false, false, false);
 public immutable TKeypress kbAltA = TKeypress(false, 0, 'a', true, false, false);
 public immutable TKeypress kbAltB = TKeypress(false, 0, 'b', true, false, false);
 public immutable TKeypress kbAltC = TKeypress(false, 0, 'c', true, false, false);
@@ -2647,10 +2648,10 @@ public class ColorTheme {
 	color.bold = false;
 	colors["tbutton.inactive"] = color;
 	color = new CellAttributes();
-	color.foreColor = COLOR_BLACK;
-	color.backColor = COLOR_BLUE;
-	color.bold = false;
-	colors["tbutton.shadow"] = color;
+	color.foreColor = COLOR_WHITE;
+	color.backColor = COLOR_GREEN;
+	color.bold = true;
+	colors["tbutton.active"] = color;
 	
     }
 

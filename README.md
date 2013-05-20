@@ -73,10 +73,10 @@ calling this version 1.0:
   - [ ] SMARTPLACE (use smart placement for x, y)
   - [ ] Horizontal scrollbar
   - [ ] Vertical scrollbar
+  - [ ] Dispatch window resize events
 - TMessageBox
   - [ ] Override secondaryFiber for handleEvent
 - TApplication
-  - [x] Switch to Alt-X to exit
   - [ ] Confirmation dialog on exit
   - [ ] Timers:
     - [ ] setTimer
@@ -91,9 +91,10 @@ calling this version 1.0:
 - [ ] TLabel
 - [ ] TField - steal from fieldset/field in qodem
 - [ ] TTextArea
+- [ ] TText
+  - [ ] Reflows with window resize
 - [ ] TCheckBox
 - [ ] TRadioButton / TRadioGroup
-- [*] TButton
 - [ ] TApplicationSocket - socket that knows about environment variables and
         rows X cols
       - [ ] this(TApplication application)

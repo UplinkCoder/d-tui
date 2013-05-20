@@ -153,9 +153,6 @@ public class TWindow : TWidget {
 	}
     }
 
-    /// If true, this is the active window that will receive events
-    public bool active = false;
-
     /// Returns true if this window is modal
     public bool isModal() {
 	if ((flags & MODAL) == 0) {
@@ -178,6 +175,9 @@ public class TWindow : TWidget {
 
     /// If true, this window is maximized
     public bool maximized = false;
+
+    /// Remember mouse state
+    private TInputEvent mouse;    
 
     /// Returns true if the mouse is currently on the close button
     private bool mouseOnClose() {
@@ -319,7 +319,7 @@ public class TWindow : TWidget {
 	}
 
 	// DEBUG: print mouse coordinates
-	if (mouse !is null) {
+	if ((mouse !is null) && false) {
 	    auto writer = appender!string();
 	    formattedWrite(writer, "Mouse relative %u %u", mouse.x, mouse.y);
 	    putStrXY(1, 4, toUTF32(writer.data));
@@ -329,9 +329,6 @@ public class TWindow : TWidget {
 	    putStrXY(1, 5, toUTF32(writer.data));
 	}
     }
-
-    /// Remember mouse state
-    private TInputEvent mouse;    
 
     /**
      * Handle mouse button presses.
@@ -382,7 +379,6 @@ public class TWindow : TWidget {
 		return;
 	    }
 	}
-
     }
 
     /**
@@ -500,6 +496,23 @@ public class TWindow : TWidget {
 	    mouse.x = mouse.absoluteX - w.getAbsoluteX();
 	    mouse.y = mouse.absoluteY - w.getAbsoluteY();
 	    w.handleEvent(event);
+	}
+    }
+
+    /**
+     * Handle keystrokes
+     *
+     * Params:
+     *    event = keystroke event
+     */
+    override protected void onKeypress(TInputEvent event) {
+	// Dispatch the keypress to an active widget
+	foreach (w; children) {
+	    if (w.active) {
+		application.repaint = true;
+		w.handleEvent(event);
+		return;
+	    }
 	}
     }
 

@@ -67,9 +67,7 @@ public class TButton : TWidget {
     /// Public constructor
     private this(TWidget parent, dstring text, uint x, uint y) {
 	// Set parent and window
-	this.parent = parent;
-	this.window = parent.window;
-	parent.children ~= this;
+	super(parent);
 
 	this.text = text;
 	this.x = x;
@@ -114,12 +112,18 @@ public class TButton : TWidget {
 
     /// Draw a button with a shadow
     override public void draw() {
-	CellAttributes buttonColor = window.application.theme.getColor("tbutton.inactive");
+	CellAttributes buttonColor;
 	CellAttributes shadowColor = new CellAttributes();
 	shadowColor.setTo(window.getBackground());
 	shadowColor.foreColor = COLOR_BLACK;
 	shadowColor.bold = false;
 
+	if (active) {
+	    buttonColor = window.application.theme.getColor("tbutton.active");
+	} else {
+	    buttonColor = window.application.theme.getColor("tbutton.inactive");
+	}
+	
 	if (inButtonPress) {
 	    window.putCharXY(1, 0, ' ', buttonColor);
 	    window.putStrXY(2, 0, text, buttonColor);
@@ -134,6 +138,16 @@ public class TButton : TWidget {
 	}
     }
 
+    /// Dispatch to the action function/delegate.
+    private void dispatch() {
+	if (actionFunction !is null) {
+	    actionFunction();
+	}
+	if (actionDelegate !is null) {
+	    actionDelegate();
+	}
+    }
+
     /**
      * Handle mouse button presses.
      *
@@ -143,7 +157,7 @@ public class TButton : TWidget {
     override protected void onMouseDown(TInputEvent event) {
 	mouse = event;
 
-	if (mouseOnButton()) {
+	if ((mouseOnButton()) && (mouse.mouse1)) {
 	    // Begin button press
 	    inButtonPress = true;
 	}
@@ -161,12 +175,7 @@ public class TButton : TWidget {
 	if ((inButtonPress == true) && (mouse.mouse1)) {
 	    inButtonPress = false;
 	    // Dispatch the event
-	    if (actionFunction !is null) {
-		actionFunction();
-	    }
-	    if (actionDelegate !is null) {
-		actionDelegate();
-	    }
+	    dispatch();
 	}
 
     }
@@ -183,6 +192,25 @@ public class TButton : TWidget {
 	if (!mouseOnButton()) {
 	    inButtonPress = false;
 	}
+    }
+
+    /**
+     * Handle keystrokes.
+     *
+     * Params:
+     *    event = keystroke event
+     */
+    override protected void onKeypress(TInputEvent event) {
+	if ((event.key == kbEnter) || 
+	    (event.key == kbSpace)
+	) {
+	    // Dispatch
+	    dispatch();
+	    return;
+	}
+
+	// Pass to parent for the things we don't care about.
+	super.onKeypress(event);
     }
 
 }
