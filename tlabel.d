@@ -1,5 +1,5 @@
 /**
- * D Text User Interface library - TMessageBox class
+ * D Text User Interface library - TLabel class
  *
  * Version: $Id$
  *
@@ -36,8 +36,9 @@
 // Imports -------------------------------------------------------------------
 
 import std.utf;
-import tapplication;
-import twindow;
+import base;
+import codepage;
+import twidget;
 
 // Defines -------------------------------------------------------------------
 
@@ -46,52 +47,46 @@ import twindow;
 // Classes -------------------------------------------------------------------
 
 /**
- * TMessageBox is a system-modal dialog with OK and/or Cancel buttons.
+ * TLabel implements a simple label.
  */
-public class TMessageBox : TWindow {
+public class TLabel : TWidget {
 
-    /// Display the OK button
-    public static immutable uint BUTTON_OK	= 0x01;
-
-    /// Bitmask of buttons to display
-    private uint buttons = 0;
-
-    /// Response will be set to which button the user selected
-    private uint response = 0;
+    /// Label text
+    private dstring text = "";
 
     /**
-     * Public constructor.  Window will be located at (0, 0).
+     * Public constructor
      *
      * Params:
-     *    application = TApplication that manages this window
-     *    title = window title, will be centered along the top border
-     *    caption = message to display.  Use embedded newlines to get a multi-line box.
-     *    buttons = one of the TMessageBox.BUTTON_* flags.  Default is BUTTON_OK.
+     *    parent = parent widget
+     *    text = label on the button
+     *    x = column relative to parent
+     *    y = row relative to parent
      */
-    public this(TApplication application, dstring title, dstring caption,
-	uint buttons = BUTTON_OK) {
+    public this(TWidget parent, dstring text, uint x, uint y) {
 
-	this.buttons = buttons;
+	// Do this before the twidget constructor
+	this.enabled = false;
 
-	// Determine width and height
-	// TODO
-	uint width = cast(uint)(codeLength!(dchar)(title)) + 10;
-	uint height = 7;
+	// Set parent and window
+	super(parent);
 
-	// Register with the TApplication
-	super(application, title, 0, 0, width, height, MODAL);
-
-	// Setup button actions
-	// TODO
-
-	// Set the secondaryFiber to run me
-	// TODO
-
-	// Make the primaryFiber yield
-	// TODO
+	this.text = text;
+	this.x = x;
+	this.y = y;
+	this.height = 1;
+	this.width = cast(uint)(codeLength!dchar(text));
     }
 
+    /// Draw a static label
+    override public void draw() {
+	CellAttributes labelColor = new CellAttributes();
+	CellAttributes background = window.getBackground();
+	labelColor.setTo(window.application.theme.getColor("tlabel"));
+	labelColor.backColor = background.backColor;
 
+	window.putStrXY(0, 0, text, labelColor);
+    }
 
 }
 

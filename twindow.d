@@ -107,14 +107,34 @@ public class TWindow : TWidget {
     private int restoreWindowX;
     private int restoreWindowY;
 
-    /// Public constructor
+    /**
+     * Public constructor.  Window will be located at (0, 0).
+     *
+     * Params:
+     *    application = TApplication that manages this window
+     *    title = window title, will be centered along the top border
+     *    width = width of window
+     *    height = height of window
+     *    flags = mask of RESIZABLE, CENTERED, or MODAL
+     */
     public this(TApplication application, dstring title,
 	uint width, uint height, ubyte flags = RESIZABLE) {
 
 	this(application, title, 0, 0, width, height, flags);
     }
 
-    /// Public constructor.
+    /**
+     * Public constructor
+     *
+     * Params:
+     *    application = TApplication that manages this window
+     *    title = window title, will be centered along the top border
+     *    x = column relative to parent
+     *    y = row relative to parent
+     *    width = width of window
+     *    height = height of window
+     *    flags = mask of RESIZABLE, CENTERED, or MODAL
+     */
     public this(TApplication application, dstring title, uint x, uint y,
 	uint width, uint height, ubyte flags = RESIZABLE) {
 

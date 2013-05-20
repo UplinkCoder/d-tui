@@ -76,6 +76,12 @@ calling this version 1.0:
   - [ ] Dispatch window resize events
 - TMessageBox
   - [ ] Override secondaryFiber for handleEvent
+  - [ ] Multiple lines in caption
+  - [ ] Yes
+  - [ ] No
+  - [ ] OK
+  - [ ] Cancel
+  - [ ] Help
 - TApplication
   - [ ] Confirmation dialog on exit
   - [ ] Timers:

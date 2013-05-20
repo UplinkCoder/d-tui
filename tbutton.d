@@ -64,7 +64,15 @@ public class TButton : TWidget {
     private void delegate() actionDelegate;
     private void function() actionFunction;
 
-    /// Public constructor
+    /**
+     * Private constructor
+     *
+     * Params:
+     *    parent = parent widget
+     *    text = label on the button
+     *    x = column relative to parent
+     *    y = row relative to parent
+     */
     private this(TWidget parent, dstring text, uint x, uint y) {
 	// Set parent and window
 	super(parent);
@@ -76,7 +84,16 @@ public class TButton : TWidget {
 	this.width = cast(uint)(codeLength!dchar(text) + 3);
     }
 
-    /// Public constructor
+    /**
+     * Public constructor
+     *
+     * Params:
+     *    parent = parent widget
+     *    text = label on the button
+     *    x = column relative to parent
+     *    y = row relative to parent
+     *    actionFn = function to call when button is pressed
+     */
     public this(TWidget parent, dstring text, uint x, uint y,
 	void delegate() actionFn) {
 
@@ -85,7 +102,16 @@ public class TButton : TWidget {
 	this(parent, text, x, y);
     }
 
-    /// Public constructor
+    /**
+     * Public constructor
+     *
+     * Params:
+     *    parent = parent widget
+     *    text = label on the button
+     *    x = column relative to parent
+     *    y = row relative to parent
+     *    actionFn = function to call when button is pressed
+     */
     public this(TWidget parent, dstring text, uint x, uint y,
 	void function() actionFn) {
 

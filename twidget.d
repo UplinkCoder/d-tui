@@ -38,6 +38,10 @@
 import base;
 import twindow;
 
+// Convenience constructors
+import tbutton;
+import tlabel;
+
 // Defines -------------------------------------------------------------------
 
 // Globals -------------------------------------------------------------------
@@ -59,7 +63,7 @@ public class TWidget {
     public TWidget [] children;
 
     /// The currently active child widget that will receive keypress events.
-    private TWidget activeChild;
+    private TWidget activeChild = null;
 
     /// If true, this widget will receive events.
     public bool active = false;
@@ -80,7 +84,10 @@ public class TWidget {
     public uint height = 0;
 
     /// My tab order inside a window or containing widget
-    private uint tabOrder = 0;
+    private int tabOrder = 0;
+
+    /// If true, this widget can be tabbed to or receive events
+    protected bool enabled = true;
 
     /// Comparison operator sorts on tabOrder
     public override int opCmp(Object rhs) {
@@ -183,7 +190,12 @@ public class TWidget {
     /// TWindow needs this constructor.
     protected this() {}
 
-    /// Public constructor.
+    /**
+     * Public constructor
+     *
+     * Params:
+     *    parent = parent widget
+     */
     public this(TWidget parent) {
 	this.parent = parent;
 	this.window = parent.window;
@@ -199,12 +211,15 @@ public class TWidget {
      *    child = TWidget to add
      */
     private void addChild(TWidget child) {
-	foreach (w; children) {
-	    w.active = false;
-	}
 	children ~= child;
-	child.active = true;
-	activeChild = child;
+
+	if (child.enabled) {
+	    foreach (w; children) {
+		w.active = false;
+	    }
+	    child.active = true;
+	    activeChild = child;
+	}
 	for (auto i = 0; i < children.length; i++) {
 	    children[i].tabOrder = i;
 	}
@@ -214,17 +229,35 @@ public class TWidget {
      * Switch the active widget with the next in the tab order.
      *
      * Param:
-     *    tabOrder = make widget with this tabOrder the active one.
-     *               Wraps when out of bounds.
+     *    forward = switch to the next enabled widget in the list
      */
-    private void switchWidget(int tabOrder) {
-	// Only switch if there are multiple widgets
-	if (children.length < 2) {
+    private void switchWidget(bool forward) {
+	// Only switch if there are multiple enabled widgets
+	if ((children.length < 2) || (activeChild is null)) {
 	    return;
 	}
 
+	int tabOrder = activeChild.tabOrder;
 	activeChild.active = false;
-	tabOrder %= children.length;
+	do {
+	    if (forward) {
+		tabOrder++;
+	    } else {
+		tabOrder--;
+	    }
+	    if (tabOrder < 0) {
+		tabOrder = cast(int)children.length - 1;
+	    } else if (tabOrder == children.length) {
+		tabOrder = 0;
+	    }
+	    if (activeChild.tabOrder == tabOrder) {
+		// We wrapped around
+		break;
+	    }
+	} while (children[tabOrder].enabled == false);
+
+	assert(children[tabOrder].enabled == true);
+
 	children[tabOrder].active = true;
 	activeChild = children[tabOrder];
 
@@ -247,12 +280,12 @@ public class TWidget {
 	    (event.key == kbRight) ||
 	    (event.key == kbDown)
 	) {
-	    parent.switchWidget(tabOrder + 1);
+	    parent.switchWidget(true);
 	} else if ((event.key == kbShiftTab) ||
 	    (event.key == kbLeft) ||
 	    (event.key == kbUp)
 	) {
-	    parent.switchWidget(tabOrder - 1);
+	    parent.switchWidget(false);
 	}
     }
 
@@ -296,6 +329,11 @@ public class TWidget {
      *    event = keyboard or mouse event
      */
     public void handleEvent(TInputEvent event) {
+	if (!enabled) {
+	    // Discard event
+	    return;
+	}
+
 	if (event.type == TInputEvent.KEYPRESS) {
 	    onKeypress(event);
 	}
@@ -333,6 +371,46 @@ public class TWidget {
 	    return true;
 	}
 	return false;
+    }
+
+    /**
+     * Convenience function to add a button to this container/window.
+     *
+     * Params:
+     *    text = label on the button
+     *    x = column relative to parent
+     *    y = row relative to parent
+     *    actionFn = function to call when button is pressed
+     */
+    public TButton addButton(dstring text, uint x, uint y,
+	void function() actionFn) {
+	return new TButton(this, text, x, y, actionFn);
+    }
+
+    /**
+     * Convenience function to add a button to this container/window.
+     *
+     * Params:
+     *    text = label on the button
+     *    x = column relative to parent
+     *    y = row relative to parent
+     *    actionFn = function to call when button is pressed
+     */
+    public TButton addButton(dstring text, uint x, uint y,
+	void delegate() actionFn) {
+	return new TButton(this, text, x, y, actionFn);
+    }
+
+    /**
+     * Convenience function to add a label to this container/window.
+     *
+     * Params:
+     *    text = label
+     *    x = column relative to parent
+     *    y = row relative to parent
+     */
+    public TLabel addLabel(dstring text, uint x, uint y) {
+	return new TLabel(this, text, x, y);
     }
 
 }

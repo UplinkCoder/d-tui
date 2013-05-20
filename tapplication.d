@@ -473,6 +473,54 @@ public class TApplication {
 	}
     }
 
+    /**
+     * Convenience function to add a window to this container/window.
+     * Window will be located at (0, 0).
+     *
+     * Params:
+     *    title = window title, will be centered along the top border
+     *    width = width of window
+     *    height = height of window
+     *    flags = mask of RESIZABLE, CENTERED, or MODAL
+     */
+    public TWindow addWindow(dstring title, uint width, uint height,
+	ubyte flags = TWindow.RESIZABLE) {
+
+	return new TWindow(this, title, width, height, flags);
+    }
+
+    /**
+     * Convenience function to add a window to this container/window.
+     *
+     * Params:
+     *    title = window title, will be centered along the top border
+     *    x = column relative to parent
+     *    y = row relative to parent
+     *    width = width of window
+     *    height = height of window
+     *    flags = mask of RESIZABLE, CENTERED, or MODAL
+     */
+    public TWindow addWindow(dstring title, uint x, uint y, uint width, uint height,
+	ubyte flags = TWindow.RESIZABLE) {
+
+	return new TWindow(this, title, x, y, width, height, flags);
+    }
+
+    /**
+     * Convenience function to spawn a message box.
+     *
+     * Params:
+     *    application = TApplication that manages this window
+     *    title = window title, will be centered along the top border
+     *    caption = message to display.  Use embedded newlines to get a multi-line box.
+     *    buttons = one of the TMessageBox.BUTTON_* flags.  Default is BUTTON_OK.
+     */
+    public TMessageBox messageBox(dstring title, dstring caption,
+	uint buttons = TMessageBox.BUTTON_OK) {
+
+	return new TMessageBox(this, title, caption, buttons);
+    }
+    
 }
 
 // Functions -----------------------------------------------------------------

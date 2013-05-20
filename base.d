@@ -2652,6 +2652,13 @@ public class ColorTheme {
 	color.backColor = COLOR_GREEN;
 	color.bold = true;
 	colors["tbutton.active"] = color;
+
+	// TLabel text
+	color = new CellAttributes();
+	color.foreColor = COLOR_WHITE;
+	color.backColor = COLOR_BLUE;
+	color.bold = true;
+	colors["tlabel"] = color;
 	
     }
 

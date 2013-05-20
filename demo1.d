@@ -33,27 +33,38 @@
 import std.stdio;
 import tui;
 
-private TApplication app;
-private TWindow window1;
-private TWindow window2;
+private class DemoApplication : TApplication {
 
-private void doSomething1() {
-    window2 = new TWindow(app, "Demo modal", 0, 0, 70, 15, TWindow.MODAL);
-    TButton button = new TButton(window2, "Close", 20, 1, &doSomething2);
-}
+    private TWindow window1;
+    private TWindow modalWindow;
 
-private void doSomething2() {
-    app.closeWindow(window2);
+    private void openModalWindow() {
+	modalWindow = addWindow("Demo modal", 0, 0, 70, 15, TWindow.MODAL);
+	modalWindow.addButton("Close", 20, 1, &modalWindowClose);
+    }
+
+    private void modalWindowClose() {
+	closeWindow(modalWindow);
+    }
+
+    private void openMessageBox() {
+	modalWindow = messageBox("Demo message box", "HELLO I AM A MESSAGE BOX CAPTION!");
+    }
+
+    /// Constructor
+    this() {
+	super();
+	window1 = addWindow("Demo Window", 20, 3, 60, 10,
+	    TWindow.CENTERED | TWindow.RESIZABLE);
+	window1.addButton("Open modal dialog", 10, 1, &openModalWindow);
+	window1.addButton("Open message box", 35, 1, &openMessageBox);
+	window1.addLabel("Label1", 0, 1);
+    }
+
 }
 
 public void main(string [] args) {
-    app = new TApplication();
-    TWindow window;
-    window = new TWindow(app, "Demo boring", 10, 10, 50, 10);
-    window1 = new TWindow(app, "Demo buttonized", 20, 3, 60, 10,
-	TWindow.CENTERED | TWindow.RESIZABLE);
-    TButton button = new TButton(window1, "Open modal dialog", 20, 1, &doSomething1);
-    button = new TButton(window1, "Open modal dialog", 20, 3, &doSomething1);
+    DemoApplication app = new DemoApplication();
     app.run();
 }
 
