@@ -69,8 +69,14 @@ public class TApplication {
     /// Fiber for main handleEvent loop
     private Fiber primaryEventFiber;
     
-    /// Fiber for scondary handleEvent loop - used by TMessageBox
+    /// Fiber for scondary handleEvent loop
     private Fiber secondaryEventFiber;
+
+    /// Widget to receive events if secondaryEventFiber is called
+    private TWidget secondaryEventReceiver;
+
+    /// Event queue that will be drained by either primary or secondary Fiber
+    private shared TInputEvent [] eventQueue;
 
     /// Public constructor.
     public this() {
@@ -78,6 +84,8 @@ public class TApplication {
 	theme = new ColorTheme();
 
 	desktopBottom = screen.getHeight() - 1;
+
+	primaryEventFiber = new Fiber(&primaryEventHandler);
     }
 
     /// Windows in this application.
@@ -120,6 +128,64 @@ public class TApplication {
 	attr.backColor = sgrToPCMap[attr.backColor] ^ 0x7;
 	screen.putAttrXY(mouseX, mouseY, attr, false);
 	flush = true;
+    }
+
+    /**
+     * The default event queue function called by primaryFiber
+     */
+    private void primaryEventHandler() {
+	while (quit == false) {
+	    // It is possible that eventQueue will shrink to 0 between calls
+	    // to handleEvent, so we must explicitly check every time.  We
+	    // cannot use a foreach here.
+	    if (eventQueue.length > 0) {
+		TInputEvent event = eventQueue[0];
+		eventQueue = eventQueue[1 .. $];
+		handleEvent(event);
+		Fiber.yield();
+	    }
+	}
+    }
+
+    /**
+     * Enable a widget to override the event queue
+     *
+     * Params:
+     *    widget = widget that will receive events
+     */
+    public void enableSecondaryEventReceiver(TWidget widget) {
+	secondaryEventReceiver = widget;
+	if (secondaryEventFiber is null) {
+	    secondaryEventFiber = new Fiber(&widgetEventHandler);
+	} else {
+	    secondaryEventFiber.reset();
+	}
+    }
+
+    /**
+     * Disable the secondary event fiber
+     */
+    public void disableSecondaryEventReceiver() {
+	secondaryEventReceiver = null;
+    }
+
+    /**
+     * The event queue function called by application.secondaryFiber
+     */
+    private void widgetEventHandler() {
+	assert(secondaryEventReceiver !is null);
+
+	while (secondaryEventReceiver !is null) {
+	    // It is possible that eventQueue will shrink to 0 between calls
+	    // to handleEvent, so we must explicitly check every time.  We
+	    // cannot use a foreach here.
+	    if (eventQueue.length > 0) {
+		TInputEvent event = eventQueue[0];
+		eventQueue = eventQueue[1 .. $];
+		secondaryEventReceiver.handleEvent(event);
+		Fiber.yield();
+	    }
+	}
     }
 
     /**
@@ -291,16 +357,56 @@ public class TApplication {
     }
 
     /**
-     * Dispatch one event to the appropriate widget or
-     * application-level event handler.
+     * Dispatch one event to the appropriate widget or application-level
+     * event handler.
+     *
+     * Params:
+     *    event the input event to consume
+     */
+    private void metaHandleEvent(TInputEvent event) {
+
+	// Special application-wide events -----------------------------------
+
+	// Ctrl-W - close window
+	if ((event.type == TInputEvent.KEYPRESS) &&
+	    (event.key == kbCtrlW)) {
+
+	    // Resort windows and nix the first one (it is active)
+	    if (windows.length > 0) {
+		windows.sort;
+		closeWindow(windows[0]);
+	    }
+
+	    // Refresh
+	    repaint = true;
+	    return;
+	}
+
+	// Peek at the mouse position
+	if (event.type != TInputEvent.KEYPRESS) {
+	    if ((mouseX != event.x) || (mouseY != event.y)) {
+		flipMouse();
+		mouseX = event.x;
+		mouseY = event.y;
+		flipMouse();
+	    }
+
+	    // See if we need to switch focus
+	    checkSwitchFocus(event);
+	}
+
+	// Put into the main queue
+	eventQueue ~= event;
+    }
+
+    /**
+     * Dispatch one event to the appropriate widget or application-level
+     * event handler.
      *
      * Params:
      *    event the input event to consume
      */
     private void handleEvent(TInputEvent event) {
-
-	// TODO: use primaryEventFiber and secondaryEventFiber
-
 
 	// Special application-wide events -----------------------------------
 
@@ -320,20 +426,6 @@ public class TApplication {
 	    return;
 	}
 
-	// Ctrl-W - close window
-	if ((event.type == TInputEvent.KEYPRESS) &&
-	    (event.key == kbCtrlW)) {
-
-	    // Resort windows and nix the first one (it is active)
-	    if (windows.length > 0) {
-		windows.sort;
-		closeWindow(windows[0]);
-	    }
-
-	    // Refresh
-	    repaint = true;
-	}
-
 	// Ctrl-Q - quit app
 	if ((event.type == TInputEvent.KEYPRESS) &&
 	    ((event.key == kbAltX) || (event.key == kbAltShiftX))
@@ -341,19 +433,6 @@ public class TApplication {
 
 	    quit = true;
 	    return;
-	}
-
-	// Peek at the mouse position
-	if (event.type != TInputEvent.KEYPRESS) {
-	    if ((mouseX != event.x) || (mouseY != event.y)) {
-		flipMouse();
-		mouseX = event.x;
-		mouseY = event.y;
-		flipMouse();
-	    }
-
-	    // See if we need to switch focus
-	    checkSwitchFocus(event);
 	}
 
 	// Dispatch events to the right window --------------------------------
@@ -385,8 +464,20 @@ public class TApplication {
 	    terminal = new Terminal(false);
 	}
 	TInputEvent [] events = terminal.getEvents(ch);
+
+	// Handle some of the application-wide events (mouse tracking)
 	foreach (event; events) {
-	    handleEvent(event);
+	    metaHandleEvent(event);
+	}
+
+	if (secondaryEventFiber !is null) {
+	    // Wake up the secondary handler for these events
+	    if (secondaryEventFiber.state == Fiber.State.HOLD) {
+		secondaryEventFiber.call();
+	    }
+	} else if (primaryEventFiber.state == Fiber.State.HOLD) {
+	    // Wake up the primary handler for these events
+	    primaryEventFiber.call();
 	}
     }
 

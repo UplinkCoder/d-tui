@@ -59,6 +59,9 @@ public class TMessageBox : TWindow {
     /// Response will be set to which button the user selected
     private uint response = 0;
 
+    /// When true, kill this message box
+    private bool quit = false;
+
     /**
      * Public constructor.  Window will be located at (0, 0).
      *
@@ -85,10 +88,7 @@ public class TMessageBox : TWindow {
 	// TODO
 
 	// Set the secondaryFiber to run me
-	// TODO
-
-	// Make the primaryFiber yield
-	// TODO
+	application.enableSecondaryEventReceiver(this);
     }
 
 
