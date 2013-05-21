@@ -76,7 +76,7 @@ public class TApplication {
     private TWidget secondaryEventReceiver;
 
     /// Event queue that will be drained by either primary or secondary Fiber
-    private shared TInputEvent [] eventQueue;
+    private TInputEvent [] eventQueue;
 
     /// Public constructor.
     public this() {
@@ -128,64 +128,6 @@ public class TApplication {
 	attr.backColor = sgrToPCMap[attr.backColor] ^ 0x7;
 	screen.putAttrXY(mouseX, mouseY, attr, false);
 	flush = true;
-    }
-
-    /**
-     * The default event queue function called by primaryFiber
-     */
-    private void primaryEventHandler() {
-	while (quit == false) {
-	    // It is possible that eventQueue will shrink to 0 between calls
-	    // to handleEvent, so we must explicitly check every time.  We
-	    // cannot use a foreach here.
-	    if (eventQueue.length > 0) {
-		TInputEvent event = eventQueue[0];
-		eventQueue = eventQueue[1 .. $];
-		handleEvent(event);
-		Fiber.yield();
-	    }
-	}
-    }
-
-    /**
-     * Enable a widget to override the event queue
-     *
-     * Params:
-     *    widget = widget that will receive events
-     */
-    public void enableSecondaryEventReceiver(TWidget widget) {
-	secondaryEventReceiver = widget;
-	if (secondaryEventFiber is null) {
-	    secondaryEventFiber = new Fiber(&widgetEventHandler);
-	} else {
-	    secondaryEventFiber.reset();
-	}
-    }
-
-    /**
-     * Disable the secondary event fiber
-     */
-    public void disableSecondaryEventReceiver() {
-	secondaryEventReceiver = null;
-    }
-
-    /**
-     * The event queue function called by application.secondaryFiber
-     */
-    private void widgetEventHandler() {
-	assert(secondaryEventReceiver !is null);
-
-	while (secondaryEventReceiver !is null) {
-	    // It is possible that eventQueue will shrink to 0 between calls
-	    // to handleEvent, so we must explicitly check every time.  We
-	    // cannot use a foreach here.
-	    if (eventQueue.length > 0) {
-		TInputEvent event = eventQueue[0];
-		eventQueue = eventQueue[1 .. $];
-		secondaryEventReceiver.handleEvent(event);
-		Fiber.yield();
-	    }
-	}
     }
 
     /**
@@ -354,11 +296,43 @@ public class TApplication {
 		}
 	    }
 	}
+
+	// Check if we are closing a TMessageBox or similar
+	if (secondaryEventReceiver !is null) {
+	    assert(secondaryEventFiber !is null);
+
+	    // Do not send events to the secondaryEventReceiver anymore, the
+	    // window is closed.
+	    secondaryEventReceiver = null;
+
+	    // Special case: if this is called while executing on a
+	    // secondaryEventFiber, call it so that widgetEventHandler() can
+	    // terminate.
+	    if (secondaryEventFiber.state == Fiber.State.HOLD) {
+		secondaryEventFiber.call();
+	    }
+
+	    // Kill the fiber reference so we don't call it again in
+	    // processChar().
+	    secondaryEventFiber = null;
+	}
     }
 
     /**
-     * Dispatch one event to the appropriate widget or application-level
-     * event handler.
+     * Enable a widget to override the event queue
+     *
+     * Params:
+     *    widget = widget that will receive events
+     */
+    public void enableSecondaryEventReceiver(TWidget widget) {
+	assert(secondaryEventReceiver is null);
+	assert(secondaryEventFiber is null);
+	secondaryEventReceiver = widget;
+	secondaryEventFiber = new Fiber(&widgetEventHandler);
+    }
+
+    /**
+     * Peek at certain application-level events and add to eventQueue.
      *
      * Params:
      *    event the input event to consume
@@ -366,6 +340,16 @@ public class TApplication {
     private void metaHandleEvent(TInputEvent event) {
 
 	// Special application-wide events -----------------------------------
+
+	// DEBUG
+	// Alt-X - quit app
+	if ((event.type == TInputEvent.KEYPRESS) &&
+	    ((event.key == kbAltX) || (event.key == kbAltShiftX))
+	) {
+
+	    quit = true;
+	    return;
+	}
 
 	// Ctrl-W - close window
 	if ((event.type == TInputEvent.KEYPRESS) &&
@@ -400,6 +384,55 @@ public class TApplication {
     }
 
     /**
+     * The default event queue function called by primaryFiber
+     */
+    private void primaryEventHandler() {
+	while (quit == false) {
+	    // Yield if there is nothing to do.  We will be called again in
+	    // processChar().
+	    if (eventQueue.length == 0) {
+		Fiber.yield();
+	    }
+
+	    // It is possible that eventQueue will shrink to 0 between calls
+	    // to handleEvent, so we must explicitly check every time.  We
+	    // cannot use a foreach here.
+	    if (eventQueue.length > 0) {
+		TInputEvent event = eventQueue[0];
+		eventQueue = eventQueue[1 .. $];
+		handleEvent(event);
+	    }
+	}
+    }
+
+    /**
+     * The event queue function called by application.secondaryFiber
+     */
+    private void widgetEventHandler() {
+	// For some reason this assert fires even when I wake inside the
+	// while().  Not sure if this is a bug in Fibers or a flaw in my
+	// understanding of them.
+	// assert(secondaryEventReceiver !is null);
+
+	while (secondaryEventReceiver !is null) {
+	    // Yield if there is nothing to do.  We will be called again
+	    // EITHER in processChar() or in closeWindow().
+	    if (eventQueue.length == 0) {
+		Fiber.yield();
+	    }
+
+	    // It is possible that eventQueue will shrink to 0 between calls
+	    // to handleEvent, so we must explicitly check every time.  We
+	    // cannot use a foreach here.
+	    if (eventQueue.length > 0) {
+		TInputEvent event = eventQueue[0];
+		eventQueue = eventQueue[1 .. $];
+		secondaryEventReceiver.handleEvent(event);
+	    }
+	}
+    }
+
+    /**
      * Dispatch one event to the appropriate widget or application-level
      * event handler.
      *
@@ -426,7 +459,7 @@ public class TApplication {
 	    return;
 	}
 
-	// Ctrl-Q - quit app
+	// Alt-X - quit app
 	if ((event.type == TInputEvent.KEYPRESS) &&
 	    ((event.key == kbAltX) || (event.key == kbAltShiftX))
 	) {
@@ -465,17 +498,21 @@ public class TApplication {
 	}
 	TInputEvent [] events = terminal.getEvents(ch);
 
-	// Handle some of the application-wide events (mouse tracking)
+	// Handle some of the application-wide events (like mouse tracking)
+	// and fill eventQueue.
 	foreach (event; events) {
 	    metaHandleEvent(event);
 	}
 
+	// Have one of the two consumer Fibers peel the events off the queue.
 	if (secondaryEventFiber !is null) {
+	    assert(secondaryEventFiber.state == Fiber.State.HOLD);
+
 	    // Wake up the secondary handler for these events
-	    if (secondaryEventFiber.state == Fiber.State.HOLD) {
-		secondaryEventFiber.call();
-	    }
-	} else if (primaryEventFiber.state == Fiber.State.HOLD) {
+	    secondaryEventFiber.call();
+	} else {
+	    assert(primaryEventFiber.state == Fiber.State.HOLD);
+
 	    // Wake up the primary handler for these events
 	    primaryEventFiber.call();
 	}
@@ -502,12 +539,6 @@ public class TApplication {
 
 	// TODO: now run any timers that have timed out
 
-    }
-
-    /// Obtain a TMessageBox
-    public TMessageBox MessageBox(string title, string text) {
-	// TODO
-	return null;
     }
 
     /// Run this application until it exits, using stdin and stdout
@@ -538,8 +569,6 @@ public class TApplication {
 	    pfd.revents = 0;
 
 	    auto poll_rc = poll(&pfd, 1, 100);
-
-	    // stderr.writef("poll() %d\r\n", poll_rc);
 
 	    if (poll_rc < 0) {
 		// Interrupt

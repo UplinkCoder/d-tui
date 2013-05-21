@@ -35,9 +35,13 @@
 
 // Imports -------------------------------------------------------------------
 
+import core.thread;
 import std.utf;
 import tapplication;
 import twindow;
+
+// DEBUG
+import std.stdio;
 
 // Defines -------------------------------------------------------------------
 
@@ -89,8 +93,11 @@ public class TMessageBox : TWindow {
 
 	// Set the secondaryFiber to run me
 	application.enableSecondaryEventReceiver(this);
-    }
 
+	// Yield my fiber.  When I come back from the constructor response
+	// will already be set.
+	Fiber.yield();
+    }
 
 
 }

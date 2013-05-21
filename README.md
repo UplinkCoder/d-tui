@@ -75,7 +75,7 @@ calling this version 1.0:
   - [ ] Vertical scrollbar
   - [ ] Dispatch window resize events
 - TMessageBox
-  - [ ] Override secondaryFiber for handleEvent
+  - [X] Override secondaryFiber for handleEvent
   - [ ] Multiple lines in caption
   - [ ] Yes
   - [ ] No
