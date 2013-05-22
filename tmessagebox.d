@@ -50,12 +50,28 @@ import std.stdio;
 // Classes -------------------------------------------------------------------
 
 /**
- * TMessageBox is a system-modal dialog with OK and/or Cancel buttons.
+ * TMessageBox is a system-modal dialog with buttons for OK, Cancel,
+ * Yes, or No.  Call it like:
+ *
+ *     box = application.messageBox(title, caption, TMessageBox.OK | TMessageBox.CANCEL);
+ *     if (box.result == TMessageBox.OK) {
+ *        ... the user pressed OK, do stuff ...
+ *     }
+ *
  */
 public class TMessageBox : TWindow {
 
     /// Display the OK button
     public static immutable uint BUTTON_OK	= 0x01;
+
+    /// Display the Cancel button
+    public static immutable uint BUTTON_CANCEL	= 0x02;
+
+    /// Display the Yes button
+    public static immutable uint BUTTON_YES	= 0x04;
+
+    /// Display the No button
+    public static immutable uint BUTTON_NO	= 0x08;
 
     /// Bitmask of buttons to display
     private uint buttons = 0;
@@ -67,7 +83,8 @@ public class TMessageBox : TWindow {
     private bool quit = false;
 
     /**
-     * Public constructor.  Window will be located at (0, 0).
+     * Public constructor.  The message box will be centered on
+     * screen.
      *
      * Params:
      *    application = TApplication that manages this window

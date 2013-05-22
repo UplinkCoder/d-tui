@@ -81,7 +81,6 @@ calling this version 1.0:
   - [ ] No
   - [ ] OK
   - [ ] Cancel
-  - [ ] Help
 - TApplication
   - [ ] Confirmation dialog on exit
   - [ ] Timers:
@@ -94,7 +93,6 @@ calling this version 1.0:
   - [ ] Keyboard shortcut ("&File" or "~F~ile" ?)
   - [ ] Keyboard accelerator ("Ctrl-F10")
   - [ ] Status line text
-- [ ] TLabel
 - [ ] TField - steal from fieldset/field in qodem
 - [ ] TTextArea
 - [ ] TText
@@ -104,4 +102,5 @@ calling this version 1.0:
 - [ ] TApplicationSocket - socket that knows about environment variables and
         rows X cols
       - [ ] this(TApplication application)
-
+- [ ] TFileOpenDialog
+- [ ] TTerminal

@@ -327,6 +327,7 @@ public class TApplication {
     public void enableSecondaryEventReceiver(TWidget widget) {
 	assert(secondaryEventReceiver is null);
 	assert(secondaryEventFiber is null);
+	assert(cast(TMessageBox)widget);
 	secondaryEventReceiver = widget;
 	secondaryEventFiber = new Fiber(&widgetEventHandler);
     }
@@ -340,16 +341,6 @@ public class TApplication {
     private void metaHandleEvent(TInputEvent event) {
 
 	// Special application-wide events -----------------------------------
-
-	// DEBUG
-	// Alt-X - quit app
-	if ((event.type == TInputEvent.KEYPRESS) &&
-	    ((event.key == kbAltX) || (event.key == kbAltShiftX))
-	) {
-
-	    quit = true;
-	    return;
-	}
 
 	// Ctrl-W - close window
 	if ((event.type == TInputEvent.KEYPRESS) &&
