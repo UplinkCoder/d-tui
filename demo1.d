@@ -48,7 +48,8 @@ private class DemoApplication : TApplication {
     }
 
     private void openMessageBox() {
-	modalWindow = messageBox("Demo message box", "HELLO I AM A MESSAGE BOX CAPTION!");
+	modalWindow = messageBox("Demo message box", "HELLO I AM A MESSAGE BOX CAPTION!\n\nI even have multiple lines, check me out...\nLine2",
+	TMessageBox.Type.YESNOCANCEL);
     }
 
     /// Constructor
@@ -59,6 +60,8 @@ private class DemoApplication : TApplication {
 	window1.addButton("Open modal dialog", 10, 1, &openModalWindow);
 	window1.addButton("Open message box", 35, 1, &openMessageBox);
 	window1.addLabel("Label1", 0, 1);
+	window1.addField(2, 3, 10, "Field1");
+	window1.addField(2, 5, 10);
     }
 
 }

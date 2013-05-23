@@ -41,6 +41,7 @@ import twindow;
 // Convenience constructors
 import tbutton;
 import tlabel;
+import tfield;
 
 // Defines -------------------------------------------------------------------
 
@@ -408,9 +409,25 @@ public class TWidget {
      *    text = label
      *    x = column relative to parent
      *    y = row relative to parent
+     *    colorKey = ColorTheme key color to use for foreground text.  Default is "tlabel"
      */
-    public TLabel addLabel(dstring text, uint x, uint y) {
-	return new TLabel(this, text, x, y);
+    public TLabel addLabel(dstring text, uint x, uint y,
+	string colorKey = "tlabel") {
+	return new TLabel(this, text, x, y, colorKey);
+    }
+
+    /**
+     * Convenience function to add a field to this container/window.
+     *
+     * Params:
+     *    parent = parent widget
+     *    x = column relative to parent
+     *    y = row relative to parent
+     *    width = visible text width.
+     *    text = initial text, default is empty string
+     */
+    public TField addField(uint x, uint y, uint width, dstring text = "") {
+	return new TField(this, x, y, width, text);
     }
 
 }

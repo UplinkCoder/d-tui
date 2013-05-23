@@ -63,26 +63,22 @@ Roadmap
 I am just beginning as a work in progress.  Many tasks remain before
 calling this version 1.0:
 
-- Terminal
-  - [ ] Win32 console support
-- Screen
-  - [ ] putColorizedStrXY : colorized string markup style - use for status bar text and general dialog boxes
+- [ ] TField - steal from fieldset/field in qodem
 - TWidget
   - [ ] hasCursor, cursorX, cursorY
+- [ ] TCheckBox
+- Screen
+  - [ ] putColorizedStrXY : colorized string markup style - use for status bar text and general dialog boxes
 - TWindow
   - [ ] SMARTPLACE (use smart placement for x, y)
   - [ ] Horizontal scrollbar
   - [ ] Vertical scrollbar
   - [ ] Dispatch window resize events
-- TMessageBox
-  - [X] Override secondaryFiber for handleEvent
-  - [ ] Multiple lines in caption
-  - [ ] Yes
-  - [ ] No
-  - [ ] OK
-  - [ ] Cancel
+- [ ] TTextArea
+- [ ] TText
+  - [ ] Reflows with window resize
+- [ ] TRadioButton / TRadioGroup
 - TApplication
-  - [ ] Confirmation dialog on exit
   - [ ] Timers:
     - [ ] setTimer
     - [ ] getSleepTime
@@ -93,14 +89,10 @@ calling this version 1.0:
   - [ ] Keyboard shortcut ("&File" or "~F~ile" ?)
   - [ ] Keyboard accelerator ("Ctrl-F10")
   - [ ] Status line text
-- [ ] TField - steal from fieldset/field in qodem
-- [ ] TTextArea
-- [ ] TText
-  - [ ] Reflows with window resize
-- [ ] TCheckBox
-- [ ] TRadioButton / TRadioGroup
+- [ ] TFileOpenDialog
+- [ ] TTerminal
 - [ ] TApplicationSocket - socket that knows about environment variables and
         rows X cols
       - [ ] this(TApplication application)
-- [ ] TFileOpenDialog
-- [ ] TTerminal
+- Terminal
+  - [ ] Win32 console support

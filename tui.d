@@ -43,3 +43,4 @@ public import twindow;
 public import tbutton;
 public import tlabel;
 public import tmessagebox;
+public import tfield;

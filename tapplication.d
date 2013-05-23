@@ -315,6 +315,11 @@ public class TApplication {
 	    // Kill the fiber reference so we don't call it again in
 	    // processChar().
 	    secondaryEventFiber = null;
+
+	    // Wake up the primary handler if it is waiting
+	    if (primaryEventFiber.state == Fiber.State.HOLD) {
+		primaryEventFiber.call();
+	    }
 	}
     }
 
@@ -454,8 +459,11 @@ public class TApplication {
 	if ((event.type == TInputEvent.KEYPRESS) &&
 	    ((event.key == kbAltX) || (event.key == kbAltShiftX))
 	) {
-
-	    quit = true;
+	    if (messageBox("Confirmation", "Exit application?",
+		    TMessageBox.Type.YESNO).result == TMessageBox.Result.YES) {
+		quit = true;
+	    }
+	    repaint = true;
 	    return;
 	}
 
@@ -624,12 +632,12 @@ public class TApplication {
      *    application = TApplication that manages this window
      *    title = window title, will be centered along the top border
      *    caption = message to display.  Use embedded newlines to get a multi-line box.
-     *    buttons = one of the TMessageBox.BUTTON_* flags.  Default is BUTTON_OK.
+     *    type = one of the TMessageBox.Type constants.  Default is Type.OK.
      */
     public TMessageBox messageBox(dstring title, dstring caption,
-	uint buttons = TMessageBox.BUTTON_OK) {
+	TMessageBox.Type type = TMessageBox.Type.OK) {
 
-	return new TMessageBox(this, title, caption, buttons);
+	return new TMessageBox(this, title, caption, type);
     }
     
 }

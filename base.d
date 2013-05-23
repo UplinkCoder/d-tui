@@ -809,7 +809,7 @@ public class Screen {
 	dchar cHSide;
 	dchar cVSide;
 
-	switch (borderType) {
+	final switch (borderType) {
 	case 1:
 	    cTopLeft = GraphicsChars.ULCORNER;
 	    cTopRight = GraphicsChars.URCORNER;
@@ -835,8 +835,6 @@ public class Screen {
 	    cBottomRight = GraphicsChars.WINDOW_RIGHT_BOTTOM;
 	    cHSide = GraphicsChars.WINDOW_TOP;
 	    cVSide = GraphicsChars.WINDOW_SIDE;
-	    break;
-	default:
 	    break;
 	}
 
@@ -1353,7 +1351,7 @@ public class TInputEvent {
     /// Make human-readable description of this event
     override public string toString() {
 	auto writer = appender!string();
-	switch (type) {
+	final switch (type) {
 	case KEYPRESS:
 	    formattedWrite(writer, "Keypress: %s", key.toString());
 	    break;
@@ -1380,8 +1378,6 @@ public class TInputEvent {
 		mouse3 ? "mouse3" : "",
 		mouseWheelUp ? "wheelUP" : "",
 		mouseWheelDown ? "wheelDOWN" : "");
-	    break;
-	default:
 	    break;
 	}
 	return writer.data;
@@ -2660,6 +2656,17 @@ public class ColorTheme {
 	color.bold = true;
 	colors["tlabel"] = color;
 	
+	// TField text
+	color = new CellAttributes();
+	color.foreColor = COLOR_WHITE;
+	color.backColor = COLOR_BLUE;
+	color.bold = false;
+	colors["tfield.inactive"] = color;
+	color = new CellAttributes();
+	color.foreColor = COLOR_YELLOW;
+	color.backColor = COLOR_BLACK;
+	color.bold = true;
+	colors["tfield.active"] = color;
     }
 
     /// Public constructor.

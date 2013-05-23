@@ -36,12 +36,11 @@
 // Imports -------------------------------------------------------------------
 
 import core.thread;
+import std.string;
 import std.utf;
 import tapplication;
 import twindow;
-
-// DEBUG
-import std.stdio;
+import tbutton;
 
 // Defines -------------------------------------------------------------------
 
@@ -61,23 +60,20 @@ import std.stdio;
  */
 public class TMessageBox : TWindow {
 
-    /// Display the OK button
-    public static immutable uint BUTTON_OK	= 0x01;
+    public enum Type {
+	OK,
+	OKCANCEL,
+	YESNO,
+	YESNOCANCEL };
 
-    /// Display the Cancel button
-    public static immutable uint BUTTON_CANCEL	= 0x02;
+    public enum Result {
+	OK,
+	CANCEL,
+	YES,
+	NO };
 
-    /// Display the Yes button
-    public static immutable uint BUTTON_YES	= 0x04;
-
-    /// Display the No button
-    public static immutable uint BUTTON_NO	= 0x08;
-
-    /// Bitmask of buttons to display
-    private uint buttons = 0;
-
-    /// Response will be set to which button the user selected
-    private uint response = 0;
+    /// Which button was clicked: OK, CANCEL, YES, or NO.
+    public Result result = Result.OK;
 
     /// When true, kill this message box
     private bool quit = false;
@@ -90,23 +86,133 @@ public class TMessageBox : TWindow {
      *    application = TApplication that manages this window
      *    title = window title, will be centered along the top border
      *    caption = message to display.  Use embedded newlines to get a multi-line box.
-     *    buttons = one of the TMessageBox.BUTTON_* flags.  Default is BUTTON_OK.
+     *    type = one of the Type constants.  Default is Type.OK.
      */
     public this(TApplication application, dstring title, dstring caption,
-	uint buttons = BUTTON_OK) {
-
-	this.buttons = buttons;
+	Type type = Type.OK) {
 
 	// Determine width and height
-	// TODO
-	uint width = cast(uint)(codeLength!(dchar)(title)) + 10;
-	uint height = 7;
+	dstring [] lines = splitLines!(dstring)(caption);
+	auto width = codeLength!(dchar)(title) + 12;
+	this.height = 6 + cast(uint)(lines.length);
+	foreach (line; lines) {
+	    auto lineLength = codeLength!(dchar)(line);
+	    if (lineLength > width) {
+		width = lineLength + 4;
+	    }
+	}
+	if (width < 10) {
+	    width = 10;
+	}
+	this.width = cast(uint)width;
+	if (this.width > application.screen.getWidth()) {
+	    this.width = application.screen.getWidth();
+	}
 
 	// Register with the TApplication
-	super(application, title, 0, 0, width, height, MODAL);
+	super(application, title, 0, 0, this.width, this.height, MODAL);
+
+	// Now add my elements
+	uint lineI = 1;
+	foreach (line; lines) {
+	    // Centered line
+	    // addLabel(center!(dstring)(line, width, ' '), 0, lineI);
+	    addLabel(line, 1, lineI, "twindow.background.modal");
+	    lineI++;
+	}
+
+	// The button line
+	lineI++;
+	TButton [] buttons;
 
 	// Setup button actions
-	// TODO
+	final switch (type) {
+
+	case Type.OK:
+	    result = Result.OK;
+	    buttons.length = 1;
+	    uint buttonX = (this.width - 11)/2;
+	    buttons[0] = addButton("  OK  ", buttonX, lineI,
+		delegate void() {
+		    result = Result.OK;
+		    application.closeWindow(this);
+		}
+	    );
+	    break;
+
+	case Type.OKCANCEL:
+	    result = Result.CANCEL;
+	    buttons.length = 2;
+	    if (this.width < 26) {
+		this.width = 26;
+	    }
+	    uint buttonX = (this.width - 22)/2;
+	    buttons[0] = addButton("  OK  ", buttonX, lineI,
+		delegate void() {
+		    result = Result.OK;
+		    application.closeWindow(this);
+		}
+	    );
+	    buttonX += 8 + 4;
+	    buttons[1] = addButton("Cancel", buttonX, lineI,
+		delegate void() {
+		    result = Result.CANCEL;
+		    application.closeWindow(this);
+		}
+	    );
+	    break;
+
+	case Type.YESNO:
+	    result = Result.NO;
+	    buttons.length = 2;
+	    if (this.width < 21) {
+		this.width = 21;
+	    }
+	    uint buttonX = (this.width - 17)/2;
+	    buttons[0] = addButton("Yes", buttonX, lineI,
+		delegate void() {
+		    result = Result.YES;
+		    application.closeWindow(this);
+		}
+	    );
+	    buttonX += 5 + 4;
+	    buttons[1] = addButton("No", buttonX, lineI,
+		delegate void() {
+		    result = Result.NO;
+		    application.closeWindow(this);
+		}
+	    );
+	    break;
+
+	case Type.YESNOCANCEL:
+	    result = Result.CANCEL;
+	    buttons.length = 3;
+	    if (this.width < 30) {
+		this.width = 30;
+	    }
+	    uint buttonX = (this.width - 26)/2;
+	    buttons[0] = addButton("Yes", buttonX, lineI,
+		delegate void() {
+		    result = Result.YES;
+		    application.closeWindow(this);
+		}
+	    );
+	    buttonX += 5 + 4;
+	    buttons[1] = addButton("No", buttonX, lineI,
+		delegate void() {
+		    result = Result.NO;
+		    application.closeWindow(this);
+		}
+	    );
+	    buttonX += 4 + 4;
+	    buttons[2] = addButton("Cancel", buttonX, lineI,
+		delegate void() {
+		    result = Result.CANCEL;
+		    application.closeWindow(this);
+		}
+	    );
+	    break;
+	}
 
 	// Set the secondaryFiber to run me
 	application.enableSecondaryEventReceiver(this);

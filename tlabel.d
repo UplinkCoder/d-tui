@@ -54,6 +54,9 @@ public class TLabel : TWidget {
     /// Label text
     private dstring text = "";
 
+    /// Label color
+    private CellAttributes color;
+
     /**
      * Public constructor
      *
@@ -62,8 +65,10 @@ public class TLabel : TWidget {
      *    text = label on the button
      *    x = column relative to parent
      *    y = row relative to parent
+     *    colorKey = ColorTheme key color to use for foreground text.  Default is "tlabel"
      */
-    public this(TWidget parent, dstring text, uint x, uint y) {
+    public this(TWidget parent, dstring text, uint x, uint y,
+	string colorKey = "tlabel") {
 
 	// Do this before the twidget constructor
 	this.enabled = false;
@@ -76,16 +81,17 @@ public class TLabel : TWidget {
 	this.y = y;
 	this.height = 1;
 	this.width = cast(uint)(codeLength!dchar(text));
+
+	// Setup my color
+	color = new CellAttributes();
+	color.setTo(window.application.theme.getColor(colorKey));
+	CellAttributes background = window.getBackground();
+	color.backColor = background.backColor;
     }
 
     /// Draw a static label
     override public void draw() {
-	CellAttributes labelColor = new CellAttributes();
-	CellAttributes background = window.getBackground();
-	labelColor.setTo(window.application.theme.getColor("tlabel"));
-	labelColor.backColor = background.backColor;
-
-	window.putStrXY(0, 0, text, labelColor);
+	window.putStrXY(0, 0, text, color);
     }
 
 }
