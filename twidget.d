@@ -90,6 +90,15 @@ public class TWidget {
     /// If true, this widget can be tabbed to or receive events
     protected bool enabled = true;
 
+    /// If true, this widget has a cursor
+    public bool hasCursor = false;
+
+    /// Cursor column position in relative coordinates
+    private uint cursorX = 0;
+
+    /// Cursor row position in relative coordinates
+    private uint cursorY = 0;
+
     /// Comparison operator sorts on tabOrder
     public override int opCmp(Object rhs) {
 	auto that = cast(TWidget)rhs;
@@ -97,6 +106,28 @@ public class TWidget {
 	    return 0;
 	}
 	return tabOrder - that.tabOrder;
+    }
+
+    /**
+     * Returns the cursor X position.
+     *
+     * Returns:
+     *    absolute screen column number for the cursor's X position
+     */
+    public uint getCursorAbsoluteX() {
+	assert(hasCursor == true);
+	return getAbsoluteX() + cursorX;
+    }
+
+    /**
+     * Returns the cursor Y position.
+     *
+     * Returns:
+     *    absolute screen row number for the cursor's Y position
+     */
+    public uint getCursorAbsoluteY() {
+	assert(hasCursor == true);
+	return getAbsoluteY() + cursorY;
     }
 
     /**
@@ -267,6 +298,22 @@ public class TWidget {
     }
 
     /**
+     * Returns my active widget.
+     *
+     * Returns:
+     *    widget that is active, or this if no children
+     */
+    public TWidget getActiveChild() {
+	foreach (w; children) {
+	    if (w.active) {
+		return w.getActiveChild();
+	    }
+	}
+	// No active children, return me
+	return this;
+    }
+
+    /**
      * Method that subclasses can override to handle keystrokes.
      *
      * Params:
@@ -323,6 +370,17 @@ public class TWidget {
     }
 
     /**
+     * Method that subclasses can override to handle window/screen
+     * resize events.
+     *
+     * Params:
+     *    event = resize event
+     */
+    protected void onResize(TInputEvent event) {
+	// Default: do nothing
+    }
+
+    /**
      * Consume event.  Subclasses that want to intercept all events
      * in one go can override this method.
      *
@@ -335,22 +393,30 @@ public class TWidget {
 	    return;
 	}
 
-	if (event.type == TInputEvent.KEYPRESS) {
+	final switch (event.type) {
+
+	case TInputEvent.Type.KEYPRESS:
 	    onKeypress(event);
-	}
+	    break;
 
-	if (event.type == TInputEvent.MOUSE_DOWN) {
+	case TInputEvent.Type.MOUSE_DOWN:
 	    onMouseDown(event);
-	}
+	    break;
 
-	if (event.type == TInputEvent.MOUSE_UP) {
+	case TInputEvent.Type.MOUSE_UP:
 	    onMouseUp(event);
+	    break;
+
+	case TInputEvent.Type.MOUSE_MOTION:
+	    onMouseMotion(event);
+	    break;
+
+	case TInputEvent.Type.RESIZE:
+	    onResize(event);
+	    break;
 	}
 
-	if (event.type == TInputEvent.MOUSE_MOTION) {
-	    onMouseMotion(event);
-	}
-	// Do nothing
+	// Do nothing else
 	return;
     }
 
@@ -362,7 +428,7 @@ public class TWidget {
      *    mouse = a mouse-based event
      */
     public bool mouseWouldHit(TInputEvent mouse) {
-	assert(mouse.type != TInputEvent.KEYPRESS);
+	assert(mouse.type != TInputEvent.Type.KEYPRESS);
 
 	if ((mouse.absoluteX >= getAbsoluteX()) &&
 	    (mouse.absoluteX <  getAbsoluteX() + width) &&

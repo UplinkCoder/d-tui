@@ -171,7 +171,16 @@ public class TApplication {
 	// Get the screen contents
 	result ~= screen.flushString();
 
-	// TODO: place the cursor if it is visible
+	// Place the cursor if it is visible
+	TWidget activeWidget = null;
+	if (sorted.length > 0) {
+	    activeWidget = sorted[$ - 1].getActiveChild();
+	    if (activeWidget.hasCursor) {
+		result ~= terminal.cursor(true);
+		result ~= terminal.gotoXY(activeWidget.getCursorAbsoluteX(),
+		    activeWidget.getCursorAbsoluteY());
+	    }
+	}
 
 	repaint = false;
 	flush = false;
@@ -237,7 +246,7 @@ public class TApplication {
 	}
 
 	// Switch on the upclick
-	if (mouse.type != TInputEvent.MOUSE_UP) {
+	if (mouse.type != TInputEvent.Type.MOUSE_UP) {
 	    return;
 	}
 
@@ -338,45 +347,75 @@ public class TApplication {
     }
 
     /**
-     * Peek at certain application-level events and add to eventQueue.
+     * Peek at certain application-level events, add to eventQueue,
+     * and wake up the consuming Fiber.
      *
      * Params:
-     *    event the input event to consume
+     *    events the input events to consume
      */
-    private void metaHandleEvent(TInputEvent event) {
+    private void metaHandleEvents(TInputEvent [] events) {
 
-	// Special application-wide events -----------------------------------
+	foreach (event; events) {
+	    
+	    // Special application-wide events -------------------------------
 
-	// Ctrl-W - close window
-	if ((event.type == TInputEvent.KEYPRESS) &&
-	    (event.key == kbCtrlW)) {
-
-	    // Resort windows and nix the first one (it is active)
-	    if (windows.length > 0) {
-		windows.sort;
-		closeWindow(windows[0]);
+	    // Window resize
+	    if (event.type == TInputEvent.Type.RESIZE) {
+		screen.setDimensions(event.x, event.y);
+		desktopBottom = screen.getHeight() - 1;
+		repaint = true;
+		continue;
 	    }
 
-	    // Refresh
-	    repaint = true;
-	    return;
-	}
+	    // Ctrl-W - close window
+	    if ((event.type == TInputEvent.Type.KEYPRESS) &&
+		(event.key == kbCtrlW)) {
 
-	// Peek at the mouse position
-	if (event.type != TInputEvent.KEYPRESS) {
-	    if ((mouseX != event.x) || (mouseY != event.y)) {
-		flipMouse();
-		mouseX = event.x;
-		mouseY = event.y;
-		flipMouse();
+		// Resort windows and nix the first one (it is active)
+		if (windows.length > 0) {
+		    windows.sort;
+		    closeWindow(windows[0]);
+		}
+
+		// Refresh
+		repaint = true;
+		continue;
 	    }
 
-	    // See if we need to switch focus
-	    checkSwitchFocus(event);
-	}
+	    // Peek at the mouse position
+	    if ((event.type != TInputEvent.Type.KEYPRESS) &&
+		(event.type != TInputEvent.Type.RESIZE)
+	    ) {
+		if ((mouseX != event.x) || (mouseY != event.y)) {
+		    flipMouse();
+		    mouseX = event.x;
+		    mouseY = event.y;
+		    flipMouse();
+		}
 
-	// Put into the main queue
-	eventQueue ~= event;
+		// See if we need to switch focus
+		checkSwitchFocus(event);
+	    }
+
+	    // Put into the main queue
+	    eventQueue ~= event;
+
+	    // Have one of the two consumer Fibers peel the events off
+	    // the queue.
+	    if (secondaryEventFiber !is null) {
+		assert(secondaryEventFiber.state == Fiber.State.HOLD);
+
+		// Wake up the secondary handler for these events
+		secondaryEventFiber.call();
+	    } else {
+		assert(primaryEventFiber.state == Fiber.State.HOLD);
+
+		// Wake up the primary handler for these events
+		primaryEventFiber.call();
+	    }
+
+	} // foreach (event; events)
+
     }
 
     /**
@@ -440,7 +479,7 @@ public class TApplication {
 	// Special application-wide events -----------------------------------
 
 	// Alt-TAB
-	if ((event.type == TInputEvent.KEYPRESS) &&
+	if ((event.type == TInputEvent.Type.KEYPRESS) &&
 	    (event.key == kbAltTab)) {
 
 	    switchWindow();
@@ -448,7 +487,7 @@ public class TApplication {
 	}
 
 	// F6 - behave like Alt-TAB
-	if ((event.type == TInputEvent.KEYPRESS) &&
+	if ((event.type == TInputEvent.Type.KEYPRESS) &&
 	    (event.key == kbF6)) {
 
 	    switchWindow();
@@ -456,7 +495,7 @@ public class TApplication {
 	}
 
 	// Alt-X - quit app
-	if ((event.type == TInputEvent.KEYPRESS) &&
+	if ((event.type == TInputEvent.Type.KEYPRESS) &&
 	    ((event.key == kbAltX) || (event.key == kbAltShiftX))
 	) {
 	    if (messageBox("Confirmation", "Exit application?",
@@ -471,7 +510,9 @@ public class TApplication {
 
 	foreach (w; windows) {
 	    if (w.active) {
-		if (event.type != TInputEvent.KEYPRESS) {
+		if ((event.type != TInputEvent.Type.KEYPRESS) &&
+		    (event.type != TInputEvent.Type.RESIZE)
+		) {
 		    // Convert the mouse relative x/y to window coordinates
 		    assert(event.x == event.absoluteX);
 		    assert(event.y == event.absoluteY);
@@ -496,25 +537,7 @@ public class TApplication {
 	    terminal = new Terminal(false);
 	}
 	TInputEvent [] events = terminal.getEvents(ch);
-
-	// Handle some of the application-wide events (like mouse tracking)
-	// and fill eventQueue.
-	foreach (event; events) {
-	    metaHandleEvent(event);
-	}
-
-	// Have one of the two consumer Fibers peel the events off the queue.
-	if (secondaryEventFiber !is null) {
-	    assert(secondaryEventFiber.state == Fiber.State.HOLD);
-
-	    // Wake up the secondary handler for these events
-	    secondaryEventFiber.call();
-	} else {
-	    assert(primaryEventFiber.state == Fiber.State.HOLD);
-
-	    // Wake up the primary handler for these events
-	    primaryEventFiber.call();
-	}
+	metaHandleEvents(events);
     }
 
     // TODO: Timer
@@ -530,11 +553,12 @@ public class TApplication {
 
     /// Do stuff when there is no user input
     private void doIdle() {
+	if (terminal is null) {
+	    terminal = new Terminal(false);
+	}
 	// Pull any pending input events
 	TInputEvent [] events = terminal.getEvents(0, true);
-	foreach (event; events) {
-	    handleEvent(event);
-	}
+	metaHandleEvents(events);
 
 	// TODO: now run any timers that have timed out
 

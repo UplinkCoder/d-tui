@@ -1291,20 +1291,24 @@ public immutable TKeypress kbAltShiftZ = TKeypress(false, 0, 'Z', true, false, t
  */
 public class TInputEvent {
 
-    /// Mouse motion.  X and Y will have screen coordinates.
-    public static immutable ubyte MOUSE_MOTION = 0;
+    enum Type {
+	/// Mouse motion.  X and Y will have screen coordinates.
+	MOUSE_MOTION,
 
-    /// Mouse button down.  X and Y will have screen coordinates.
-    public static immutable ubyte MOUSE_DOWN = 1;
+	/// Mouse button down.  X and Y will have screen coordinates.
+	MOUSE_DOWN,
 
-    /// Mouse button up.  X and Y will have screen coordinates.
-    public static immutable ubyte MOUSE_UP = 2;
+	/// Mouse button up.  X and Y will have screen coordinates.
+	MOUSE_UP,
 
-    /// Keystroke received.  key will be set.
-    public static immutable ubyte KEYPRESS = 10;
+	/// Keystroke received.  key will be set.
+	KEYPRESS,
 
+	/// Window resized.  x and y will have the new width/height
+	RESIZE,	};
+    
     /// Type of event, one of MOUSE_MOTION, MOUSE_UP/DOWN, or KEYPRESS
-    public ubyte type;
+    public Type type;
 
     /// Mouse X - relative coordinates
     public int x;
@@ -1337,14 +1341,8 @@ public class TInputEvent {
     public TKeypress key;
 
     /// Contructor
-    public this(ubyte type) {
+    public this(Type type) {
 	this.type = type;
-
-	assert((type == MOUSE_MOTION) ||
-	    (type == MOUSE_UP) ||
-	    (type == MOUSE_DOWN) ||
-	    (type == KEYPRESS));
-
 	key = TKeypress(false, 0, ' ', false, false, false);
     }
 
@@ -1352,10 +1350,10 @@ public class TInputEvent {
     override public string toString() {
 	auto writer = appender!string();
 	final switch (type) {
-	case KEYPRESS:
+	case Type.KEYPRESS:
 	    formattedWrite(writer, "Keypress: %s", key.toString());
 	    break;
-	case MOUSE_DOWN:
+	case Type.MOUSE_DOWN:
 	    formattedWrite(writer, "MouseDown: %d %d %s %s %s %s %s",
 		x, y, mouse1 ? "mouse1" : "",
 		mouse2 ? "mouse2" : "",
@@ -1363,7 +1361,7 @@ public class TInputEvent {
 		mouseWheelUp ? "wheelUP" : "",
 		mouseWheelDown ? "wheelDOWN" : "");
 	    break;
-	case MOUSE_UP:
+	case Type.MOUSE_UP:
 	    formattedWrite(writer, "MouseUp: %d %d %s %s %s %s %s",
 		x, y, mouse1 ? "mouse1" : "",
 		mouse2 ? "mouse2" : "",
@@ -1371,13 +1369,16 @@ public class TInputEvent {
 		mouseWheelUp ? "wheelUP" : "",
 		mouseWheelDown ? "wheelDOWN" : "");
 	    break;
-	case MOUSE_MOTION:
+	case Type.MOUSE_MOTION:
 	    formattedWrite(writer, "MouseMotion: %d %d %s %s %s %s %s",
 		x, y, mouse1 ? "mouse1" : "",
 		mouse2 ? "mouse2" : "",
 		mouse3 ? "mouse3" : "",
 		mouseWheelUp ? "wheelUP" : "",
 		mouseWheelDown ? "wheelDOWN" : "");
+	    break;
+	case Type.RESIZE:
+	    formattedWrite(writer, "Resize: %d %d", x, y);
 	    break;
 	}
 	return writer.data;
@@ -1429,6 +1430,9 @@ public class Terminal {
     /// true if mouse3 was down.  Used to report mouse3 on the release
     /// event.
     private bool mouse3;
+
+    /// Set by the SIGWINCH handler to expose window resize events
+    private TInputEvent windowResize = null;
 
     /// Reset keyboard/mouse input parser
     private void reset() {
@@ -1554,6 +1558,11 @@ public class Terminal {
 	    // Enable mouse reporting and metaSendsEscape
 	    stdout.writef("%s%s", mouse(true), xtermMetaSendsEscape(true));
 	}
+
+	// Hang onto the window size
+	windowResize = new TInputEvent(TInputEvent.Type.RESIZE);
+	windowResize.x = getPhysicalWidth();
+	windowResize.y = getPhysicalHeight();
     }
 
     /// Destructor restores terminal to normal state
@@ -1579,7 +1588,7 @@ public class Terminal {
      *    one KEYPRESS event, either a control character (e.g. isKey == false, ch == 'A', ctrl == true), or a special key (e.g. isKey == true, fnKey == ESC)
      */
     private TInputEvent controlChar(dchar ch) {
-	TInputEvent event = new TInputEvent(TInputEvent.KEYPRESS);
+	TInputEvent event = new TInputEvent(TInputEvent.Type.KEYPRESS);
 
 	// stderr.writef("controlChar: %02x\n", ch);
 
@@ -1621,7 +1630,7 @@ public class Terminal {
 	if (params.length > 1) {
 	    modifier = to!(int)(params[1]);
 	}
-	TInputEvent event = new TInputEvent(TInputEvent.KEYPRESS);
+	TInputEvent event = new TInputEvent(TInputEvent.Type.KEYPRESS);
 
 	switch (modifier) {
 	case 0:
@@ -1854,7 +1863,7 @@ public class Terminal {
 	dchar buttons = decode(params[0], index) - 32;
 	dchar x = decode(params[0], index) - 32 - 1;
 	dchar y = decode(params[0], index) - 32 - 1;
-	TInputEvent event = new TInputEvent(TInputEvent.MOUSE_DOWN);
+	TInputEvent event = new TInputEvent(TInputEvent.Type.MOUSE_DOWN);
 	event.x = x;
 	event.y = y;
 	event.absoluteX = x;
@@ -1878,9 +1887,9 @@ public class Terminal {
 	case 3:
 	    // Release or Move
 	    if (!mouse1 && !mouse2 && !mouse3) {
-		event.type = TInputEvent.MOUSE_MOTION;
+		event.type = TInputEvent.Type.MOUSE_MOTION;
 	    } else {
-		event.type = TInputEvent.MOUSE_UP;
+		event.type = TInputEvent.Type.MOUSE_UP;
 	    }
 	    if (mouse1) {
 		mouse1 = false;
@@ -1900,35 +1909,35 @@ public class Terminal {
 	    // Dragging with mouse1 down
 	    event.mouse1 = true;
 	    mouse1 = true;
-	    event.type = TInputEvent.MOUSE_MOTION;
+	    event.type = TInputEvent.Type.MOUSE_MOTION;
 	    break;
 
 	case 33:
 	    // Dragging with mouse2 down
 	    event.mouse2 = true;
 	    mouse2 = true;
-	    event.type = TInputEvent.MOUSE_MOTION;
+	    event.type = TInputEvent.Type.MOUSE_MOTION;
 	    break;
 
 	case 34:
 	    // Dragging with mouse3 down
 	    event.mouse3 = true;
 	    mouse3 = true;
-	    event.type = TInputEvent.MOUSE_MOTION;
+	    event.type = TInputEvent.Type.MOUSE_MOTION;
 	    break;
 
 	case 96:
 	    // Dragging with mouse2 down after wheelUp
 	    event.mouse2 = true;
 	    mouse2 = true;
-	    event.type = TInputEvent.MOUSE_MOTION;
+	    event.type = TInputEvent.Type.MOUSE_MOTION;
 	    break;
 
 	case 97:
 	    // Dragging with mouse2 down after wheelDown
 	    event.mouse2 = true;
 	    mouse2 = true;
-	    event.type = TInputEvent.MOUSE_MOTION;
+	    event.type = TInputEvent.Type.MOUSE_MOTION;
 	    break;
 
 	case 64:
@@ -1941,7 +1950,7 @@ public class Terminal {
 
 	default:
 	    // Unknown, just make it motion
-	    event.type = TInputEvent.MOUSE_MOTION;
+	    event.type = TInputEvent.Type.MOUSE_MOTION;
 	    break;
 	}
 	return event;
@@ -1953,8 +1962,8 @@ public class Terminal {
      *
      * Params:
      *    ch = Unicode code point
-     *    noChar = if true, ignore ch.  This is currently only used to
-     *    return a bare ESC.
+     *    noChar = if true, ignore ch.  This is currently used to
+     *    return a bare ESC and RESIZE events.
      *    
      * Returns:
      *    list of new events (which may be empty)
@@ -1975,6 +1984,18 @@ public class Terminal {
 	}
 
 	if (noChar == true) {
+	    auto newWidth = getPhysicalWidth();
+	    auto newHeight = getPhysicalHeight();
+	    if ((newWidth != windowResize.x) ||
+		(newHeight != windowResize.y)) {
+		TInputEvent event = new TInputEvent(TInputEvent.Type.RESIZE);
+		event.x = newWidth;
+		event.y = newHeight;
+		windowResize.x = newWidth;
+		windowResize.y = newHeight;
+		events ~= event;
+	    }
+
 	    // Nothing else to do, bail out
 	    return events;
 	}
@@ -1999,7 +2020,7 @@ public class Terminal {
 
 	    if (ch >= 0x20) {
 		// Normal character
-		events ~= new TInputEvent(TInputEvent.KEYPRESS);
+		events ~= new TInputEvent(TInputEvent.Type.KEYPRESS);
 		events[$ - 1].key.isKey = false;
 		events[$ - 1].key.ch = ch;
 		reset();
@@ -2030,7 +2051,7 @@ public class Terminal {
 	    }
 
 	    // Everything else is assumed to be Alt-keystroke
-	    events ~= new TInputEvent(TInputEvent.KEYPRESS);
+	    events ~= new TInputEvent(TInputEvent.Type.KEYPRESS);
 	    events[$ - 1].key.isKey = false;
 	    events[$ - 1].key.ch = ch;
 	    events[$ - 1].key.alt = true;
@@ -2042,7 +2063,7 @@ public class Terminal {
 	case STATE.ESCAPE_INTERMEDIATE:
 	    if ((ch >= 'P') && (ch <= 'S')) {
 		// Function key
-		events ~= new TInputEvent(TInputEvent.KEYPRESS);
+		events ~= new TInputEvent(TInputEvent.Type.KEYPRESS);
 		events[$ - 1].key.isKey = true;
 		switch (ch) {
 		case 'P':
@@ -2087,49 +2108,49 @@ public class Terminal {
 		switch (ch) {
 		case 'A':
 		    // Up
-		    events ~= new TInputEvent(TInputEvent.KEYPRESS);
+		    events ~= new TInputEvent(TInputEvent.Type.KEYPRESS);
 		    events[$ - 1].key.isKey = true;
 		    events[$ - 1].key.fnKey = TKeypress.UP;
 		    reset();
 		    return events;
 		case 'B':
 		    // Down
-		    events ~= new TInputEvent(TInputEvent.KEYPRESS);
+		    events ~= new TInputEvent(TInputEvent.Type.KEYPRESS);
 		    events[$ - 1].key.isKey = true;
 		    events[$ - 1].key.fnKey = TKeypress.DOWN;
 		    reset();
 		    return events;
 		case 'C':
 		    // Right
-		    events ~= new TInputEvent(TInputEvent.KEYPRESS);
+		    events ~= new TInputEvent(TInputEvent.Type.KEYPRESS);
 		    events[$ - 1].key.isKey = true;
 		    events[$ - 1].key.fnKey = TKeypress.RIGHT;
 		    reset();
 		    return events;
 		case 'D':
 		    // Left
-		    events ~= new TInputEvent(TInputEvent.KEYPRESS);
+		    events ~= new TInputEvent(TInputEvent.Type.KEYPRESS);
 		    events[$ - 1].key.isKey = true;
 		    events[$ - 1].key.fnKey = TKeypress.LEFT;
 		    reset();
 		    return events;
 		case 'H':
 		    // Home
-		    events ~= new TInputEvent(TInputEvent.KEYPRESS);
+		    events ~= new TInputEvent(TInputEvent.Type.KEYPRESS);
 		    events[$ - 1].key.isKey = true;
 		    events[$ - 1].key.fnKey = TKeypress.HOME;
 		    reset();
 		    return events;
 		case 'F':
 		    // End
-		    events ~= new TInputEvent(TInputEvent.KEYPRESS);
+		    events ~= new TInputEvent(TInputEvent.Type.KEYPRESS);
 		    events[$ - 1].key.isKey = true;
 		    events[$ - 1].key.fnKey = TKeypress.END;
 		    reset();
 		    return events;
 		case 'Z':
 		    // CBT - Cursor backward X tab stops (default 1)
-		    events ~= new TInputEvent(TInputEvent.KEYPRESS);
+		    events ~= new TInputEvent(TInputEvent.Type.KEYPRESS);
 		    events[$ - 1].key.isKey = true;
 		    events[$ - 1].key.fnKey = TKeypress.BTAB;
 		    reset();

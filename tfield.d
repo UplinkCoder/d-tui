@@ -76,6 +76,8 @@ public class TField : TWidget {
 	this.y = y;
 	this.height = 2;
 	this.width = width;
+
+	this.hasCursor = true;
     }
 
     /// Returns true if the mouse is currently on the field

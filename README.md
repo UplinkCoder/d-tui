@@ -64,8 +64,6 @@ I am just beginning as a work in progress.  Many tasks remain before
 calling this version 1.0:
 
 - [ ] TField - steal from fieldset/field in qodem
-- TWidget
-  - [ ] hasCursor, cursorX, cursorY
 - [ ] TCheckBox
 - Screen
   - [ ] putColorizedStrXY : colorized string markup style - use for status bar text and general dialog boxes
