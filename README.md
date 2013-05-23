@@ -67,6 +67,7 @@ calling this version 1.0:
 - [ ] TCheckBox
 - Screen
   - [ ] putColorizedStrXY : colorized string markup style - use for status bar text and general dialog boxes
+  - [ ] allow complex characters in putCharXY() and detect them in putStrXY().
 - TWindow
   - [ ] SMARTPLACE (use smart placement for x, y)
   - [ ] Horizontal scrollbar
