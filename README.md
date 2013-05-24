@@ -63,7 +63,18 @@ Roadmap
 I am just beginning as a work in progress.  Many tasks remain before
 calling this version 1.0:
 
-- [ ] TCheckBox
+- [ ] TRadioButton / TRadioGroup
+- TApplication
+  - [ ] Timers:
+    - [ ] setTimer
+    - [ ] getSleepTime
+  - [ ] Status line
+- TMenu / TMenuItem
+  - [ ] submenus
+  - [ ] active, inactive, checked, unchecked
+  - [ ] Keyboard shortcut ("&File" or "~F~ile" ?)
+  - [ ] Keyboard accelerator ("Ctrl-F10")
+  - [ ] Status line text
 - Screen
   - [ ] putColorizedStrXY : colorized string markup style - use for status bar text and general dialog boxes
   - [ ] allow complex characters in putCharXY() and detect them in putStrXY().
@@ -78,18 +89,6 @@ calling this version 1.0:
 - [ ] Drag and drop
   - [ ] TTextArea
   - [ ] TField
-- [ ] TRadioButton / TRadioGroup
-- TApplication
-  - [ ] Timers:
-    - [ ] setTimer
-    - [ ] getSleepTime
-  - [ ] Status line
-- TMenu / TMenuItem
-  - [ ] submenus
-  - [ ] active, inactive, checked, unchecked
-  - [ ] Keyboard shortcut ("&File" or "~F~ile" ?)
-  - [ ] Keyboard accelerator ("Ctrl-F10")
-  - [ ] Status line text
 - [ ] TFileOpenDialog
 - [ ] TTerminal
 - [ ] TApplicationSocket - socket that knows about environment variables and

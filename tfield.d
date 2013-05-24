@@ -77,7 +77,7 @@ public class TField : TWidget {
      *    parent = parent widget
      *    x = column relative to parent
      *    y = row relative to parent
-     *    width = visible text width.
+     *    width = visible text width
      *    fixed = if true, the text cannot exceed the display width
      *    text = initial text, default is empty string
      */
@@ -160,7 +160,7 @@ public class TField : TWidget {
 	}
     }
 
-    /// Draw a field with a shadow
+    /// Draw the field text and background
     override public void draw() {
 	CellAttributes fieldColor;
 
@@ -182,10 +182,10 @@ public class TField : TWidget {
     }
 
     /**
-     * Handle mouse field presses.
+     * Handle mouse button presses.
      *
      * Params:
-     *    event = mouse field event
+     *    event = mouse button event
      */
     override protected void onMouseDown(TInputEvent event) {
 	mouse = event;
@@ -203,10 +203,10 @@ public class TField : TWidget {
     }
 
     /**
-     * Handle mouse field releases.
+     * Handle mouse button releases.
      *
      * Params:
-     *    event = mouse field release event
+     *    event = mouse button release event
      */
     override protected void onMouseUp(TInputEvent event) {
 	mouse = event;

@@ -97,12 +97,9 @@ public class TMessageBox : TWindow {
 	this.height = 6 + cast(uint)(lines.length);
 	foreach (line; lines) {
 	    auto lineLength = codeLength!(dchar)(line);
-	    if (lineLength > width) {
+	    if (lineLength + 4 > width) {
 		width = lineLength + 4;
 	    }
-	}
-	if (width < 10) {
-	    width = 10;
 	}
 	this.width = cast(uint)width;
 	if (this.width > application.screen.getWidth()) {
@@ -131,6 +128,9 @@ public class TMessageBox : TWindow {
 	case Type.OK:
 	    result = Result.OK;
 	    buttons.length = 1;
+	    if (this.width < 15) {
+		this.width = 15;
+	    }
 	    uint buttonX = (this.width - 11)/2;
 	    buttons[0] = addButton("  OK  ", buttonX, lineI,
 		delegate void() {
@@ -165,10 +165,10 @@ public class TMessageBox : TWindow {
 	case Type.YESNO:
 	    result = Result.NO;
 	    buttons.length = 2;
-	    if (this.width < 21) {
-		this.width = 21;
+	    if (this.width < 20) {
+		this.width = 20;
 	    }
-	    uint buttonX = (this.width - 17)/2;
+	    uint buttonX = (this.width - 16)/2;
 	    buttons[0] = addButton("Yes", buttonX, lineI,
 		delegate void() {
 		    result = Result.YES;
@@ -187,10 +187,10 @@ public class TMessageBox : TWindow {
 	case Type.YESNOCANCEL:
 	    result = Result.CANCEL;
 	    buttons.length = 3;
-	    if (this.width < 30) {
-		this.width = 30;
+	    if (this.width < 31) {
+		this.width = 31;
 	    }
-	    uint buttonX = (this.width - 26)/2;
+	    uint buttonX = (this.width - 27)/2;
 	    buttons[0] = addButton("Yes", buttonX, lineI,
 		delegate void() {
 		    result = Result.YES;

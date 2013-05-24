@@ -2694,6 +2694,18 @@ public class ColorTheme {
 	color.backColor = COLOR_BLACK;
 	color.bold = true;
 	colors["tfield.active"] = color;
+
+	// TCheckbox
+	color = new CellAttributes();
+	color.foreColor = COLOR_WHITE;
+	color.backColor = COLOR_BLUE;
+	color.bold = false;
+	colors["tcheckbox.inactive"] = color;
+	color = new CellAttributes();
+	color.foreColor = COLOR_YELLOW;
+	color.backColor = COLOR_BLACK;
+	color.bold = true;
+	colors["tcheckbox.active"] = color;
     }
 
     /// Public constructor.

@@ -42,6 +42,7 @@ import twindow;
 import tbutton;
 import tlabel;
 import tfield;
+import tcheckbox;
 
 // Defines -------------------------------------------------------------------
 
@@ -507,7 +508,7 @@ public class TWidget {
      *    parent = parent widget
      *    x = column relative to parent
      *    y = row relative to parent
-     *    width = visible text width.
+     *    width = visible text width
      *    fixed = if true, the text cannot exceed the display width
      *    text = initial text, default is empty string
      */
@@ -515,6 +516,21 @@ public class TWidget {
 	dstring text = "") {
 
 	return new TField(this, x, y, width, fixed, text);
+    }
+
+    /**
+     * Convenience function to add a checkbox to this container/window.
+     *
+     * Params:
+     *    x = column relative to parent
+     *    y = row relative to parent
+     *    label = label to display next to (right of) the checkbox
+     *    checked = initial check state
+     */
+    public TCheckbox addCheckbox(uint x, uint y, dstring label,
+	bool checked = false) {
+
+	return new TCheckbox(this, x, y, label, checked);
     }
 
 }
