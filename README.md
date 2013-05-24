@@ -57,6 +57,8 @@ applications somewhat as follows:
         app.run();
     }
 
+See the file demo1.d for example usages.
+
 Roadmap
 -------
 
