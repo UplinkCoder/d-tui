@@ -164,7 +164,7 @@ public class TField : TWidget {
     override public void draw() {
 	CellAttributes fieldColor;
 
-	if (active) {
+	if (getAbsoluteActive()) {
 	    fieldColor = window.application.theme.getColor("tfield.active");
 	} else {
 	    fieldColor = window.application.theme.getColor("tfield.inactive");

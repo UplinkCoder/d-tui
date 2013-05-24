@@ -63,7 +63,6 @@ Roadmap
 I am just beginning as a work in progress.  Many tasks remain before
 calling this version 1.0:
 
-- [ ] TRadioButton / TRadioGroup
 - TApplication
   - [ ] Timers:
     - [ ] setTimer

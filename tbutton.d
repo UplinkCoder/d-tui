@@ -144,7 +144,7 @@ public class TButton : TWidget {
 	shadowColor.foreColor = COLOR_BLACK;
 	shadowColor.bold = false;
 
-	if (active) {
+	if (getAbsoluteActive()) {
 	    buttonColor = window.application.theme.getColor("tbutton.active");
 	} else {
 	    buttonColor = window.application.theme.getColor("tbutton.inactive");

@@ -34,6 +34,45 @@ import std.stdio;
 import tui;
 
 
+private class DemoWindow2 : TWindow {
+
+    private void closeMe() {
+	application.closeWindow(this);
+    }
+
+    /// Constructor
+    this(TApplication parent) {
+	this(parent, TWindow.CENTERED | TWindow.RESIZABLE);
+    }
+    
+    /// Constructor
+    this(TApplication parent, ubyte flags) {
+	// Construct a demo window.  X and Y don't matter because it
+	// will be centered on screen.
+	super(parent, "Demo Window 2", 0, 0, 60, 15, flags);
+
+	uint row = 1;
+
+	// Add some widgets
+	addLabel("Check box example 1", 1, row);
+	addCheckbox(35, row++, "Checkbox 1");
+	addLabel("Check box example 2", 1, row);
+	addCheckbox(35, row++, "Checkbox 2", true);
+	row += 2;
+	
+	auto group = addRadioGroup(1, row, "Group 1");
+	group.addRadioButton("Radio option 1");
+	group.addRadioButton("Radio option 2");
+	group.addRadioButton("Radio option 3");
+
+	addButton("Close Window", (width - 14) / 2, height - 6, &closeMe);
+	if (!isModal()) {
+	    addLabel("(Alt-X to exit application)", (width - 27)/2, height - 4);
+	}
+    }
+
+}
+
 private class DemoMainWindow : TWindow {
     private TWindow modalWindow;
 
@@ -111,6 +150,11 @@ EOS",
     private void openThisModal() {
 	new DemoMainWindow(application, MODAL);
     }
+
+    private void openWindow2() {
+	new DemoWindow2(application);
+    }
+
     private void closeMe() {
 	application.closeWindow(this);
     }
@@ -124,7 +168,7 @@ EOS",
     this(TApplication parent, ubyte flags) {
 	// Construct a demo window.  X and Y don't matter because it
 	// will be centered on screen.
-	super(parent, "Demo Window", 0, 0, 60, 24, flags);
+	super(parent, "Demo Window", 0, 0, 60, 23, flags);
 
 	uint row = 1;
 
@@ -161,19 +205,22 @@ EOS",
 	addField(35, row++, 15, false, "Field text");
 
 	addLabel("Fixed-width text field:", 1, row);
-	addField(35, row++, 15, true);
+	addField(35, row, 15, true);
+	row += 2;
 
-	addLabel("Check box example 1", 1, row);
-	addCheckbox(35, row++, "Checkbox 1");
-	addLabel("Check box example 2", 1, row);
-	addCheckbox(35, row++, "Checkbox 2", true);
+	if (!isModal()) {
+	    addLabel("Buttons and boxes", 1, row);
+	    addButton("Window 2", 35, row, &openWindow2);
+	}
+	row += 2;
 
-	addButton("Close Window", (width - 14) / 2, height - 6, &closeMe);
-	addLabel("(Alt-X to exit application)", (width - 27)/2, height - 4);
+	addButton("Close Window", (width - 14) / 2, height - 5, &closeMe);
+	if (!isModal()) {
+	    addLabel("(Alt-X to exit application)", (width - 27)/2, height - 3);
+	}
     }
 
 }
-
 
 private class DemoApplication : TApplication {
 

@@ -169,6 +169,9 @@ public class TWindow : TWidget {
 	    this.y = (application.desktopBottom - application.desktopTop);
 	    this.y -= height;
 	    this.y /= 2;
+	    if (this.y < 0) {
+		this.y = 0;
+	    }
 	    this.y += application.desktopTop;
 	}
     }
@@ -337,17 +340,6 @@ public class TWindow : TWidget {
 		}
 	    }
 	}
-
-	// DEBUG: print mouse coordinates
-	if ((mouse !is null) && false) {
-	    auto writer = appender!string();
-	    formattedWrite(writer, "Mouse relative %u %u", mouse.x, mouse.y);
-	    putStrXY(1, 4, toUTF32(writer.data));
-	    writer = appender!string();
-	    formattedWrite(writer, "Mouse absolute %u %u", mouse.absoluteX,
-		mouse.absoluteY);
-	    putStrXY(1, 5, toUTF32(writer.data));
-	}
     }
 
     /**
@@ -389,18 +381,7 @@ public class TWindow : TWidget {
 	}
 
 	// I didn't take it, pass it on to my children
-	foreach (w; children) {
-	    if (w.mouseWouldHit(mouse)) {
-		// Dispatch to this child, also activate it
-		activate(w);
-
-		// Set x and y relative to the child's coordinates
-		mouse.x = mouse.absoluteX - w.getAbsoluteX();
-		mouse.y = mouse.absoluteY - w.getAbsoluteY();
-		w.handleEvent(event);
-		return;
-	    }
-	}
+	super.onMouseDown(event);
     }
 
     /**
@@ -457,16 +438,7 @@ public class TWindow : TWidget {
 	}
 
 	// I didn't take it, pass it on to my children
-	foreach (w; children) {
-	    if (w.mouseWouldHit(mouse)) {
-		// Dispatch to this child
-		// Set x and y relative to the child's coordinates
-		mouse.x = mouse.absoluteX - w.getAbsoluteX();
-		mouse.y = mouse.absoluteY - w.getAbsoluteY();
-		w.handleEvent(event);
-		return;
-	    }
-	}
+	super.onMouseUp(event);
     }
 
     /**
@@ -484,8 +456,8 @@ public class TWindow : TWidget {
 	    x = oldWindowX + (mouse.absoluteX - moveWindowMouseX);
 	    y = oldWindowY + (mouse.absoluteY - moveWindowMouseY);
 	    // Don't cover up the menu bar
-	    if (y < 1) {
-		y = 1;
+	    if (y < application.desktopTop) {
+		y = application.desktopTop;
 	    }
 	    return;
 	}
@@ -499,6 +471,10 @@ public class TWindow : TWidget {
 	    }
 	    if (y + height > application.desktopBottom) {
 		y = height - application.desktopBottom;
+		// Don't cover up the menu bar
+		if (y < application.desktopTop) {
+		    y = application.desktopTop;
+		}
 	    }
 	    if (width < 10) {
 		width = 10;
@@ -511,31 +487,8 @@ public class TWindow : TWidget {
 	    return;
 	}
 
-	// I didn't take it, pass it on to ALL of my children.  This
-	// way the children can see the mouse "leaving" their area.
-	foreach (w; children) {
-	    // Set x and y relative to the child's coordinates
-	    mouse.x = mouse.absoluteX - w.getAbsoluteX();
-	    mouse.y = mouse.absoluteY - w.getAbsoluteY();
-	    w.handleEvent(event);
-	}
-    }
-
-    /**
-     * Handle keystrokes
-     *
-     * Params:
-     *    event = keystroke event
-     */
-    override protected void onKeypress(TInputEvent event) {
-	// Dispatch the keypress to an active widget
-	foreach (w; children) {
-	    if (w.active) {
-		application.repaint = true;
-		w.handleEvent(event);
-		return;
-	    }
-	}
+	// I didn't take it, pass it on to my children
+	super.onMouseMotion(event);
     }
 
 }

@@ -1168,6 +1168,7 @@ public immutable TKeypress kbCtrlLeft = TKeypress(true, TKeypress.LEFT, ' ', fal
 public immutable TKeypress kbCtrlRight = TKeypress(true, TKeypress.RIGHT, ' ', false, true, false);
 public immutable TKeypress kbShiftEnter = TKeypress(true, TKeypress.ENTER, ' ', false, false, true);
 public immutable TKeypress kbShiftTab = TKeypress(true, TKeypress.TAB, ' ', false, false, true);
+public immutable TKeypress kbBackTab = TKeypress(true, TKeypress.BTAB, ' ', false, false, false);
 public immutable TKeypress kbShiftEsc = TKeypress(true, TKeypress.ESC, ' ', false, false, true);
 public immutable TKeypress kbShiftHome = TKeypress(true, TKeypress.HOME, ' ', false, false, true);
 public immutable TKeypress kbShiftEnd = TKeypress(true, TKeypress.END, ' ', false, false, true);
@@ -2706,6 +2707,32 @@ public class ColorTheme {
 	color.backColor = COLOR_BLACK;
 	color.bold = true;
 	colors["tcheckbox.active"] = color;
+
+
+	// TRadioButton
+	color = new CellAttributes();
+	color.foreColor = COLOR_WHITE;
+	color.backColor = COLOR_BLUE;
+	color.bold = false;
+	colors["tradiobutton.inactive"] = color;
+	color = new CellAttributes();
+	color.foreColor = COLOR_YELLOW;
+	color.backColor = COLOR_BLACK;
+	color.bold = true;
+	colors["tradiobutton.active"] = color;
+
+	// TRadioGroup
+	color = new CellAttributes();
+	color.foreColor = COLOR_WHITE;
+	color.backColor = COLOR_BLUE;
+	color.bold = false;
+	colors["tradiogroup.inactive"] = color;
+	color = new CellAttributes();
+	color.foreColor = COLOR_YELLOW;
+	color.backColor = COLOR_BLUE;
+	color.bold = true;
+	colors["tradiogroup.active"] = color;
+
     }
 
     /// Public constructor.

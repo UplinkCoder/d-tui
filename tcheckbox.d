@@ -102,7 +102,7 @@ public class TCheckbox : TWidget {
     override public void draw() {
 	CellAttributes checkboxColor;
 
-	if (active) {
+	if (getAbsoluteActive()) {
 	    checkboxColor = window.application.theme.getColor("tcheckbox.active");
 	} else {
 	    checkboxColor = window.application.theme.getColor("tcheckbox.inactive");
@@ -123,7 +123,7 @@ public class TCheckbox : TWidget {
      * Handle mouse checkbox presses.
      *
      * Params:
-     *    event = mouse checkbox event
+     *    event = mouse button down event
      */
     override protected void onMouseDown(TInputEvent event) {
 	if ((mouseOnCheckbox(event)) && (event.mouse1)) {

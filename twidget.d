@@ -43,6 +43,7 @@ import tbutton;
 import tlabel;
 import tfield;
 import tcheckbox;
+import tradio;
 
 // Defines -------------------------------------------------------------------
 
@@ -107,6 +108,19 @@ public class TWidget {
 	    return 0;
 	}
 	return tabOrder - that.tabOrder;
+    }
+
+    /**
+     * See if this widget should render with the active color.
+     *
+     * Returns:
+     *    true if this widget is active and all of its parents are active.
+     */
+    public bool getAbsoluteActive() {
+	if (parent is this) {
+	    return active;
+	}
+	return (active && parent.getAbsoluteActive());
     }
 
     /**
@@ -279,13 +293,13 @@ public class TWidget {
      *    forward = switch to the next enabled widget in the list
      */
     private void switchWidget(bool forward) {
+
 	// Only switch if there are multiple enabled widgets
 	if ((children.length < 2) || (activeChild is null)) {
 	    return;
 	}
 
 	int tabOrder = activeChild.tabOrder;
-	activeChild.active = false;
 	do {
 	    if (forward) {
 		tabOrder++;
@@ -293,8 +307,21 @@ public class TWidget {
 		tabOrder--;
 	    }
 	    if (tabOrder < 0) {
+
+		// If at the end, pass the switch to my parent.
+		if ((!forward) && (parent !is this)) {
+		    parent.switchWidget(forward);
+		    return;
+		}
+
 		tabOrder = cast(int)children.length - 1;
 	    } else if (tabOrder == children.length) {
+		// If at the end, pass the switch to my parent.
+		if ((forward) && (parent !is this)) {
+		    parent.switchWidget(forward);
+		    return;
+		}
+
 		tabOrder = 0;
 	    }
 	    if (activeChild.tabOrder == tabOrder) {
@@ -305,6 +332,7 @@ public class TWidget {
 
 	assert(children[tabOrder].enabled == true);
 
+	activeChild.active = false;
 	children[tabOrder].active = true;
 	activeChild = children[tabOrder];
 
@@ -335,20 +363,35 @@ public class TWidget {
      *    event = keystroke event
      */
     protected void onKeypress(TInputEvent event) {
-	// Defaults:
-	//   tab / shift-tab - switch to next/previous widget
-	//   right-arrow or down-arrow: same as tab
-	//   left-arrow or up-arrow: same as shift-tab
-	if ((event.key == kbTab) ||
-	    (event.key == kbRight) ||
-	    (event.key == kbDown)
-	) {
-	    parent.switchWidget(true);
-	} else if ((event.key == kbShiftTab) ||
-	    (event.key == kbLeft) ||
-	    (event.key == kbUp)
-	) {
-	    parent.switchWidget(false);
+
+	if (children.length == 0) {
+	    // Defaults:
+	    //   tab / shift-tab - switch to next/previous widget
+	    //   right-arrow or down-arrow: same as tab
+	    //   left-arrow or up-arrow: same as shift-tab
+	    if ((event.key == kbTab) ||
+		(event.key == kbRight) ||
+		(event.key == kbDown)
+	    ) {
+		parent.switchWidget(true);
+		return;
+	    } else if ((event.key == kbShiftTab) ||
+		(event.key == kbBackTab) ||
+		(event.key == kbLeft) ||
+		(event.key == kbUp)
+	    ) {
+		parent.switchWidget(false);
+		return;
+	    }
+	}
+
+	// Dispatch the keypress to an active widget
+	foreach (w; children) {
+	    if (w.active) {
+		window.application.repaint = true;
+		w.handleEvent(event);
+		return;
+	    }
 	}
     }
 
@@ -360,7 +403,19 @@ public class TWidget {
      *    event = mouse button event
      */
     protected void onMouseDown(TInputEvent event) {
-	// Default: do nothing
+	// Default: do nothing, pass to children instead
+	foreach (w; children) {
+	    if (w.mouseWouldHit(event)) {
+		// Dispatch to this child, also activate it
+		activate(w);
+
+		// Set x and y relative to the child's coordinates
+		event.x = event.absoluteX - w.getAbsoluteX();
+		event.y = event.absoluteY - w.getAbsoluteY();
+		w.handleEvent(event);
+		return;
+	    }
+	}
     }
 
     /**
@@ -371,7 +426,19 @@ public class TWidget {
      *    event = mouse button release event
      */
     protected void onMouseUp(TInputEvent event) {
-	// Default: do nothing
+	// Default: do nothing, pass to children instead
+	foreach (w; children) {
+	    if (w.mouseWouldHit(event)) {
+		// Dispatch to this child, also activate it
+		activate(w);
+
+		// Set x and y relative to the child's coordinates
+		event.x = event.absoluteX - w.getAbsoluteX();
+		event.y = event.absoluteY - w.getAbsoluteY();
+		w.handleEvent(event);
+		return;
+	    }
+	}
     }
 
     /**
@@ -381,7 +448,14 @@ public class TWidget {
      *    event = mouse motion event
      */
     protected void onMouseMotion(TInputEvent event) {
-	// Default: do nothing
+	// Default: do nothing, pass it on to ALL of my children.  This way
+	// the children can see the mouse "leaving" their area.
+	foreach (w; children) {
+	    // Set x and y relative to the child's coordinates
+	    event.x = event.absoluteX - w.getAbsoluteX();
+	    event.y = event.absoluteY - w.getAbsoluteY();
+	    w.handleEvent(event);
+	}
     }
 
     /**
@@ -531,6 +605,19 @@ public class TWidget {
 	bool checked = false) {
 
 	return new TCheckbox(this, x, y, label, checked);
+    }
+
+    /**
+     * Convenience function to add a radio group to this container/window.
+     *
+     * Params:
+     *    parent = parent widget
+     *    x = column relative to parent
+     *    y = row relative to parent
+     *    label = label to display on the group box
+     */
+    public TRadioGroup addRadioGroup(uint x, uint y, dstring label) {
+	return new TRadioGroup(this, x, y, label);
     }
 
 }
