@@ -2733,6 +2733,18 @@ public class ColorTheme {
 	color.bold = true;
 	colors["tradiogroup.active"] = color;
 
+	// TMenu
+	color = new CellAttributes();
+	color.foreColor = COLOR_BLACK;
+	color.backColor = COLOR_WHITE;
+	color.bold = false;
+	colors["tmenu"] = color;
+	color = new CellAttributes();
+	color.foreColor = COLOR_BLACK;
+	color.backColor = COLOR_GREEN;
+	color.bold = false;
+	colors["tmenu.highlighted"] = color;
+
     }
 
     /// Public constructor.

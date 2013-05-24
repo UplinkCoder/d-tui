@@ -87,9 +87,10 @@ calling this version 1.0:
 - [ ] TTextArea
 - [ ] TText
   - [ ] Reflows with window resize
-- [ ] Drag and drop
+- [ ] Drag and drop / copy and paste
   - [ ] TTextArea
   - [ ] TField
+  - [ ] TText
 - [ ] TFileOpenDialog
 - [ ] TTerminal
 - [ ] TApplicationSocket - socket that knows about environment variables and

@@ -28,10 +28,12 @@ default:	all
 .SUFFIXES: .o .d
 
 TUI_SRC =	tui.d base.d codepage.d twidget.d tapplication.d twindow.d \
-		tmessagebox.d tbutton.d tlabel.d tfield.d tcheckbox.d tradio.d
+		tmessagebox.d tbutton.d tlabel.d tfield.d tcheckbox.d tradio.d \
+		tmenu.d
 
 TUI_OBJS =	tui.o base.o codepage.o twidget.o tapplication.o twindow.o \
-		tmessagebox.o tbutton.o tlabel.o tfield.o tcheckbox.o tradio.o
+		tmessagebox.o tbutton.o tlabel.o tfield.o tcheckbox.o tradio.o \
+		tmenu.o
 
 DC = dmd
 INC = -I@srcdir@

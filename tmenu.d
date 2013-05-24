@@ -1,5 +1,5 @@
 /**
- * D Text User Interface library - TRadioButton and TRadioGroup classes
+ * D Text User Interface library - TMenu and TMenuItem classes
  *
  * Version: $Id$
  *
@@ -47,42 +47,12 @@ import twidget;
 // Classes -------------------------------------------------------------------
 
 /**
- * TRadioGroup is a collection of TRadioButtons with a box and label.
+ * TMenu is a top-level collection of TMenuItems
  */
-public class TRadioGroup : TWidget {
+public class TMenu : TWidget {
 
-    /// Label for this radio button group
+    /// Label for this menu
     private dstring label;
-
-    /// Only one of my children can be selected
-    private TRadioButton selectedButton = null;
-
-    /**
-     * Get the radio button ID that was selected.
-     *
-     * Returns:
-     *    ID of the selected button, or 0 if no button is selected
-     */
-    public uint getSelected() {
-	if (selectedButton is null) {
-	    return 0;
-	}
-	return selectedButton.id;
-    }
-
-    /**
-     * Set the new selected radio button.
-     *
-     * Params:
-     *    button = new button that became selected
-     */
-    private void setSelected(TRadioButton button) {
-	assert(button.selected == true);
-	if (selectedButton !is null) {
-	    selectedButton.selected = false;
-	}
-	selectedButton = button;
-    }
 
     /**
      * Public constructor
@@ -105,55 +75,48 @@ public class TRadioGroup : TWidget {
 	this.width = cast(uint)label.length + 4;
     }
 
-    /// Draw a radio button with label
+    /// Draw a menu item with label
     override public void draw() {
-	CellAttributes radioGroupColor;
+	CellAttributes menuColor;
+	CellAttributes background = window.application.theme.getColor("tmenu");
 
 	if (getAbsoluteActive()) {
-	    radioGroupColor = window.application.theme.getColor("tradiogroup.active");
+	    menuColor = window.application.theme.getColor("tmenu.highlighted");
 	} else {
-	    radioGroupColor = window.application.theme.getColor("tradiogroup.inactive");
+	    menuColor = window.application.theme.getColor("tmenu");
 	}
 
-	window.drawBox(0, 0, width, height, radioGroupColor, radioGroupColor, 3, false);
-
-	window.hLineXY(1, 0, cast(uint)label.length + 2, ' ', radioGroupColor);
-	window.putStrXY(2, 0, label, radioGroupColor);
+	// Fill in the interior background
+	for (auto i = 0; i < height; i++) {
+	    window.hLineXY(0, i, width, ' ', background);
+	}
     }
 
     /**
-     * Convenience function to add a radio button to this group.
+     * Convenience function to add a menu item to this group.
      *
      * Params:
      *    label = label to display next to (right of) the radiobutton
      */
-    public TRadioButton addRadioButton(dstring label) {
+    public TMenuItem addMenuItem(dstring label) {
 	uint buttonX = 1;
 	uint buttonY = cast(uint)children.length + 1;
 	if (label.length + 4 > width) {
 	    width = cast(uint)label.length + 7;
 	}
 	height = cast(uint)children.length + 3;
-	return new TRadioButton(this, buttonX, buttonY, label,
-	    cast(uint)children.length + 1);
+	return new TMenuItem(this, buttonX, buttonY, label);
     }
 
 }
 
 /**
- * TRadioButton implements a selectable radio button.
+ * TMenuItem implements a menu item
  */
-public class TRadioButton : TWidget {
+public class TMenuItem : TWidget {
 
-    /// RadioButton state, true means selected
-    public bool selected = false;
-
-    /// Label for this radio button
+    /// Label for this menu item
     private dstring label;
-
-    /// ID for this radio button.  Buttons start counting at 1 in the
-    /// RadioGroup.
-    private uint id;
 
     /**
      * Public constructor
@@ -163,9 +126,8 @@ public class TRadioButton : TWidget {
      *    x = column relative to parent
      *    y = row relative to parent
      *    label = label to display next to (right of) the radiobutton
-     *    id = ID for this radio button
      */
-    public this(TRadioGroup parent, uint x, uint y, dstring label, uint id) {
+    public this(TMenu parent, uint x, uint y, dstring label) {
 
 	// Set parent and window
 	super(parent);
@@ -174,45 +136,36 @@ public class TRadioButton : TWidget {
 	this.y = y;
 	this.height = 1;
 	this.label = label;
-	this.width = cast(uint)label.length + 4;
-	this.id = id;
+	this.width = cast(uint)label.length;
     }
 
     /**
-     * Returns true if the mouse is currently on the radio button
+     * Returns true if the mouse is currently on the menu item
      *
      * Params:
      *    mouse = mouse event
      */
-    private bool mouseOnRadioButton(TInputEvent mouse) {
+    private bool mouseOnMenuItem(TInputEvent mouse) {
 	if ((mouse !is null) &&
 	    (mouse.y == 0) &&
 	    (mouse.x >= 0) &&
-	    (mouse.x <= 2)
+	    (mouse.x < width)
 	) {
 	    return true;
 	}
 	return false;
     }
 
-    /// Draw a radio button with label
+    /// Draw a menu item with label
     override public void draw() {
-	CellAttributes radioButtonColor;
+	CellAttributes menuColor;
 
 	if (getAbsoluteActive()) {
-	    radioButtonColor = window.application.theme.getColor("tradiobutton.active");
+	    menuColor = window.application.theme.getColor("tmenu.highlighted");
 	} else {
-	    radioButtonColor = window.application.theme.getColor("tradiobutton.inactive");
+	    menuColor = window.application.theme.getColor("tmenu");
 	}
-
-	window.putCharXY(0, 0, '(', radioButtonColor);
-	if (selected) {
-	    window.putCharXY(1, 0, cp437_chars[0x07], radioButtonColor);
-	} else {
-	    window.putCharXY(1, 0, ' ', radioButtonColor);
-	}
-	window.putCharXY(2, 0, ')', radioButtonColor);
-	window.putStrXY(4, 0, label, radioButtonColor);
+	window.putStrXY(0, 0, label, menuColor);
     }
 
     /**
@@ -222,12 +175,9 @@ public class TRadioButton : TWidget {
      *    event = mouse button press event
      */
     override protected void onMouseDown(TInputEvent event) {
-	if ((mouseOnRadioButton(event)) && (event.mouse1)) {
-	    // Switch state
-	    selected = !selected;
-	    if (selected) {
-		(cast(TRadioGroup)parent).setSelected(this);
-	    }
+	if ((mouseOnMenuItem(event)) && (event.mouse1)) {
+	    // TODO
+	    return;
 	}
     }
 
@@ -240,11 +190,11 @@ public class TRadioButton : TWidget {
     override protected void onKeypress(TInputEvent event) {
 	TKeypress key = event.key;
 
-	if (key == kbSpace) {
-	    selected = !selected;
-	    if (selected) {
-		(cast(TRadioGroup)parent).setSelected(this);
-	    }
+	if (key == kbEnter) {
+	    // Dispatch
+
+	    // TODO
+
 	    return;
 	}
 
