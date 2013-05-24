@@ -1135,7 +1135,7 @@ public immutable TKeypress kbEnd = TKeypress(true, TKeypress.END, ' ', false, fa
 public immutable TKeypress kbPgUp = TKeypress(true, TKeypress.PGUP, ' ', false, false, false);
 public immutable TKeypress kbPgDn = TKeypress(true, TKeypress.PGDN, ' ', false, false, false);
 public immutable TKeypress kbIns = TKeypress(true, TKeypress.INS, ' ', false, false, false);
-public immutable TKeypress kbDel = TKeypress(true, TKeypress.INS, ' ', false, false, false);
+public immutable TKeypress kbDel = TKeypress(true, TKeypress.DEL, ' ', false, false, false);
 public immutable TKeypress kbUp = TKeypress(true, TKeypress.UP, ' ', false, false, false);
 public immutable TKeypress kbDown = TKeypress(true, TKeypress.DOWN, ' ', false, false, false);
 public immutable TKeypress kbLeft = TKeypress(true, TKeypress.LEFT, ' ', false, false, false);
@@ -1148,7 +1148,7 @@ public immutable TKeypress kbAltEnd = TKeypress(true, TKeypress.END, ' ', true, 
 public immutable TKeypress kbAltPgUp = TKeypress(true, TKeypress.PGUP, ' ', true, false, false);
 public immutable TKeypress kbAltPgDn = TKeypress(true, TKeypress.PGDN, ' ', true, false, false);
 public immutable TKeypress kbAltIns = TKeypress(true, TKeypress.INS, ' ', true, false, false);
-public immutable TKeypress kbAltDel = TKeypress(true, TKeypress.INS, ' ', true, false, false);
+public immutable TKeypress kbAltDel = TKeypress(true, TKeypress.DEL, ' ', true, false, false);
 public immutable TKeypress kbAltUp = TKeypress(true, TKeypress.UP, ' ', true, false, false);
 public immutable TKeypress kbAltDown = TKeypress(true, TKeypress.DOWN, ' ', true, false, false);
 public immutable TKeypress kbAltLeft = TKeypress(true, TKeypress.LEFT, ' ', true, false, false);
@@ -1161,7 +1161,7 @@ public immutable TKeypress kbCtrlEnd = TKeypress(true, TKeypress.END, ' ', false
 public immutable TKeypress kbCtrlPgUp = TKeypress(true, TKeypress.PGUP, ' ', false, true, false);
 public immutable TKeypress kbCtrlPgDn = TKeypress(true, TKeypress.PGDN, ' ', false, true, false);
 public immutable TKeypress kbCtrlIns = TKeypress(true, TKeypress.INS, ' ', false, true, false);
-public immutable TKeypress kbCtrlDel = TKeypress(true, TKeypress.INS, ' ', false, true, false);
+public immutable TKeypress kbCtrlDel = TKeypress(true, TKeypress.DEL, ' ', false, true, false);
 public immutable TKeypress kbCtrlUp = TKeypress(true, TKeypress.UP, ' ', false, true, false);
 public immutable TKeypress kbCtrlDown = TKeypress(true, TKeypress.DOWN, ' ', false, true, false);
 public immutable TKeypress kbCtrlLeft = TKeypress(true, TKeypress.LEFT, ' ', false, true, false);
@@ -1174,7 +1174,7 @@ public immutable TKeypress kbShiftEnd = TKeypress(true, TKeypress.END, ' ', fals
 public immutable TKeypress kbShiftPgUp = TKeypress(true, TKeypress.PGUP, ' ', false, false, true);
 public immutable TKeypress kbShiftPgDn = TKeypress(true, TKeypress.PGDN, ' ', false, false, true);
 public immutable TKeypress kbShiftIns = TKeypress(true, TKeypress.INS, ' ', false, false, true);
-public immutable TKeypress kbShiftDel = TKeypress(true, TKeypress.INS, ' ', false, false, true);
+public immutable TKeypress kbShiftDel = TKeypress(true, TKeypress.DEL, ' ', false, false, true);
 public immutable TKeypress kbShiftUp = TKeypress(true, TKeypress.UP, ' ', false, false, true);
 public immutable TKeypress kbShiftDown = TKeypress(true, TKeypress.DOWN, ' ', false, false, true);
 public immutable TKeypress kbShiftLeft = TKeypress(true, TKeypress.LEFT, ' ', false, false, true);
@@ -1284,6 +1284,12 @@ public immutable TKeypress kbAltShiftW = TKeypress(false, 0, 'W', true, false, t
 public immutable TKeypress kbAltShiftX = TKeypress(false, 0, 'X', true, false, true);
 public immutable TKeypress kbAltShiftY = TKeypress(false, 0, 'Y', true, false, true);
 public immutable TKeypress kbAltShiftZ = TKeypress(false, 0, 'Z', true, false, true);
+
+/// Backspace as ^H
+public immutable TKeypress kbBackspace = TKeypress(false, 0, 'H', false, true, false);
+
+/// Backspace as ^?
+public immutable TKeypress kbBackspaceDel = TKeypress(false, 0, 0x7F, false, false, false);
 
 /**
  * This class encapsulates keystrokes and mouse events received from the

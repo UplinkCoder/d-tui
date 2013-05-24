@@ -52,10 +52,23 @@ import twidget;
 public class TField : TWidget {
 
     /// Field text
-    public dstring text = "";
+    private dstring text = "";
 
     /// Remember mouse state
     private TInputEvent mouse;
+
+    /// If true, only allow enough characters that will fit in the
+    /// width.  If false, allow the field to scroll to the right.
+    private bool fixed = false;
+
+    /// Current editing position within text
+    private uint position = 0;
+
+    /// Beginning of visible portion
+    private int windowStart = 0;
+
+    /// If true, new characters are inserted at position
+    private bool insertMode = true;
 
     /**
      * Public constructor
@@ -65,17 +78,21 @@ public class TField : TWidget {
      *    x = column relative to parent
      *    y = row relative to parent
      *    width = visible text width.
+     *    fixed = if true, the text cannot exceed the display width
      *    text = initial text, default is empty string
      */
-    public this(TWidget parent, uint x, uint y, uint width, dstring text = "") {
+    public this(TWidget parent, uint x, uint y, uint width, bool fixed,
+	dstring text = "") {
+
 	// Set parent and window
 	super(parent);
 
 	this.text = text;
 	this.x = x;
 	this.y = y;
-	this.height = 2;
+	this.height = 1;
 	this.width = width;
+	this.fixed = fixed;
 
 	this.hasCursor = true;
     }
@@ -86,11 +103,61 @@ public class TField : TWidget {
 	if ((mouse !is null) &&
 	    (mouse.y == 0) &&
 	    (mouse.x >= 0) &&
-	    (mouse.x < rightEdge)
+	    (mouse.x <= rightEdge)
 	) {
 	    return true;
 	}
 	return false;
+    }
+
+    /**
+     * Append char to the end of the field
+     *
+     * Params:
+     *    ch = char to append
+     */
+    private void appendChar(dchar ch) {
+	// Append the LAST character
+	text ~= ch;
+	position++;
+
+	assert(position == text.length);
+
+	if (fixed == true) {
+	    if (position == width) {
+		position--;
+	    }
+	} else {
+	    if ((position - windowStart) == width) {
+		windowStart++;
+	    }
+	}
+    }
+
+    /**
+     * Insert char somewhere in the middle of the field
+     *
+     * Params:
+     *    ch = char to append
+     */
+    private void insertChar(dchar ch) {
+	text = text[0 .. position] ~ ch ~ text[position .. $];
+	position++;
+	if ((position - windowStart) == width) {
+	    assert(fixed == false);
+	    windowStart++;
+	}
+    }
+
+    /// Update the cursor position
+    private void updateCursor() {
+	if ((position > width) && (fixed == true)) {
+	    cursorX = width;
+	} else if ((position - windowStart == width) && (fixed == false)) {
+		cursorX = width - 1;
+	} else {
+		cursorX = position - windowStart;
+	}
     }
 
     /// Draw a field with a shadow
@@ -103,8 +170,15 @@ public class TField : TWidget {
 	    fieldColor = window.application.theme.getColor("tfield.inactive");
 	}
 
+	uint end = windowStart + width;
+	if (end > text.length) {
+	    end = cast(uint)text.length;
+	}
 	window.hLineXY(0, 0, width, GraphicsChars.HATCH, fieldColor);
-	window.putStrXY(0, 0, text, fieldColor);
+	window.putStrXY(0, 0, text[windowStart .. end], fieldColor);
+
+	// Fix the cursor, it will be rendered by TApplication.drawAll().
+	updateCursor();
     }
 
     /**
@@ -118,7 +192,13 @@ public class TField : TWidget {
 
 	if ((mouseOnField()) && (mouse.mouse1)) {
 	    // Move cursor
-	    // TODO
+	    uint deltaX = mouse.x - cursorX;
+	    position += deltaX;
+	    if (position > text.length) {
+		position = cast(uint)text.length;
+	    }
+	    updateCursor();
+	    return;
 	}
     }
 
@@ -158,8 +238,135 @@ public class TField : TWidget {
      *    event = keystroke event
      */
     override protected void onKeypress(TInputEvent event) {
-	// TODO: arrow keys, home/end, backspace
+	TKeypress key = event.key;
 
+	if (key == kbLeft) {
+	    if (position > 0) {
+		position--;
+	    }
+	    if (fixed == false) {
+		if ((position == windowStart) && (windowStart > 0)) {
+		    windowStart--;
+		}
+	    }
+	    return;
+	}
+
+	if (key == kbRight) {
+	    if (position < text.length) {
+		position++;
+		if (fixed == true) {
+		    if (position == width) {
+			position--;
+		    }
+		} else {
+		    if ((position - windowStart) == width) {
+			windowStart++;
+		    }
+		}
+	    }
+	    return;
+	}
+
+	if (key == kbIns) {
+	    insertMode = !insertMode;
+	    return;
+	}
+	if (key == kbHome) {
+	    position = 0;
+	    windowStart = 0;
+	    return;
+	}
+
+	if (key == kbEnd) {
+	    position = cast(uint)text.length;
+	    if (fixed == true) {
+		if (position >= width) {
+		    position = cast(uint)text.length - 1;
+		}
+	    } else {
+		windowStart = cast(uint)text.length - width + 1;
+		if (windowStart < 0) {
+		    windowStart = 0;
+		}
+	    }
+	    return;
+	}
+
+	if (key == kbDel) {
+	    if ((text.length > 0) && (position < text.length)) {
+		text = text[0 .. position] ~ text[position + 1 .. $];
+	    }
+	    return;
+	}
+
+	if ((key == kbBackspace) || (key == kbBackspaceDel)) {
+	    if (position > 0) {
+		position--;
+		text = text[0 .. position] ~ text[position + 1 .. $];
+	    }
+	    if (fixed == false) {
+		if ((position == windowStart) &&
+		    (windowStart > 0)
+		) {
+		    windowStart--;
+		}
+	    }
+	    return;
+	}
+
+	if ((key.isKey == false) &&
+	    (key.alt == false) &&
+	    (key.ctrl == false)
+	) {
+	    // Plain old keystroke, process it
+	    // stderr.writefln("position %d text.length %s width %d windowStart %d text %s", position, text.length, width, windowStart, text);
+
+	    if ((position == text.length) && (text.length < width)) {
+		// Append case
+		appendChar(key.ch);
+	    } else if ((position < text.length) && (text.length < width)) {
+		// Overwrite or insert a character
+		if (insertMode == false) {
+		    // Replace character
+		    text = text[0 .. position] ~ key.ch ~ text[position + 1 .. $];
+		    position++;
+		} else {
+		    // Insert character
+		    insertChar(key.ch);
+		}
+	    } else if ((position < text.length) && (text.length >= width)) {
+		// Multiple cases here
+		if ((fixed == true) && (insertMode == true)) {
+		    // Buffer is full, do nothing
+		} else if ((fixed == true) && (insertMode == false)) {
+		    // Overwrite the last character, maybe move position
+		    text = text[0 .. position] ~ key.ch ~ text[position + 1 .. $];
+		    if (position < width - 1) {
+			position++;
+		    }
+		} else if ((fixed == false) && (insertMode == false)) {
+		    // Overwrite the last character, definitely move
+		    // position
+		    text = text[0 .. position] ~ key.ch ~ text[position + 1 .. $];
+		    position++;
+		} else {
+		    if (position == text.length) {
+			// Append this character
+			appendChar(key.ch);
+		    } else {
+			// Insert this character
+			insertChar(key.ch);
+		    }
+		}
+	    } else {
+		assert(fixed == false);
+
+		// Append this character
+		appendChar(key.ch);
+	    }
+	    return;
+	}
 
 	// Pass to parent for the things we don't care about.
 	super.onKeypress(event);

@@ -94,10 +94,10 @@ public class TWidget {
     public bool hasCursor = false;
 
     /// Cursor column position in relative coordinates
-    private uint cursorX = 0;
+    protected uint cursorX = 0;
 
     /// Cursor row position in relative coordinates
-    private uint cursorY = 0;
+    protected uint cursorY = 0;
 
     /// Comparison operator sorts on tabOrder
     public override int opCmp(Object rhs) {
@@ -254,6 +254,20 @@ public class TWidget {
 	}
 	for (auto i = 0; i < children.length; i++) {
 	    children[i].tabOrder = i;
+	}
+    }
+
+    /**
+     * Switch the active child
+     *
+     * Params:
+     *    child = TWidget to add
+     */
+    public void activate(TWidget child) {
+	if (child !is activeChild) {
+	    activeChild.active = false;
+	    child.active = true;
+	    activeChild = child;
 	}
     }
 
@@ -430,6 +444,10 @@ public class TWidget {
     public bool mouseWouldHit(TInputEvent mouse) {
 	assert(mouse.type != TInputEvent.Type.KEYPRESS);
 
+	if (!enabled) {
+	    return false;
+	}
+
 	if ((mouse.absoluteX >= getAbsoluteX()) &&
 	    (mouse.absoluteX <  getAbsoluteX() + width) &&
 	    (mouse.absoluteY >= getAbsoluteY()) &&
@@ -490,10 +508,13 @@ public class TWidget {
      *    x = column relative to parent
      *    y = row relative to parent
      *    width = visible text width.
+     *    fixed = if true, the text cannot exceed the display width
      *    text = initial text, default is empty string
      */
-    public TField addField(uint x, uint y, uint width, dstring text = "") {
-	return new TField(this, x, y, width, text);
+    public TField addField(uint x, uint y, uint width, bool fixed,
+	dstring text = "") {
+
+	return new TField(this, x, y, width, fixed, text);
     }
 
 }

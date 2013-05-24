@@ -63,7 +63,6 @@ Roadmap
 I am just beginning as a work in progress.  Many tasks remain before
 calling this version 1.0:
 
-- [ ] TField - steal from fieldset/field in qodem
 - [ ] TCheckBox
 - Screen
   - [ ] putColorizedStrXY : colorized string markup style - use for status bar text and general dialog boxes
@@ -76,6 +75,9 @@ calling this version 1.0:
 - [ ] TTextArea
 - [ ] TText
   - [ ] Reflows with window resize
+- [ ] Drag and drop
+  - [ ] TTextArea
+  - [ ] TField
 - [ ] TRadioButton / TRadioGroup
 - TApplication
   - [ ] Timers:

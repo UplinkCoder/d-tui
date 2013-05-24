@@ -391,7 +391,9 @@ public class TWindow : TWidget {
 	// I didn't take it, pass it on to my children
 	foreach (w; children) {
 	    if (w.mouseWouldHit(mouse)) {
-		// Dispatch to this child
+		// Dispatch to this child, also activate it
+		activate(w);
+
 		// Set x and y relative to the child's coordinates
 		mouse.x = mouse.absoluteX - w.getAbsoluteX();
 		mouse.y = mouse.absoluteY - w.getAbsoluteY();
