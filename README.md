@@ -97,4 +97,6 @@ calling this version 1.0:
         rows X cols
       - [ ] this(TApplication application)
 - Terminal
+  - [X] Mouse 1000 mode parsing
+  - [ ] Mouse 1006 mode parsing
   - [ ] Win32 console support

@@ -1402,7 +1402,7 @@ public class Terminal {
 
     /// Parameters being collected.  E.g. if the string is \033[1;3m,
     /// then params[0] will be 1 and params[1] will be 3.
-    private string [] params;
+    private dstring [] params;
 
     /// params[paramI] is being appended to.
     private uint paramI;
@@ -1440,6 +1440,10 @@ public class Terminal {
 
     /// Set by the SIGWINCH handler to expose window resize events
     private TInputEvent windowResize = null;
+
+    /// When true, the terminal is sending non-UTF8 bytes when
+    /// reporting mouse events.
+    private bool brokenTerminalUTFMouse = false;
 
     /// Reset keyboard/mouse input parser
     private void reset() {
@@ -1482,7 +1486,15 @@ public class Terminal {
      */
     public dchar getCharStdin() {
 	char[4] buffer;
+
 	read(stdin.fileno(), buffer.ptr, 1);
+	if ((brokenTerminalUTFMouse == true) && (state == STATE.MOUSE)) {
+	    // This terminal is sending non-UTF8 characters in its
+	    // mouse reporting.  Do not decode stuff, just return
+	    // buffer[0].
+	    return buffer[0];
+	}
+
 	size_t len = 0;
 	if ((buffer[0] & 0xF0) == 0xF0) {
 	    // 3 more bytes coming
@@ -1495,8 +1507,22 @@ public class Terminal {
 	    len = 1;
 	}
 	read(stdin.fileno(), cast(void *)(buffer.ptr) + 1, len);
-	size_t i;
-	return decode(buffer, i);
+	try {
+	    size_t i;
+	    dchar ch = decode(buffer, i);
+	    return ch;
+	} catch (UTFException e) {
+	    if (state == STATE.MOUSE) {
+		// The terminal we are using (e.g. gnome-terminal,
+		// xfce4-terminal, or others) is sending non-UTF8
+		// characters for the mouse reporting.
+		brokenTerminalUTFMouse = true;
+	    }
+
+	    // Trash this code.
+	    reset();
+	    return 0;
+	}
     }
 
     // Used for getPhsyicalWidth/Height
@@ -1866,10 +1892,18 @@ public class Terminal {
      *    One MOUSE_MOTION, MOUSE_UP, or MOUSE_DOWN event
      */
     private TInputEvent parseMouse() {
-	size_t index;
-	dchar buttons = decode(params[0], index) - 32;
-	dchar x = decode(params[0], index) - 32 - 1;
-	dchar y = decode(params[0], index) - 32 - 1;
+	dchar buttons = params[0][0] - 32;
+	dchar x = params[0][1] - 32 - 1;
+	dchar y = params[0][2] - 32 - 1;
+
+	// Clamp X and Y to the physical screen coordinates.
+	if (x >= windowResize.x) {
+	    x = windowResize.x - 1;
+	}
+	if (y >= windowResize.y) {
+	    y = windowResize.y - 1;
+	}
+
 	TInputEvent event = new TInputEvent(TInputEvent.Type.MOUSE_DOWN);
 	event.x = x;
 	event.y = y;
@@ -2202,7 +2236,7 @@ public class Terminal {
 
 	case STATE.MOUSE:
 	    params[0] ~= ch;
-	    if (codeLength!dchar(params[0]) == 3) {
+	    if (params[0].length == 3) {
 		// We have enough to generate a mouse event
 		events ~= parseMouse();
 		reset();

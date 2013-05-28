@@ -143,7 +143,7 @@ public class TApplication {
 	    flush = false;
 	    return result;
 	}
-	
+
 	if (!repaint) {
 	    return "";
 	}
@@ -364,6 +364,8 @@ public class TApplication {
 		screen.setDimensions(event.x, event.y);
 		desktopBottom = screen.getHeight() - 1;
 		repaint = true;
+		mouseX = 0;
+		mouseY = 0;
 		continue;
 	    }
 
