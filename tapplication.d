@@ -42,6 +42,7 @@ import codepage;
 import twidget;
 import twindow;
 import tmessagebox;
+import tmenu;
 
 // Defines -------------------------------------------------------------------
 
@@ -78,18 +79,14 @@ public class TApplication {
     /// Event queue that will be drained by either primary or secondary Fiber
     private TInputEvent [] eventQueue;
 
-    /// Public constructor.
-    public this() {
-	screen = new Screen();
-	theme = new ColorTheme();
-
-	desktopBottom = screen.getHeight() - 1;
-
-	primaryEventFiber = new Fiber(&primaryEventHandler);
-    }
-
     /// Windows in this application.
     private TWindow [] windows;
+
+    /// Top-level menus in this application.
+    private TMenu [] menus;
+
+    /// If true, then a menu was selected
+    private bool inMenu = false;
 
     /// Windows and widgets pull colors from this ColorTheme.
     public ColorTheme theme;
@@ -108,6 +105,16 @@ public class TApplication {
 
     /// Y coordinate of the bottom edge of the desktop.
     public uint desktopBottom;
+
+    /// Public constructor.
+    public this() {
+	screen = new Screen();
+	theme = new ColorTheme();
+
+	desktopBottom = screen.getHeight() - 1;
+
+	primaryEventFiber = new Fiber(&primaryEventHandler);
+    }
 
     /// Invert the cell at the mouse pointer position
     private void flipMouse() {
@@ -163,6 +170,16 @@ public class TApplication {
 	sorted.sort.reverse;
 	foreach (w; sorted) {
 	    w.drawChildren();
+	}
+
+	// Now draw the menus
+	screen.clipX = screen.getWidth();
+	screen.clipY = screen.getHeight();
+	screen.offsetX = 0;
+	screen.offsetY = 0;
+	screen.hLineXY(0, 0, screen.getWidth(), ' ', theme.getColor("tmenu"));
+	foreach (m; menus) {
+	    m.drawChildren();
 	}
 
 	// Place the mouse pointer
@@ -238,8 +255,32 @@ public class TApplication {
 	repaint = true;
     }
 
-    /// See if we need to switch window based on a mouse click
+    /// See if we need to switch window or activate the menu based on a mouse
+    /// click
     public void checkSwitchFocus(TInputEvent mouse) {
+
+	// See if they hit the menu
+	if ((mouse.type == TInputEvent.Type.MOUSE_DOWN) ||
+	    (	(mouse.type == TInputEvent.Type.MOUSE_MOTION) &&
+		(mouse.mouse1 == true) && (inMenu == true))
+	) {
+	    // They selected the menu, go activate it
+	    inMenu = false;
+	    foreach (m; menus) {
+		if ((mouse.absoluteY == 0) &&
+		    (mouse.absoluteX >= m.x) &&
+		    (mouse.absoluteX < m.x + m.width)
+		) {
+		    m.active = true;
+		    inMenu = true;
+		} else {
+		    m.active = false;
+		}
+	    }
+	    repaint = true;
+	    return;
+	}
+
 	// Only switch if there are multiple windows
 	if (windows.length < 2) {
 	    return;
@@ -394,9 +435,6 @@ public class TApplication {
 		    mouseY = event.y;
 		    flipMouse();
 		}
-
-		// See if we need to switch focus
-		checkSwitchFocus(event);
 	    }
 
 	    // Put into the main queue
@@ -480,6 +518,14 @@ public class TApplication {
 
 	// Special application-wide events -----------------------------------
 
+	// Peek at the mouse position
+	if ((event.type != TInputEvent.Type.KEYPRESS) &&
+	    (event.type != TInputEvent.Type.RESIZE)
+	) {
+	    // See if we need to switch focus to another window or the menu
+	    checkSwitchFocus(event);
+	}
+
 	// Alt-TAB
 	if ((event.type == TInputEvent.Type.KEYPRESS) &&
 	    (event.key == kbAltTab)) {
@@ -508,21 +554,36 @@ public class TApplication {
 	    return;
 	}
 
-	// Dispatch events to the right window --------------------------------
-
-	foreach (w; windows) {
-	    if (w.active) {
+	// Dispatch events to the menu or window ------------------------------
+	if (inMenu) {
+	    foreach (m; menus) {
 		if ((event.type != TInputEvent.Type.KEYPRESS) &&
 		    (event.type != TInputEvent.Type.RESIZE)
 		) {
-		    // Convert the mouse relative x/y to window coordinates
+		    // Convert the mouse relative x/y to menu coordinates
 		    assert(event.x == event.absoluteX);
 		    assert(event.y == event.absoluteY);
-		    event.x -= w.x;
-		    event.y -= w.y;
+		    event.x -= m.x;
+		    event.y -= m.y;
 		}
-		w.handleEvent(event);
+		m.handleEvent(event);
 		break;
+	    }
+	} else {
+	    foreach (w; windows) {
+		if (w.active) {
+		    if ((event.type != TInputEvent.Type.KEYPRESS) &&
+			(event.type != TInputEvent.Type.RESIZE)
+		    ) {
+			// Convert the mouse relative x/y to window coordinates
+			assert(event.x == event.absoluteX);
+			assert(event.y == event.absoluteY);
+			event.x -= w.x;
+			event.y -= w.y;
+		    }
+		    w.handleEvent(event);
+		    break;
+		}
 	    }
 	}
     }
@@ -619,14 +680,17 @@ public class TApplication {
     }
 
     /**
-     * Convenience function to add a window to this container/window.
-     * Window will be located at (0, 0).
+     * Convenience function to add a window to this container/window.  Window
+     * will be located at (0, 0) if flags is not MODAL or CENTERED.
      *
      * Params:
      *    title = window title, will be centered along the top border
      *    width = width of window
      *    height = height of window
      *    flags = mask of RESIZABLE, CENTERED, or MODAL
+     *
+     * Returns:
+     *    the new window
      */
     public TWindow addWindow(dstring title, uint width, uint height,
 	ubyte flags = TWindow.RESIZABLE) {
@@ -644,6 +708,9 @@ public class TApplication {
      *    width = width of window
      *    height = height of window
      *    flags = mask of RESIZABLE, CENTERED, or MODAL
+     *
+     * Returns:
+     *    the new window
      */
     public TWindow addWindow(dstring title, uint x, uint y, uint width, uint height,
 	ubyte flags = TWindow.RESIZABLE) {
@@ -655,17 +722,39 @@ public class TApplication {
      * Convenience function to spawn a message box.
      *
      * Params:
-     *    application = TApplication that manages this window
      *    title = window title, will be centered along the top border
      *    caption = message to display.  Use embedded newlines to get a multi-line box.
      *    type = one of the TMessageBox.Type constants.  Default is Type.OK.
+     *
+     * Returns:
+     *    the new message box
      */
     public TMessageBox messageBox(dstring title, dstring caption,
 	TMessageBox.Type type = TMessageBox.Type.OK) {
 
 	return new TMessageBox(this, title, caption, type);
     }
-    
+
+
+    /**
+     * Convenience function to add a top-level menu.
+     *
+     * Params:
+     *    title = menu title
+     *
+     * Returns:
+     *    the new menu
+     */
+    public TMenu addMenu(dstring title) {
+	uint x = 0;
+	uint y = 0;
+	foreach (m; menus) {
+	    x += m.width;
+	}
+	TMenu menu = new TMenu(this, x, y, title);
+	menus ~= menu;
+	return menu;
+    }
 }
 
 // Functions -----------------------------------------------------------------

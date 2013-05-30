@@ -515,6 +515,9 @@ public class TWidget {
      *
      * Params:
      *    mouse = a mouse-based event
+     *
+     * Returns:
+     *    whether or not a mouse click would be sent to this widget
      */
     public bool mouseWouldHit(TInputEvent mouse) {
 	assert(mouse.type != TInputEvent.Type.KEYPRESS);
@@ -541,6 +544,9 @@ public class TWidget {
      *    x = column relative to parent
      *    y = row relative to parent
      *    actionFn = function to call when button is pressed
+     *
+     * Returns:
+     *    the new button
      */
     public TButton addButton(dstring text, uint x, uint y,
 	void function() actionFn) {
@@ -555,6 +561,9 @@ public class TWidget {
      *    x = column relative to parent
      *    y = row relative to parent
      *    actionFn = function to call when button is pressed
+     *
+     * Returns:
+     *    the new button
      */
     public TButton addButton(dstring text, uint x, uint y,
 	void delegate() actionFn) {
@@ -569,6 +578,9 @@ public class TWidget {
      *    x = column relative to parent
      *    y = row relative to parent
      *    colorKey = ColorTheme key color to use for foreground text.  Default is "tlabel"
+     *
+     * Returns:
+     *    the new label
      */
     public TLabel addLabel(dstring text, uint x, uint y,
 	string colorKey = "tlabel") {
@@ -585,6 +597,9 @@ public class TWidget {
      *    width = visible text width
      *    fixed = if true, the text cannot exceed the display width
      *    text = initial text, default is empty string
+     *
+     * Returns:
+     *    the new field
      */
     public TField addField(uint x, uint y, uint width, bool fixed,
 	dstring text = "") {
@@ -600,6 +615,9 @@ public class TWidget {
      *    y = row relative to parent
      *    label = label to display next to (right of) the checkbox
      *    checked = initial check state
+     *
+     * Returns:
+     *    the new checkbox
      */
     public TCheckbox addCheckbox(uint x, uint y, dstring label,
 	bool checked = false) {
@@ -615,6 +633,9 @@ public class TWidget {
      *    x = column relative to parent
      *    y = row relative to parent
      *    label = label to display on the group box
+     *
+     * Returns:
+     *    the new radio group
      */
     public TRadioGroup addRadioGroup(uint x, uint y, dstring label) {
 	return new TRadioGroup(this, x, y, label);

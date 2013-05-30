@@ -79,6 +79,9 @@ public class TCheckbox : TWidget {
 	this.label = label;
 	this.width = cast(uint)label.length + 4;
 	this.checked = checked;
+
+	this.hasCursor = true;
+	this.cursorX = 1;
     }
 
     /**

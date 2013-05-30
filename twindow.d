@@ -83,6 +83,9 @@ public class TWindow : TWidget {
     /// Window flags
     private ubyte flags = RESIZABLE;
 
+    /// Z order.  Lower number means more in-front.
+    public uint z = false;
+
     /// If true, then the user clicked on the title bar and is moving
     /// the window
     private bool inWindowMove = false;
@@ -90,6 +93,12 @@ public class TWindow : TWidget {
     /// If true, then the user clicked on the bottom right corner and
     /// is resizing the window
     private bool inWindowResize = false;
+
+    /// If true, this window is maximized
+    public bool maximized = false;
+
+    /// Remember mouse state
+    protected TInputEvent mouse;    
 
     // For moving the window.  resizing also uses moveWindowMouseX/Y
     private uint moveWindowMouseX;
@@ -184,9 +193,6 @@ public class TWindow : TWidget {
 	return true;
     }
 
-    /// Z order.  Lower number means more in-front.
-    public uint z = false;
-
     /// Comparison operator sorts on z
     public override int opCmp(Object rhs) {
 	auto that = cast(TWindow)rhs;
@@ -195,12 +201,6 @@ public class TWindow : TWidget {
 	}
 	return z - that.z;
     }
-
-    /// If true, this window is maximized
-    public bool maximized = false;
-
-    /// Remember mouse state
-    private TInputEvent mouse;    
 
     /// Returns true if the mouse is currently on the close button
     private bool mouseOnClose() {
@@ -352,7 +352,10 @@ public class TWindow : TWidget {
 	mouse = event;
 	application.repaint = true;
 
-	if ((mouse.absoluteY == y) && mouse.mouse1 &&
+	if ((mouse.absoluteY == y) &&
+	    mouse.mouse1 &&
+	    (mouse.absoluteX >= x) &&
+	    (mouse.absoluteX < x + width) &&
 	    !mouseOnClose() &&
 	    !mouseOnMaximize()
 	) {

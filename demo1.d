@@ -33,7 +33,6 @@
 import std.stdio;
 import tui;
 
-
 private class DemoWindow2 : TWindow {
 
     private void closeMe() {
@@ -228,6 +227,11 @@ private class DemoApplication : TApplication {
     this() {
 	super();
 	new DemoMainWindow(this);
+
+	// Add the menus
+	TMenu fileMenu = addMenu("File");
+	TMenu editMenu = addMenu("Edit");
+	TMenu viewMenu = addMenu("View");
     }
 }
 

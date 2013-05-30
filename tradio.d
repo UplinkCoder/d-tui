@@ -126,6 +126,9 @@ public class TRadioGroup : TWidget {
      *
      * Params:
      *    label = label to display next to (right of) the radiobutton
+     *
+     * Returns:
+     *    the new radio button
      */
     public TRadioButton addRadioButton(dstring label) {
 	uint buttonX = 1;
@@ -176,6 +179,9 @@ public class TRadioButton : TWidget {
 	this.label = label;
 	this.width = cast(uint)label.length + 4;
 	this.id = id;
+
+	this.hasCursor = true;
+	this.cursorX = 1;
     }
 
     /**

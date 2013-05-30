@@ -38,7 +38,9 @@
 import std.utf;
 import base;
 import codepage;
+import tapplication;
 import twidget;
+import twindow;
 
 // Defines -------------------------------------------------------------------
 
@@ -49,33 +51,34 @@ import twidget;
 /**
  * TMenu is a top-level collection of TMenuItems
  */
-public class TMenu : TWidget {
-
-    /// Label for this menu
-    private dstring label;
+public class TMenu : TWindow {
 
     /**
      * Public constructor
      *
      * Params:
-     *    parent = parent widget
+     *    parent = parent application
      *    x = column relative to parent
      *    y = row relative to parent
-     *    label = label to display on the group box
+     *    title = menu title
      */
-    public this(TWidget parent, uint x, uint y, dstring label) {
+    public this(TApplication parent, uint x, uint y, dstring label) {
+	super(parent, label, x, y, parent.screen.getWidth(), parent.screen.getHeight(), 0);
 
-	// Set parent and window
-	super(parent);
+	// Recompute width and height to reflect an empty menu
+	width = cast(uint)title.length + 2;
+	height = 3;
 
-	this.x = x;
+	// My parent constructor added me as a window, get rid of that
+	parent.closeWindow(this);
+
+	// My parent constructor set my y to y + desktopTop, fix that
 	this.y = y;
-	this.height = 2;
-	this.label = label;
-	this.width = cast(uint)label.length + 4;
+
+	this.active = false;
     }
 
-    /// Draw a menu item with label
+    /// Draw a top-level menu with title and menu items
     override public void draw() {
 	CellAttributes menuColor;
 	CellAttributes background = window.application.theme.getColor("tmenu");
@@ -87,16 +90,21 @@ public class TMenu : TWidget {
 	}
 
 	// Fill in the interior background
-	for (auto i = 0; i < height; i++) {
-	    window.hLineXY(0, i, width, ' ', background);
+	if (getAbsoluteActive()) {
+	    for (auto i = 1; i < height; i++) {
+		screen.hLineXY(0, i, width, ' ', background);
+	    }
 	}
+	screen.putCharXY(0, 0, ' ', menuColor);
+	screen.putStrXY(1, 0, title, menuColor);
+	screen.putCharXY(width - 1, 0, ' ', menuColor);
     }
 
     /**
      * Convenience function to add a menu item to this group.
      *
      * Params:
-     *    label = label to display next to (right of) the radiobutton
+     *    label = menu item title
      */
     public TMenuItem addMenuItem(dstring label) {
 	uint buttonX = 1;
@@ -106,6 +114,48 @@ public class TMenu : TWidget {
 	}
 	height = cast(uint)children.length + 3;
 	return new TMenuItem(this, buttonX, buttonY, label);
+    }
+
+    /**
+     * Handle mouse button presses.
+     *
+     * Params:
+     *    event = mouse button event
+     */
+    override protected void onMouseDown(TInputEvent event) {
+	mouse = event;
+	application.repaint = true;
+
+	// I didn't take it, pass it on to my children
+	super.onMouseDown(event);
+    }
+
+    /**
+     * Handle mouse button releases.
+     *
+     * Params:
+     *    event = mouse button release event
+     */
+    override protected void onMouseUp(TInputEvent event) {
+	mouse = event;
+	application.repaint = true;
+
+	// I didn't take it, pass it on to my children
+	super.onMouseUp(event);
+    }
+
+    /**
+     * Handle mouse movements.
+     *
+     * Params:
+     *    event = mouse motion event
+     */
+    override protected void onMouseMotion(TInputEvent event) {
+	mouse = event;
+	application.repaint = true;
+
+	// I didn't take it, pass it on to my children
+	super.onMouseMotion(event);
     }
 
 }
@@ -125,7 +175,7 @@ public class TMenuItem : TWidget {
      *    parent = parent widget
      *    x = column relative to parent
      *    y = row relative to parent
-     *    label = label to display next to (right of) the radiobutton
+     *    label = menu item title
      */
     public this(TMenu parent, uint x, uint y, dstring label) {
 
