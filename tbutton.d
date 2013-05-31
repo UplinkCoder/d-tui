@@ -55,7 +55,7 @@ public class TButton : TWidget {
     private dstring text = "";
 
     /// Remember mouse state
-    private TInputEvent mouse;
+    private TMouseEvent mouse;
 
     /// True when the button is being pressed
     private bool inButtonPress = false;
@@ -180,7 +180,7 @@ public class TButton : TWidget {
      * Params:
      *    event = mouse button event
      */
-    override protected void onMouseDown(TInputEvent event) {
+    override protected void onMouseDown(TMouseEvent event) {
 	mouse = event;
 
 	if ((mouseOnButton()) && (mouse.mouse1)) {
@@ -195,7 +195,7 @@ public class TButton : TWidget {
      * Params:
      *    event = mouse button release event
      */
-    override protected void onMouseUp(TInputEvent event) {
+    override protected void onMouseUp(TMouseEvent event) {
 	mouse = event;
 
 	if ((inButtonPress == true) && (mouse.mouse1)) {
@@ -212,7 +212,7 @@ public class TButton : TWidget {
      * Params:
      *    event = mouse motion event
      */
-    override protected void onMouseMotion(TInputEvent event) {
+    override protected void onMouseMotion(TMouseEvent event) {
 	mouse = event;
 
 	if (!mouseOnButton()) {
@@ -226,7 +226,7 @@ public class TButton : TWidget {
      * Params:
      *    event = keystroke event
      */
-    override protected void onKeypress(TInputEvent event) {
+    override protected void onKeypress(TKeypressEvent event) {
 	if ((event.key == kbEnter) || 
 	    (event.key == kbSpace)
 	) {

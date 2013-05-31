@@ -257,11 +257,11 @@ public class TApplication {
 
     /// See if we need to switch window or activate the menu based on a mouse
     /// click
-    public void checkSwitchFocus(TInputEvent mouse) {
+    public void checkSwitchFocus(TMouseEvent mouse) {
 
 	// See if they hit the menu
-	if ((mouse.type == TInputEvent.Type.MOUSE_DOWN) ||
-	    (	(mouse.type == TInputEvent.Type.MOUSE_MOTION) &&
+	if ((mouse.type == TMouseEvent.Type.MOUSE_DOWN) ||
+	    (	(mouse.type == TMouseEvent.Type.MOUSE_MOTION) &&
 		(mouse.mouse1 == true) && (inMenu == true))
 	) {
 	    // They selected the menu, go activate it
@@ -287,7 +287,7 @@ public class TApplication {
 	}
 
 	// Switch on the upclick
-	if (mouse.type != TInputEvent.Type.MOUSE_UP) {
+	if (mouse.type != TMouseEvent.Type.MOUSE_UP) {
 	    return;
 	}
 
@@ -401,8 +401,8 @@ public class TApplication {
 	    // Special application-wide events -------------------------------
 
 	    // Window resize
-	    if (event.type == TInputEvent.Type.RESIZE) {
-		screen.setDimensions(event.x, event.y);
+	    if (auto resize = cast(TResizeEvent)event) {
+		screen.setDimensions(resize.width, resize.height);
 		desktopBottom = screen.getHeight() - 1;
 		repaint = true;
 		mouseX = 0;
@@ -410,29 +410,28 @@ public class TApplication {
 		continue;
 	    }
 
-	    // Ctrl-W - close window
-	    if ((event.type == TInputEvent.Type.KEYPRESS) &&
-		(event.key == kbCtrlW)) {
+	    if (auto keypress = cast(TKeypressEvent)event) {
+		// Ctrl-W - close window
+		if (keypress.key == kbCtrlW) {
 
-		// Resort windows and nix the first one (it is active)
-		if (windows.length > 0) {
-		    windows.sort;
-		    closeWindow(windows[0]);
+		    // Resort windows and nix the first one (it is active)
+		    if (windows.length > 0) {
+			windows.sort;
+			closeWindow(windows[0]);
+		    }
+
+		    // Refresh
+		    repaint = true;
+		    continue;
 		}
-
-		// Refresh
-		repaint = true;
-		continue;
 	    }
 
 	    // Peek at the mouse position
-	    if ((event.type != TInputEvent.Type.KEYPRESS) &&
-		(event.type != TInputEvent.Type.RESIZE)
-	    ) {
-		if ((mouseX != event.x) || (mouseY != event.y)) {
+	    if (auto mouse = cast(TMouseEvent)event) {
+		if ((mouseX != mouse.x) || (mouseY != mouse.y)) {
 		    flipMouse();
-		    mouseX = event.x;
-		    mouseY = event.y;
+		    mouseX = mouse.x;
+		    mouseY = mouse.y;
 		    flipMouse();
 		}
 	    }
@@ -519,52 +518,44 @@ public class TApplication {
 	// Special application-wide events -----------------------------------
 
 	// Peek at the mouse position
-	if ((event.type != TInputEvent.Type.KEYPRESS) &&
-	    (event.type != TInputEvent.Type.RESIZE)
-	) {
+	if (auto mouse = cast(TMouseEvent)event) {
 	    // See if we need to switch focus to another window or the menu
-	    checkSwitchFocus(event);
+	    checkSwitchFocus(mouse);
 	}
 
-	// Alt-TAB
-	if ((event.type == TInputEvent.Type.KEYPRESS) &&
-	    (event.key == kbAltTab)) {
-
-	    switchWindow();
-	    return;
-	}
-
-	// F6 - behave like Alt-TAB
-	if ((event.type == TInputEvent.Type.KEYPRESS) &&
-	    (event.key == kbF6)) {
-
-	    switchWindow();
-	    return;
-	}
-
-	// Alt-X - quit app
-	if ((event.type == TInputEvent.Type.KEYPRESS) &&
-	    ((event.key == kbAltX) || (event.key == kbAltShiftX))
-	) {
-	    if (messageBox("Confirmation", "Exit application?",
-		    TMessageBox.Type.YESNO).result == TMessageBox.Result.YES) {
-		quit = true;
+	if (auto keypress = cast(TKeypressEvent)event) {
+	    // Alt-TAB
+	    if (keypress.key == kbAltTab) {
+		switchWindow();
+		return;
 	    }
-	    repaint = true;
-	    return;
+
+	    // F6 - behave like Alt-TAB
+	    if (keypress.key == kbF6) {
+		switchWindow();
+		return;
+	    }
+
+	    // Alt-X - quit app
+	    if ((keypress.key == kbAltX) || (keypress.key == kbAltShiftX)) {
+		if (messageBox("Confirmation", "Exit application?",
+			TMessageBox.Type.YESNO).result == TMessageBox.Result.YES) {
+		    quit = true;
+		}
+		repaint = true;
+		return;
+	    }
 	}
 
 	// Dispatch events to the menu or window ------------------------------
 	if (inMenu) {
 	    foreach (m; menus) {
-		if ((event.type != TInputEvent.Type.KEYPRESS) &&
-		    (event.type != TInputEvent.Type.RESIZE)
-		) {
+		if (auto mouse = cast(TMouseEvent)event) {
 		    // Convert the mouse relative x/y to menu coordinates
-		    assert(event.x == event.absoluteX);
-		    assert(event.y == event.absoluteY);
-		    event.x -= m.x;
-		    event.y -= m.y;
+		    assert(mouse.x == mouse.absoluteX);
+		    assert(mouse.y == mouse.absoluteY);
+		    mouse.x -= m.x;
+		    mouse.y -= m.y;
 		}
 		m.handleEvent(event);
 		break;
@@ -572,14 +563,12 @@ public class TApplication {
 	} else {
 	    foreach (w; windows) {
 		if (w.active) {
-		    if ((event.type != TInputEvent.Type.KEYPRESS) &&
-			(event.type != TInputEvent.Type.RESIZE)
-		    ) {
+		    if (auto mouse = cast(TMouseEvent)event) {
 			// Convert the mouse relative x/y to window coordinates
-			assert(event.x == event.absoluteX);
-			assert(event.y == event.absoluteY);
-			event.x -= w.x;
-			event.y -= w.y;
+			assert(mouse.x == mouse.absoluteX);
+			assert(mouse.y == mouse.absoluteY);
+			mouse.x -= w.x;
+			mouse.y -= w.y;
 		    }
 		    w.handleEvent(event);
 		    break;

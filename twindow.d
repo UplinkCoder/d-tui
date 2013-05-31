@@ -98,7 +98,7 @@ public class TWindow : TWidget {
     public bool maximized = false;
 
     /// Remember mouse state
-    protected TInputEvent mouse;    
+    protected TMouseEvent mouse;
 
     // For moving the window.  resizing also uses moveWindowMouseX/Y
     private uint moveWindowMouseX;
@@ -348,7 +348,7 @@ public class TWindow : TWidget {
      * Params:
      *    event = mouse button event
      */
-    override protected void onMouseDown(TInputEvent event) {
+    override protected void onMouseDown(TMouseEvent event) {
 	mouse = event;
 	application.repaint = true;
 
@@ -393,7 +393,7 @@ public class TWindow : TWidget {
      * Params:
      *    event = mouse button release event
      */
-    override protected void onMouseUp(TInputEvent event) {
+    override protected void onMouseUp(TMouseEvent event) {
 	mouse = event;
 	application.repaint = true;
 
@@ -450,7 +450,7 @@ public class TWindow : TWidget {
      * Params:
      *    event = mouse motion event
      */
-    override protected void onMouseMotion(TInputEvent event) {
+    override protected void onMouseMotion(TMouseEvent event) {
 	mouse = event;
 	application.repaint = true;
 

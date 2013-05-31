@@ -55,7 +55,7 @@ public class TField : TWidget {
     private dstring text = "";
 
     /// Remember mouse state
-    private TInputEvent mouse;
+    private TMouseEvent mouse;
 
     /// If true, only allow enough characters that will fit in the
     /// width.  If false, allow the field to scroll to the right.
@@ -187,7 +187,7 @@ public class TField : TWidget {
      * Params:
      *    event = mouse button event
      */
-    override protected void onMouseDown(TInputEvent event) {
+    override protected void onMouseDown(TMouseEvent event) {
 	mouse = event;
 
 	if ((mouseOnField()) && (mouse.mouse1)) {
@@ -208,7 +208,7 @@ public class TField : TWidget {
      * Params:
      *    event = mouse button release event
      */
-    override protected void onMouseUp(TInputEvent event) {
+    override protected void onMouseUp(TMouseEvent event) {
 	mouse = event;
 
 	if ((mouseOnField()) && (mouse.mouse1)) {
@@ -223,7 +223,7 @@ public class TField : TWidget {
      * Params:
      *    event = mouse motion event
      */
-    override protected void onMouseMotion(TInputEvent event) {
+    override protected void onMouseMotion(TMouseEvent event) {
 	mouse = event;
 
 	if ((mouseOnField()) && (mouse.mouse1)) {
@@ -237,7 +237,7 @@ public class TField : TWidget {
      * Params:
      *    event = keystroke event
      */
-    override protected void onKeypress(TInputEvent event) {
+    override protected void onKeypress(TKeypressEvent event) {
 	TKeypress key = event.key;
 
 	if (key == kbLeft) {

@@ -190,7 +190,7 @@ public class TRadioButton : TWidget {
      * Params:
      *    mouse = mouse event
      */
-    private bool mouseOnRadioButton(TInputEvent mouse) {
+    private bool mouseOnRadioButton(TMouseEvent mouse) {
 	if ((mouse !is null) &&
 	    (mouse.y == 0) &&
 	    (mouse.x >= 0) &&
@@ -227,7 +227,7 @@ public class TRadioButton : TWidget {
      * Params:
      *    event = mouse button press event
      */
-    override protected void onMouseDown(TInputEvent event) {
+    override protected void onMouseDown(TMouseEvent event) {
 	if ((mouseOnRadioButton(event)) && (event.mouse1)) {
 	    // Switch state
 	    selected = !selected;
@@ -243,7 +243,7 @@ public class TRadioButton : TWidget {
      * Params:
      *    event = keystroke event
      */
-    override protected void onKeypress(TInputEvent event) {
+    override protected void onKeypress(TKeypressEvent event) {
 	TKeypress key = event.key;
 
 	if (key == kbSpace) {

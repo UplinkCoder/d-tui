@@ -362,7 +362,7 @@ public class TWidget {
      * Params:
      *    event = keystroke event
      */
-    protected void onKeypress(TInputEvent event) {
+    protected void onKeypress(TKeypressEvent event) {
 
 	if (children.length == 0) {
 	    // Defaults:
@@ -402,7 +402,7 @@ public class TWidget {
      * Params:
      *    event = mouse button event
      */
-    protected void onMouseDown(TInputEvent event) {
+    protected void onMouseDown(TMouseEvent event) {
 	// Default: do nothing, pass to children instead
 	foreach (w; children) {
 	    if (w.mouseWouldHit(event)) {
@@ -425,7 +425,7 @@ public class TWidget {
      * Params:
      *    event = mouse button release event
      */
-    protected void onMouseUp(TInputEvent event) {
+    protected void onMouseUp(TMouseEvent event) {
 	// Default: do nothing, pass to children instead
 	foreach (w; children) {
 	    if (w.mouseWouldHit(event)) {
@@ -447,7 +447,7 @@ public class TWidget {
      * Params:
      *    event = mouse motion event
      */
-    protected void onMouseMotion(TInputEvent event) {
+    protected void onMouseMotion(TMouseEvent event) {
 	// Default: do nothing, pass it on to ALL of my children.  This way
 	// the children can see the mouse "leaving" their area.
 	foreach (w; children) {
@@ -465,7 +465,7 @@ public class TWidget {
      * Params:
      *    event = resize event
      */
-    protected void onResize(TInputEvent event) {
+    protected void onResize(TResizeEvent event) {
 	// Default: do nothing
     }
 
@@ -481,28 +481,25 @@ public class TWidget {
 	    // Discard event
 	    return;
 	}
+	if (auto keypress = cast(TKeypressEvent)event) {
+	    onKeypress(keypress);
+	} else if (auto mouse = cast(TMouseEvent)event) {
+	    final switch (mouse.type) {
 
-	final switch (event.type) {
+	    case TMouseEvent.Type.MOUSE_DOWN:
+		onMouseDown(mouse);
+		break;
 
-	case TInputEvent.Type.KEYPRESS:
-	    onKeypress(event);
-	    break;
+	    case TMouseEvent.Type.MOUSE_UP:
+		onMouseUp(mouse);
+		break;
 
-	case TInputEvent.Type.MOUSE_DOWN:
-	    onMouseDown(event);
-	    break;
-
-	case TInputEvent.Type.MOUSE_UP:
-	    onMouseUp(event);
-	    break;
-
-	case TInputEvent.Type.MOUSE_MOTION:
-	    onMouseMotion(event);
-	    break;
-
-	case TInputEvent.Type.RESIZE:
-	    onResize(event);
-	    break;
+	    case TMouseEvent.Type.MOUSE_MOTION:
+		onMouseMotion(mouse);
+		break;
+	    }
+	} else if (auto resize = cast(TResizeEvent)event) {
+	    onResize(resize);
 	}
 
 	// Do nothing else
@@ -519,8 +516,7 @@ public class TWidget {
      * Returns:
      *    whether or not a mouse click would be sent to this widget
      */
-    public bool mouseWouldHit(TInputEvent mouse) {
-	assert(mouse.type != TInputEvent.Type.KEYPRESS);
+    public bool mouseWouldHit(TMouseEvent mouse) {
 
 	if (!enabled) {
 	    return false;

@@ -122,7 +122,7 @@ public class TMenu : TWindow {
      * Params:
      *    event = mouse button event
      */
-    override protected void onMouseDown(TInputEvent event) {
+    override protected void onMouseDown(TMouseEvent event) {
 	mouse = event;
 	application.repaint = true;
 
@@ -136,7 +136,7 @@ public class TMenu : TWindow {
      * Params:
      *    event = mouse button release event
      */
-    override protected void onMouseUp(TInputEvent event) {
+    override protected void onMouseUp(TMouseEvent event) {
 	mouse = event;
 	application.repaint = true;
 
@@ -150,7 +150,7 @@ public class TMenu : TWindow {
      * Params:
      *    event = mouse motion event
      */
-    override protected void onMouseMotion(TInputEvent event) {
+    override protected void onMouseMotion(TMouseEvent event) {
 	mouse = event;
 	application.repaint = true;
 
@@ -195,7 +195,7 @@ public class TMenuItem : TWidget {
      * Params:
      *    mouse = mouse event
      */
-    private bool mouseOnMenuItem(TInputEvent mouse) {
+    private bool mouseOnMenuItem(TMouseEvent mouse) {
 	if ((mouse !is null) &&
 	    (mouse.y == 0) &&
 	    (mouse.x >= 0) &&
@@ -224,7 +224,7 @@ public class TMenuItem : TWidget {
      * Params:
      *    event = mouse button press event
      */
-    override protected void onMouseDown(TInputEvent event) {
+    override protected void onMouseDown(TMouseEvent event) {
 	if ((mouseOnMenuItem(event)) && (event.mouse1)) {
 	    // TODO
 	    return;
@@ -237,7 +237,7 @@ public class TMenuItem : TWidget {
      * Params:
      *    event = keystroke event
      */
-    override protected void onKeypress(TInputEvent event) {
+    override protected void onKeypress(TKeypressEvent event) {
 	TKeypress key = event.key;
 
 	if (key == kbEnter) {
