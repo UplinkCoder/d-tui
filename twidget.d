@@ -37,6 +37,7 @@
 
 import base;
 import twindow;
+import tmenu;
 
 // Convenience constructors
 import tbutton;
@@ -157,7 +158,7 @@ public class TWidget {
 	if (parent is this) {
 	    return x;
 	}
-	if (cast(TWindow)parent) {
+	if ((cast(TWindow)parent) && (!cast(TMenu)parent)) {
 	    // Widgets on a TWindow have (0,0) as their top-left, but
 	    // this is actually the TWindow's (1,1).
 	    return parent.getAbsoluteX() + x + 1;
@@ -177,7 +178,7 @@ public class TWidget {
 	if (parent is this) {
 	    return y;
 	}
-	if (cast(TWindow)parent) {
+	if ((cast(TWindow)parent) && (!cast(TMenu)parent)) {
 	    // Widgets on a TWindow have (0,0) as their top-left, but
 	    // this is actually the TWindow's (1,1).
 	    return parent.getAbsoluteY() + y + 1;

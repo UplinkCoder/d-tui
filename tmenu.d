@@ -42,6 +42,9 @@ import tapplication;
 import twidget;
 import twindow;
 
+// DEBUG
+import std.stdio;
+
 // Defines -------------------------------------------------------------------
 
 // Globals -------------------------------------------------------------------
@@ -66,14 +69,11 @@ public class TMenu : TWindow {
 	super(parent, label, x, y, parent.screen.getWidth(), parent.screen.getHeight(), 0);
 
 	// Recompute width and height to reflect an empty menu
-	width = cast(uint)title.length + 2;
-	height = 3;
+	width = cast(uint)title.length + 4;
+	height = 2;
 
 	// My parent constructor added me as a window, get rid of that
 	parent.closeWindow(this);
-
-	// My parent constructor set my y to y + desktopTop, fix that
-	this.y = y;
 
 	this.active = false;
     }
@@ -89,31 +89,38 @@ public class TMenu : TWindow {
 	    menuColor = window.application.theme.getColor("tmenu");
 	}
 
+	assert(getAbsoluteActive());
+	
 	// Fill in the interior background
-	if (getAbsoluteActive()) {
-	    for (auto i = 1; i < height; i++) {
-		screen.hLineXY(0, i, width, ' ', background);
-	    }
+	for (auto i = 0; i < height; i++) {
+	    screen.hLineXY(0, i, width, ' ', background);
 	}
-	screen.putCharXY(0, 0, ' ', menuColor);
-	screen.putStrXY(1, 0, title, menuColor);
-	screen.putCharXY(width - 1, 0, ' ', menuColor);
-    }
 
-    /**
-     * Convenience function to add a menu item to this group.
-     *
-     * Params:
-     *    label = menu item title
-     */
-    public TMenuItem addMenuItem(dstring label) {
-	uint buttonX = 1;
-	uint buttonY = cast(uint)children.length + 1;
-	if (label.length + 4 > width) {
-	    width = cast(uint)label.length + 7;
-	}
-	height = cast(uint)children.length + 3;
-	return new TMenuItem(this, buttonX, buttonY, label);
+	// Draw the box
+	dchar cTopLeft;
+	dchar cTopRight;
+	dchar cBottomLeft;
+	dchar cBottomRight;
+	dchar cHSide;
+
+	cTopLeft = GraphicsChars.ULCORNER;
+	cTopRight = GraphicsChars.URCORNER;
+	cBottomLeft = GraphicsChars.LLCORNER;
+	cBottomRight = GraphicsChars.LRCORNER;
+	cHSide = GraphicsChars.SINGLE_BAR;
+
+	// Place the corner characters
+	screen.putCharXY(1, 0, cTopLeft, background);
+	screen.putCharXY(width - 2, 0, cTopRight, background);
+	screen.putCharXY(1, height - 1, cBottomLeft, background);
+	screen.putCharXY(width - 2, height - 1, cBottomRight, background);
+
+	// Draw the box lines
+	screen.hLineXY(1 + 1, 0, width - 4, cHSide, background);
+	screen.hLineXY(1 + 1, height - 1, width - 4, cHSide, background);
+
+	// Draw a shadow
+	screen.drawBoxShadow(0, 0, width, height);
     }
 
     /**
@@ -125,9 +132,6 @@ public class TMenu : TWindow {
     override protected void onMouseDown(TMouseEvent event) {
 	mouse = event;
 	application.repaint = true;
-
-	// I didn't take it, pass it on to my children
-	super.onMouseDown(event);
     }
 
     /**
@@ -139,9 +143,6 @@ public class TMenu : TWindow {
     override protected void onMouseUp(TMouseEvent event) {
 	mouse = event;
 	application.repaint = true;
-
-	// I didn't take it, pass it on to my children
-	super.onMouseUp(event);
     }
 
     /**
@@ -153,9 +154,42 @@ public class TMenu : TWindow {
     override protected void onMouseMotion(TMouseEvent event) {
 	mouse = event;
 	application.repaint = true;
+    }
 
-	// I didn't take it, pass it on to my children
-	super.onMouseMotion(event);
+    /**
+     * Convenience function to add a menu item.
+     *
+     * Params:
+     *    label = menu item label
+     *    cmd = command to dispatch when this item is selected
+     *    key = global keyboard accelerator
+     *
+     * Returns:
+     *    the new menu item
+     */
+    public TMenuItem addItem(dstring label, TCommand cmd, TKeypress key) {
+	uint y = cast(uint)children.length + 1;
+	
+	assert(y < height);
+	TMenuItem menuItem = new TMenuItem(this, 1, y, label);
+	menuItem.setCommand(cmd);
+	height++;
+	if (label.length + 6 > width) {
+	    width = cast(uint)label.length + 6;
+	}
+	application.addAccelerator(cmd, toLower(key));
+	application.recomputeMenuX();
+	return menuItem;
+    }
+
+    /**
+     * Convenience function to add a menu separator.
+     */
+    public void addSeparator() {
+	uint y = cast(uint)children.length + 1;
+	assert(y < height);
+	TMenuItem menuItem = new TMenuSeparator(this, 1, y);
+	height++;
     }
 
 }
@@ -167,6 +201,21 @@ public class TMenuItem : TWidget {
 
     /// Label for this menu item
     private dstring label;
+
+    /// Optional command this item executes
+    private TCommand cmd;
+    private bool hasCommand = false;
+
+    /**
+     * Set a command for this menu to execute
+     *
+     * Params:
+     *    cmd = command to execute on Enter
+     */
+    public void setCommand(TCommand cmd) {
+	hasCommand = true;
+	this.cmd = cmd;
+    }
 
     /**
      * Public constructor
@@ -186,7 +235,7 @@ public class TMenuItem : TWidget {
 	this.y = y;
 	this.height = 1;
 	this.label = label;
-	this.width = cast(uint)label.length;
+	this.width = cast(uint)label.length + 4;
     }
 
     /**
@@ -209,13 +258,20 @@ public class TMenuItem : TWidget {
     /// Draw a menu item with label
     override public void draw() {
 	CellAttributes menuColor;
+	CellAttributes background = window.application.theme.getColor("tmenu");
 
 	if (getAbsoluteActive()) {
 	    menuColor = window.application.theme.getColor("tmenu.highlighted");
 	} else {
 	    menuColor = window.application.theme.getColor("tmenu");
 	}
-	window.putStrXY(0, 0, label, menuColor);
+
+	dchar cVSide = GraphicsChars.WINDOW_SIDE;
+	window.vLineXY(0, 0, 1, cVSide, background);
+	window.vLineXY(width - 1, 0, 1, cVSide, background);
+
+	window.hLineXY(1, 0, width - 2, ' ', menuColor);
+	window.putStrXY(2, 0, label, menuColor);
     }
 
     /**
@@ -226,7 +282,9 @@ public class TMenuItem : TWidget {
      */
     override protected void onMouseDown(TMouseEvent event) {
 	if ((mouseOnMenuItem(event)) && (event.mouse1)) {
-	    // TODO
+	    if (hasCommand) {
+		window.application.addEvent(new TCommandEvent(cmd));
+	    }
 	    return;
 	}
     }
@@ -242,14 +300,44 @@ public class TMenuItem : TWidget {
 
 	if (key == kbEnter) {
 	    // Dispatch
-
-	    // TODO
-
+	    if (hasCommand) {
+		window.application.addEvent(new TCommandEvent(cmd));
+	    }
 	    return;
 	}
 
 	// Pass to parent for the things we don't care about.
 	super.onKeypress(event);
+    }
+}
+
+/**
+ * TMenuSeparator is a special case menu item.
+ */
+public class TMenuSeparator : TMenuItem {
+
+    /**
+     * Public constructor
+     *
+     * Params:
+     *    parent = parent widget
+     *    x = column relative to parent
+     *    y = row relative to parent
+     */
+    public this(TMenu parent, uint x, uint y) {
+	super(parent, x, y, "");
+	enabled = false;
+	active = false;
+    }
+
+    /// Draw a menu separator
+    override public void draw() {
+	CellAttributes background = window.application.theme.getColor("tmenu");
+	width = parent.width - 2;
+
+	window.putCharXY(0, 0, cp437_chars[0xC3], background);
+	window.putCharXY(width - 1, 0, cp437_chars[0xB4], background);
+	window.hLineXY(1, 0, width - 2, GraphicsChars.SINGLE_BAR, background);
     }
 
 }

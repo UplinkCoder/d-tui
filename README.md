@@ -69,15 +69,14 @@ calling this version 1.0:
   - [ ] Timers:
     - [ ] setTimer
     - [ ] getSleepTime
-  - [ ] Status line
 - TMenu / TMenuItem
   - [ ] submenus
   - [ ] active, inactive, checked, unchecked
   - [ ] Keyboard shortcut ("&File" or "~F~ile" ?)
   - [ ] Keyboard accelerator ("Ctrl-F10")
-  - [ ] Status line text
+- TInputBox - simple method to grab a string
 - Screen
-  - [ ] putColorizedStrXY : colorized string markup style - use for status bar text and general dialog boxes
+  - [ ] putColorizedStrXY : colorized string markup style - use for highlights and general dialog boxes
   - [ ] allow complex characters in putCharXY() and detect them in putStrXY().
 - TWindow
   - [ ] SMARTPLACE (use smart placement for x, y)

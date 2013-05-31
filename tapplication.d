@@ -106,6 +106,9 @@ public class TApplication {
     /// Y coordinate of the bottom edge of the desktop.
     public uint desktopBottom;
 
+    /// Active keyboard accelerators
+    private TCommand[TKeypress] accelerators;
+
     /// Public constructor.
     public this() {
 	screen = new Screen();
@@ -172,14 +175,29 @@ public class TApplication {
 	    w.drawChildren();
 	}
 
-	// Now draw the menus
-	screen.clipX = screen.getWidth();
-	screen.clipY = screen.getHeight();
-	screen.offsetX = 0;
-	screen.offsetY = 0;
+	// Draw the blank menubar line - reset the screen clipping first so
+	// it won't trim it out.
+	screen.resetClipping();
 	screen.hLineXY(0, 0, screen.getWidth(), ' ', theme.getColor("tmenu"));
+	// Now draw the menus.
+	uint x = 1;
 	foreach (m; menus) {
-	    m.drawChildren();
+	    CellAttributes menuColor;
+	    if (m.active) {
+		menuColor = theme.getColor("tmenu.highlighted");
+	    } else {
+		menuColor = theme.getColor("tmenu");
+	    }
+	    // Draw the menu title
+	    screen.hLineXY(x, 0, cast(uint)m.title.length + 2, ' ', menuColor);
+	    screen.putStrXY(x + 1, 0, m.title, menuColor);
+
+	    if (m.active) {
+		m.drawChildren();
+		// Reset the screen clipping so we can draw the next title.
+		screen.resetClipping();
+	    }
+	    x += m.title.length + 2;
 	}
 
 	// Place the mouse pointer
@@ -202,6 +220,17 @@ public class TApplication {
 	repaint = false;
 	flush = false;
 	return result;
+    }
+
+    /**
+     * Add a keyboard accelerator to the global list
+     *
+     * Params:
+     *    command = command to send to the active widget
+     *    keypress = keypress that will activate the command
+     */
+    public void addAccelerator(TCommand command, TKeypress keypress) {
+	accelerators[keypress] = command;
     }
 
     /**
@@ -260,16 +289,19 @@ public class TApplication {
     public void checkSwitchFocus(TMouseEvent mouse) {
 
 	// See if they hit the menu
-	if ((mouse.type == TMouseEvent.Type.MOUSE_DOWN) ||
-	    (	(mouse.type == TMouseEvent.Type.MOUSE_MOTION) &&
-		(mouse.mouse1 == true) && (inMenu == true))
+	if (	(mouse.type == TMouseEvent.Type.MOUSE_DOWN) ||
+		(	(mouse.type == TMouseEvent.Type.MOUSE_MOTION) &&
+			(mouse.mouse1 == true) &&
+			(inMenu == true) )
 	) {
 	    // They selected the menu, go activate it
 	    inMenu = false;
 	    foreach (m; menus) {
-		if ((mouse.absoluteY == 0) &&
-		    (mouse.absoluteX >= m.x) &&
-		    (mouse.absoluteX < m.x + m.width)
+		if (	(	(mouse.absoluteY == 0) &&
+				(mouse.absoluteX >= m.x) &&
+				(mouse.absoluteX < m.x + m.title.length + 2)
+			) ||
+			(m.mouseWouldHit(mouse))
 		) {
 		    m.active = true;
 		    inMenu = true;
@@ -388,6 +420,16 @@ public class TApplication {
     }
 
     /**
+     * Post an event to process
+     *
+     * Params:
+     *    event = new event to add to the queue
+     */
+    public void addEvent(TInputEvent event) {
+	eventQueue ~= event;
+    }
+
+    /**
      * Peek at certain application-level events, add to eventQueue,
      * and wake up the consuming Fiber.
      *
@@ -400,7 +442,7 @@ public class TApplication {
 	    
 	    // Special application-wide events -------------------------------
 
-	    // Window resize
+	    // Screen resize
 	    if (auto resize = cast(TResizeEvent)event) {
 		screen.setDimensions(resize.width, resize.height);
 		desktopBottom = screen.getHeight() - 1;
@@ -412,7 +454,7 @@ public class TApplication {
 
 	    if (auto keypress = cast(TKeypressEvent)event) {
 		// Ctrl-W - close window
-		if (keypress.key == kbCtrlW) {
+		if ((keypress.key == kbCtrlW) && (!inMenu)) {
 
 		    // Resort windows and nix the first one (it is active)
 		    if (windows.length > 0) {
@@ -437,7 +479,7 @@ public class TApplication {
 	    }
 
 	    // Put into the main queue
-	    eventQueue ~= event;
+	    addEvent(event);
 
 	    // Have one of the two consumer Fibers peel the events off
 	    // the queue.
@@ -523,6 +565,14 @@ public class TApplication {
 	    checkSwitchFocus(mouse);
 	}
 
+	// Handle menu events
+	if (inMenu) {
+	    foreach (m; menus) {
+
+	    }
+	    return;
+	}
+
 	if (auto keypress = cast(TKeypressEvent)event) {
 	    // Alt-TAB
 	    if (keypress.key == kbAltTab) {
@@ -536,14 +586,24 @@ public class TApplication {
 		return;
 	    }
 
-	    // Alt-X - quit app
-	    if ((keypress.key == kbAltX) || (keypress.key == kbAltShiftX)) {
-		if (messageBox("Confirmation", "Exit application?",
-			TMessageBox.Type.YESNO).result == TMessageBox.Result.YES) {
-		    quit = true;
+	    // See if this key matches an accelerator, and if so dispatch the
+	    // command.
+	    TKeypress keypressLowercase = toLower(keypress.key);
+	    foreach (key, cmd; accelerators) {
+		if (keypressLowercase == key) {
+		    // Check for special case commands
+		    if (cmd == cmExit) {
+			if (messageBox("Confirmation", "Exit application?",
+				TMessageBox.Type.YESNO).result == TMessageBox.Result.YES) {
+			    quit = true;
+			}
+			repaint = true;
+			return;
+		    }
+		    // Dispatch this command
+
+		    // TODO
 		}
-		repaint = true;
-		return;
 	    }
 	}
 
@@ -724,6 +784,16 @@ public class TApplication {
 	return new TMessageBox(this, title, caption, type);
     }
 
+    /**
+     * Recompute menu x positions based on their title length.
+     */
+    public void recomputeMenuX() {
+	uint x = 0;
+	foreach (m; menus) {
+	    m.x = x;
+	    x += m.title.length + 2;
+	}
+    }
 
     /**
      * Convenience function to add a top-level menu.
@@ -737,11 +807,9 @@ public class TApplication {
     public TMenu addMenu(dstring title) {
 	uint x = 0;
 	uint y = 0;
-	foreach (m; menus) {
-	    x += m.width;
-	}
 	TMenu menu = new TMenu(this, x, y, title);
 	menus ~= menu;
+	recomputeMenuX();
 	return menu;
     }
 }
