@@ -85,8 +85,8 @@ public class TApplication {
     /// Top-level menus in this application.
     private TMenu [] menus;
 
-    /// If true, then a menu was selected
-    private bool inMenu = false;
+    /// The currently acive menu
+    private TMenu activeMenu = null;
 
     /// Windows and widgets pull colors from this ColorTheme.
     public ColorTheme theme;
@@ -284,29 +284,32 @@ public class TApplication {
 	repaint = true;
     }
 
-    /// See if we need to switch window or activate the menu based on a mouse
-    /// click
+    /// See if we need to switch window or activate the menu based on
+    /// a mouse click
     public void checkSwitchFocus(TMouseEvent mouse) {
 
-	// See if they hit the menu
-	if (	(mouse.type == TMouseEvent.Type.MOUSE_DOWN) ||
-		(	(mouse.type == TMouseEvent.Type.MOUSE_MOTION) &&
-			(mouse.mouse1 == true) &&
-			(inMenu == true) )
+	if ((mouse.type == TMouseEvent.Type.MOUSE_DOWN) &&
+	    (activeMenu !is null) &&
+	    (!activeMenu.mouseWouldHit(mouse))
 	) {
+	    // They clicked outside the active menu, turn it off
+	    activeMenu.active = false;
+	    activeMenu = null;
+	    // Continue checks
+	}
+
+	// See if they hit the menu bar
+	if ((mouse.type == TMouseEvent.Type.MOUSE_DOWN) &&
+	    (activeMenu is null)) {
+
 	    // They selected the menu, go activate it
-	    inMenu = false;
 	    foreach (m; menus) {
-		if (	(	(mouse.absoluteY == 0) &&
-				(mouse.absoluteX >= m.x) &&
-				(mouse.absoluteX < m.x + m.title.length + 2)
-			) ||
-			(m.mouseWouldHit(mouse))
+		if ((mouse.absoluteY == 0) &&
+		    (mouse.absoluteX >= m.x) &&
+		    (mouse.absoluteX < m.x + m.title.length + 2)
 		) {
 		    m.active = true;
-		    inMenu = true;
-		} else {
-		    m.active = false;
+		    activeMenu = m;
 		}
 	    }
 	    repaint = true;
@@ -430,6 +433,19 @@ public class TApplication {
     }
 
     /**
+     * Post an event to process and turn off the menu
+     *
+     * Params:
+     *    event = new event to add to the queue
+     */
+    public void addMenuEvent(TInputEvent event) {
+	eventQueue ~= event;
+	assert(activeMenu !is null);
+	activeMenu.active = false;
+	activeMenu = null;
+    }
+
+    /**
      * Peek at certain application-level events, add to eventQueue,
      * and wake up the consuming Fiber.
      *
@@ -454,7 +470,7 @@ public class TApplication {
 
 	    if (auto keypress = cast(TKeypressEvent)event) {
 		// Ctrl-W - close window
-		if ((keypress.key == kbCtrlW) && (!inMenu)) {
+		if ((keypress.key == kbCtrlW) && (activeMenu is null)) {
 
 		    // Resort windows and nix the first one (it is active)
 		    if (windows.length > 0) {
@@ -471,10 +487,11 @@ public class TApplication {
 	    // Peek at the mouse position
 	    if (auto mouse = cast(TMouseEvent)event) {
 		if ((mouseX != mouse.x) || (mouseY != mouse.y)) {
-		    flipMouse();
+		    // flipMouse();
 		    mouseX = mouse.x;
 		    mouseY = mouse.y;
-		    flipMouse();
+		    // flipMouse();
+		    repaint = true;
 		}
 	    }
 
@@ -566,10 +583,15 @@ public class TApplication {
 	}
 
 	// Handle menu events
-	if (inMenu) {
-	    foreach (m; menus) {
-
+	if ((activeMenu !is null) && (!cast(TCommandEvent)event)) {
+	    if (auto mouse = cast(TMouseEvent)event) {
+		// Convert the mouse relative x/y to menu coordinates
+		assert(mouse.x == mouse.absoluteX);
+		assert(mouse.y == mouse.absoluteY);
+		mouse.x -= activeMenu.x;
+		mouse.y -= activeMenu.y;
 	    }
+	    activeMenu.handleEvent(event);
 	    return;
 	}
 
@@ -591,48 +613,36 @@ public class TApplication {
 	    TKeypress keypressLowercase = toLower(keypress.key);
 	    foreach (key, cmd; accelerators) {
 		if (keypressLowercase == key) {
-		    // Check for special case commands
-		    if (cmd == cmExit) {
-			if (messageBox("Confirmation", "Exit application?",
-				TMessageBox.Type.YESNO).result == TMessageBox.Result.YES) {
-			    quit = true;
-			}
-			repaint = true;
-			return;
-		    }
 		    // Dispatch this command
-
-		    // TODO
+		    addEvent(new TCommandEvent(cmd));
 		}
 	    }
 	}
 
-	// Dispatch events to the menu or window ------------------------------
-	if (inMenu) {
-	    foreach (m; menus) {
+	if (auto cmd = cast(TCommandEvent)event) {
+	    // Check for special case commands
+	    if (cmd.cmd == cmExit) {
+		if (messageBox("Confirmation", "Exit application?",
+			TMessageBox.Type.YESNO).result == TMessageBox.Result.YES) {	
+		    quit = true;
+		}
+		repaint = true;
+		return;
+	    }
+	}
+
+	// Dispatch events to the active window -------------------------------
+	foreach (w; windows) {
+	    if (w.active) {
 		if (auto mouse = cast(TMouseEvent)event) {
-		    // Convert the mouse relative x/y to menu coordinates
+		    // Convert the mouse relative x/y to window coordinates
 		    assert(mouse.x == mouse.absoluteX);
 		    assert(mouse.y == mouse.absoluteY);
-		    mouse.x -= m.x;
-		    mouse.y -= m.y;
+		    mouse.x -= w.x;
+		    mouse.y -= w.y;
 		}
-		m.handleEvent(event);
+		w.handleEvent(event);
 		break;
-	    }
-	} else {
-	    foreach (w; windows) {
-		if (w.active) {
-		    if (auto mouse = cast(TMouseEvent)event) {
-			// Convert the mouse relative x/y to window coordinates
-			assert(mouse.x == mouse.absoluteX);
-			assert(mouse.y == mouse.absoluteY);
-			mouse.x -= w.x;
-			mouse.y -= w.y;
-		    }
-		    w.handleEvent(event);
-		    break;
-		}
 	    }
 	}
     }

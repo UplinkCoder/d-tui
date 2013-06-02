@@ -132,6 +132,20 @@ public class TMenu : TWindow {
     override protected void onMouseDown(TMouseEvent event) {
 	mouse = event;
 	application.repaint = true;
+
+	// Pass to children
+	foreach (w; children) {
+	    if (w.mouseWouldHit(event)) {
+		// Dispatch to this child, also activate it
+		activate(w);
+
+		// Set x and y relative to the child's coordinates
+		event.x = event.absoluteX - w.getAbsoluteX();
+		event.y = event.absoluteY - w.getAbsoluteY();
+		w.handleEvent(event);
+		return;
+	    }
+	}
     }
 
     /**
@@ -143,6 +157,20 @@ public class TMenu : TWindow {
     override protected void onMouseUp(TMouseEvent event) {
 	mouse = event;
 	application.repaint = true;
+
+	// Pass to children
+	foreach (w; children) {
+	    if (w.mouseWouldHit(event)) {
+		// Dispatch to this child, also activate it
+		activate(w);
+
+		// Set x and y relative to the child's coordinates
+		event.x = event.absoluteX - w.getAbsoluteX();
+		event.y = event.absoluteY - w.getAbsoluteY();
+		w.handleEvent(event);
+		return;
+	    }
+	}
     }
 
     /**
@@ -245,8 +273,7 @@ public class TMenuItem : TWidget {
      *    mouse = mouse event
      */
     private bool mouseOnMenuItem(TMouseEvent mouse) {
-	if ((mouse !is null) &&
-	    (mouse.y == 0) &&
+	if ((mouse.y == 0) &&
 	    (mouse.x >= 0) &&
 	    (mouse.x < width)
 	) {
@@ -283,7 +310,7 @@ public class TMenuItem : TWidget {
     override protected void onMouseDown(TMouseEvent event) {
 	if ((mouseOnMenuItem(event)) && (event.mouse1)) {
 	    if (hasCommand) {
-		window.application.addEvent(new TCommandEvent(cmd));
+		window.application.addMenuEvent(new TCommandEvent(cmd));
 	    }
 	    return;
 	}
@@ -301,7 +328,7 @@ public class TMenuItem : TWidget {
 	if (key == kbEnter) {
 	    // Dispatch
 	    if (hasCommand) {
-		window.application.addEvent(new TCommandEvent(cmd));
+		window.application.addMenuEvent(new TCommandEvent(cmd));
 	    }
 	    return;
 	}
