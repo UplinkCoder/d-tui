@@ -52,7 +52,7 @@ import twidget;
 public class TLabel : TWidget {
 
     /// Label text
-    private dstring text = "";
+    public dstring text = "";
 
     /// Label color
     private CellAttributes color;
@@ -80,7 +80,7 @@ public class TLabel : TWidget {
 	this.x = x;
 	this.y = y;
 	this.height = 1;
-	this.width = cast(uint)(codeLength!dchar(text));
+	this.width = cast(uint)text.length;
 
 	// Setup my color
 	color = new CellAttributes();

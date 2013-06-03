@@ -81,7 +81,7 @@ public class TButton : TWidget {
 	this.x = x;
 	this.y = y;
 	this.height = 2;
-	this.width = cast(uint)(codeLength!dchar(text) + 3);
+	this.width = cast(uint)text.length + 3;
     }
 
     /**

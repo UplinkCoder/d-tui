@@ -30,6 +30,9 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301 USA
  */
+
+import std.array;
+import std.format;
 import std.stdio;
 import tui;
 
@@ -212,6 +215,19 @@ EOS",
 	    addButton("Window 2", 35, row, &openWindow2);
 	}
 	row += 2;
+
+	TLabel timerLabel = addLabel("Timer", 1, row);
+	parent.addTimer(200,
+	    {
+		static int i = 0;
+		auto writer = appender!dstring();
+		formattedWrite(writer, "Timer: %d", i);
+		timerLabel.text = writer.data;
+		timerLabel.width = cast(uint)timerLabel.text.length;
+		i++;
+		parent.repaint = true;
+	    }, true);
+	
 
 	addButton("Close Window", (width - 14) / 2, height - 5, &closeMe);
 	if (!isModal()) {

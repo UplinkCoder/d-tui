@@ -93,12 +93,11 @@ public class TMessageBox : TWindow {
 
 	// Determine width and height
 	dstring [] lines = splitLines!(dstring)(caption);
-	auto width = codeLength!(dchar)(title) + 12;
+	auto width = title.length + 12;
 	this.height = 6 + cast(uint)(lines.length);
 	foreach (line; lines) {
-	    auto lineLength = codeLength!(dchar)(line);
-	    if (lineLength + 4 > width) {
-		width = lineLength + 4;
+	    if (line.length + 4 > width) {
+		width = line.length + 4;
 	    }
 	}
 	this.width = cast(uint)width;

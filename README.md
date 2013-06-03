@@ -65,15 +65,10 @@ Roadmap
 I am just beginning as a work in progress.  Many tasks remain before
 calling this version 1.0:
 
-- TApplication
-  - [ ] Timers:
-    - [ ] setTimer
-    - [ ] getSleepTime
 - TMenu / TMenuItem
   - [ ] submenus
   - [ ] active, inactive, checked, unchecked
-  - [X] Keyboard shortcut ("&File" or "~F~ile" ?)
-  - [X] Keyboard accelerator ("Ctrl-F10")
+  - [X] Keyboard shortcut ("&File")
 - TInputBox - simple method to grab a string
 - Screen
   - [ ] putColorizedStrXY : colorized string markup style - use for highlights and general dialog boxes

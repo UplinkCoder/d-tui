@@ -36,6 +36,7 @@
 // Imports -------------------------------------------------------------------
 
 import core.thread;
+import std.datetime;
 import std.stdio;
 import base;
 import codepage;
@@ -43,6 +44,7 @@ import twidget;
 import twindow;
 import tmessagebox;
 import tmenu;
+import ttimer;
 
 // Defines -------------------------------------------------------------------
 
@@ -84,6 +86,9 @@ public class TApplication {
 
     /// Top-level menus in this application.
     private TMenu [] menus;
+
+    /// Timers that are being ticked.
+    private TTimer [] timers;
 
     /// The currently acive menu
     private TMenu activeMenu = null;
@@ -719,6 +724,7 @@ public class TApplication {
 	    return true;
 	}
 
+	// Process Alt-F menu shortcut key
 	if (!keypress.key.isKey &&
 	    keypress.key.alt &&
 	    !keypress.key.ctrl &&
@@ -752,12 +758,6 @@ public class TApplication {
 	metaHandleEvents(events);
     }
 
-    // TODO: Timer
-
-    // TODO: Status bar
-
-    // TODO: Menu bar
-
     version(Posix) {
 	// Used in run() to poll stdin
 	import core.sys.posix.poll;
@@ -772,8 +772,46 @@ public class TApplication {
 	TInputEvent [] events = terminal.getEvents(0, true);
 	metaHandleEvents(events);
 
-	// TODO: now run any timers that have timed out
+	// Now run any timers that have timed out
+	auto now = Clock.currTime;
+	TTimer [] keepTimers;
+	foreach (t; timers) {
+	    if (t.nextTick < now) {
+		t.tick();
+		if (t.recurring == true) {
+		    keepTimers ~= t;
+		}
+	    } else {
+		keepTimers ~= t;
+	    }
+	}
+	timers = keepTimers;
+    }
 
+    /**
+     * Get the amount of time I can sleep before missing a Timer tick.
+     *
+     * Params:
+     *    timeout = initial timeout
+     *
+     * Returns:
+     *    number of milliseconds between now and the next timer event
+     */
+    protected uint getSleepTime(uint timeout) {
+	auto now = Clock.currTime;
+	auto sleepTime = dur!("msecs")(timeout);
+	foreach (t; timers) {
+	    if (t.nextTick < now) {
+		return 0;
+	    }
+	    if ((t.nextTick > now) &&
+		((t.nextTick - now) < sleepTime)
+	    ) {
+		sleepTime = t.nextTick - now;
+	    }
+	}
+	assert(sleepTime.total!("msecs")() >= 0);
+	return cast(uint)sleepTime.total!("msecs")();
     }
 
     /// Run this application until it exits, using stdin and stdout
@@ -798,18 +836,18 @@ public class TApplication {
 
 	    // Poll on stdin.  Last parameter is milliseconds, so timeout
 	    // after 0.1 seconds of inactivity.
-	    // TODO: change timeout to work with Timers
 	    pfd.fd = stdin.fileno();
 	    pfd.events = POLLIN;
 	    pfd.revents = 0;
-	    // Timeout is in milliseconds, so default timeout after 0.1
-	    // seconds of inactivity.
-	    uint timeout = 100;
 
-	    if ((eventQueue.length > 0) || (screen.dirty)) {
+	    // Timeout is in milliseconds, so default timeout after 1
+	    // second of inactivity.
+	    uint timeout = getSleepTime(1000);
+	    // stderr.writefln("poll() timeout: %d", timeout);
+
+	    if (eventQueue.length > 0) {
 		// Do not wait if there are definitely events waiting to be
 		// processed or a screen redraw to do.
-		// stderr.writefln("No timeout, eventQueue.length = %d", eventQueue.length);
 		timeout = 0;
 	    }
 
@@ -827,7 +865,7 @@ public class TApplication {
 	    }
 
 	    if (poll_rc == 0) {
-		// Timeout
+		// Do timeout
 		doIdle();
 	    }
 
@@ -922,6 +960,35 @@ public class TApplication {
 	recomputeMenuX();
 	return menu;
     }
+
+    /**
+     * Convenience function to add a timer.
+     *
+     * Params:
+     *    duration = number of milliseconds to wait between ticks
+     *    actionFn = function to call when button is pressed
+     *    recurring = if true, re-schedule this timer after every tick
+     */
+    final public TTimer addTimer(uint duration, void function() actionFn, bool recurring = false) {
+	TTimer timer = new TTimer(duration, actionFn, recurring);
+	timers ~= timer;
+	return timer;
+    }
+
+    /**
+     * Convenience function to add a timer.
+     *
+     * Params:
+     *    duration = number of milliseconds to wait between ticks
+     *    actionFn = function to call when button is pressed
+     *    recurring = if true, re-schedule this timer after every tick
+     */
+    final public TTimer addTimer(uint duration, void delegate() actionFn, bool recurring = false) {
+	TTimer timer = new TTimer(duration, actionFn, recurring);
+	timers ~= timer;
+	return timer;
+    }
+
 }
 
 // Functions -----------------------------------------------------------------
