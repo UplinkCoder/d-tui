@@ -1003,8 +1003,8 @@ public struct TKeypress {
     }
 
     /// Make human-readable description of this Keystroke.
-    public string toString() {
-	auto writer = appender!string();
+    public dstring toString() {
+	auto writer = appender!dstring();
 	if (isKey) {
 	    switch (fnKey) {
 	    case F1:
@@ -1090,14 +1090,32 @@ public struct TKeypress {
 		break;
 	    }
 	} else {
-	    formattedWrite(writer, "'%c'", ch);
+	    if (alt && !shift && !ctrl) {
+		// Alt-X
+		formattedWrite(writer, "Alt-%c", toUppercase(ch));
+	    } else if (!alt && shift && !ctrl) {
+		// Shift-X
+		formattedWrite(writer, "%c", ch);
+	    } else if (!alt && !shift && ctrl) {
+		// Ctrl-X
+		formattedWrite(writer, "Ctrl-%c", ch);
+	    } else if (alt && shift && !ctrl) {
+		// Alt-Shift-X
+		formattedWrite(writer, "Alt-Shift-%c", ch);
+	    } else if (!alt && shift && ctrl) {
+		// Ctrl-Shift-X
+		formattedWrite(writer, "Ctrl-Shift-%c", ch);
+	    } else if (alt && !shift && ctrl) {
+		// Ctrl-Alt-X
+		formattedWrite(writer, "Ctrl-Alt-%c", toUppercase(ch));
+	    } else if (alt && shift && ctrl) {
+		// Ctrl-Alt-Shift-X
+		formattedWrite(writer, "Ctrl-Alt-Shift-%c", toUppercase(ch));
+	    } else {
+		// X
+		formattedWrite(writer, "%c", ch);
+	    }
 	}
-
-	formattedWrite(writer, " %s %s %s",
-	    shift ? "SHIFT" : "",
-	    alt ? "ALT" : "",
-	    ctrl ? "CTRL" : "");
-
 	return writer.data;
     }
 }
@@ -1118,6 +1136,56 @@ public TKeypress toLower(TKeypress key) {
 	newKey.ch -= 32;
     }
     return newKey;
+}
+
+/**
+ * Convert a keypress to uppercase.  Function keys are not converted.
+ *
+ * Params:
+ *    key = keypress to convert
+ *
+ * Returns:
+ *    a new struct with the key converted
+ */
+public TKeypress toUpper(TKeypress key) {
+    TKeypress newKey = TKeypress(key.isKey, key.fnKey, key.ch, key.alt, key.ctrl, key.shift);
+    newKey.shift = false;
+    if (!(key.isKey) && (key.ch >= 'a') && (key.ch <= 'z')) {
+	newKey.ch += 32;
+    }
+    return newKey;
+}
+
+/**
+ * Convert a a-z character to uppercase.
+ *
+ * Params:
+ *    ch = character to convert
+ *
+ * Returns:
+ *    ch in uppercase
+ */
+public dchar toUppercase(dchar ch) {
+    if ((ch >= 'a') && (ch <= 'z')) {
+	return ch - 32;
+    }
+    return ch;
+}
+
+/**
+ * Convert a A-Z character to lowercase.
+ *
+ * Params:
+ *    ch = character to convert
+ *
+ * Returns:
+ *    ch in lowercase
+ */
+public dchar toLowercase(dchar ch) {
+    if ((ch >= 'A') && (ch <= 'Z')) {
+	return ch + 32;
+    }
+    return ch;
 }
 
 public immutable TKeypress kbF1 = TKeypress(true, TKeypress.F1, ' ', false, false, false);
@@ -2235,6 +2303,7 @@ public class Terminal {
 		keypress.key.shift = true;
 	    }
 	    events ~= keypress;
+	    reset();
 	    return events;
 
 	case STATE.ESCAPE_INTERMEDIATE:

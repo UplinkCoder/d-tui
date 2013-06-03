@@ -147,7 +147,7 @@ public class TApplication {
      *    escape sequences string that provides the updates to the
      *    physical screen
      */
-    public string drawAll() {
+    final public string drawAll() {
 	if ((flush) && (!repaint)) {
 	    string result = screen.flushString();
 	    flush = false;
@@ -229,7 +229,7 @@ public class TApplication {
      *    command = command to send to the active widget
      *    keypress = keypress that will activate the command
      */
-    public void addAccelerator(TCommand command, TKeypress keypress) {
+    final public void addAccelerator(TCommand command, TKeypress keypress) {
 	accelerators[keypress] = command;
     }
 
@@ -239,7 +239,7 @@ public class TApplication {
      * Params:
      *    window = new window to add
      */
-    public void addWindow(TWindow window) {
+    final public void addWindow(TWindow window) {
 	foreach (w; windows) {
 	    // Only one modal window at a time
 	    assert(!w.isModal());
@@ -252,7 +252,7 @@ public class TApplication {
     }
 
     /// Switch to the next window
-    public void switchWindow() {
+    final public void switchWindow() {
 	// Only switch if there are multiple windows
 	if (windows.length < 2) {
 	    return;
@@ -286,7 +286,7 @@ public class TApplication {
 
     /// See if we need to switch window or activate the menu based on
     /// a mouse click
-    public void checkSwitchFocus(TMouseEvent mouse) {
+    final public void checkSwitchFocus(TMouseEvent mouse) {
 
 	if ((mouse.type == TMouseEvent.Type.MOUSE_DOWN) &&
 	    (activeMenu !is null) &&
@@ -363,7 +363,7 @@ public class TApplication {
      * Params:
      *    window = the window to remove
      */
-    public void closeWindow(TWindow window) {
+    final public void closeWindow(TWindow window) {
 	uint z = window.z;
 	window.z = -1;
 	windows.sort;
@@ -414,12 +414,15 @@ public class TApplication {
      * Params:
      *    widget = widget that will receive events
      */
-    public void enableSecondaryEventReceiver(TWidget widget) {
+    final public void enableSecondaryEventReceiver(TWidget widget) {
 	assert(secondaryEventReceiver is null);
 	assert(secondaryEventFiber is null);
 	assert(cast(TMessageBox)widget);
 	secondaryEventReceiver = widget;
 	secondaryEventFiber = new Fiber(&widgetEventHandler);
+
+	// Refresh
+	repaint = true;
     }
 
     /**
@@ -428,7 +431,7 @@ public class TApplication {
      * Params:
      *    event = new event to add to the queue
      */
-    public void addEvent(TInputEvent event) {
+    final public void addEvent(TInputEvent event) {
 	eventQueue ~= event;
     }
 
@@ -438,11 +441,44 @@ public class TApplication {
      * Params:
      *    event = new event to add to the queue
      */
-    public void addMenuEvent(TInputEvent event) {
+    final public void addMenuEvent(TInputEvent event) {
 	eventQueue ~= event;
+	closeMenu();
+    }
+
+    /**
+     * Turn off the menu
+     */
+    final public void closeMenu() {
 	assert(activeMenu !is null);
 	activeMenu.active = false;
 	activeMenu = null;
+	repaint = true;
+    }
+
+    /**
+     * Switch to the next menu
+     */
+    final public void switchMenu(bool forward = true) {
+	assert(activeMenu !is null);
+	for (auto i = 0; i < menus.length; i++) {
+	    if (activeMenu is menus[i]) {
+		if (forward) {
+		    if (i < menus.length - 1) {
+			i++;
+		    }
+		} else {
+		    if (i > 0) {
+			i--;
+		    }
+		}
+		activeMenu.active = false;
+		activeMenu = menus[i];
+		activeMenu.active = true;
+		repaint = true;
+		return;
+	    }
+	}
     }
 
     /**
@@ -455,6 +491,8 @@ public class TApplication {
     private void metaHandleEvents(TInputEvent [] events) {
 
 	foreach (event; events) {
+
+	    // stderr.writefln("metaHandleEvents event: %s", event);
 	    
 	    // Special application-wide events -------------------------------
 
@@ -487,10 +525,8 @@ public class TApplication {
 	    // Peek at the mouse position
 	    if (auto mouse = cast(TMouseEvent)event) {
 		if ((mouseX != mouse.x) || (mouseY != mouse.y)) {
-		    // flipMouse();
 		    mouseX = mouse.x;
 		    mouseY = mouse.y;
-		    // flipMouse();
 		    repaint = true;
 		}
 	    }
@@ -574,6 +610,8 @@ public class TApplication {
      */
     private void handleEvent(TInputEvent event) {
 
+	// stderr.writefln("Handle event: %s", event);
+
 	// Special application-wide events -----------------------------------
 
 	// Peek at the mouse position
@@ -596,37 +634,24 @@ public class TApplication {
 	}
 
 	if (auto keypress = cast(TKeypressEvent)event) {
-	    // Alt-TAB
-	    if (keypress.key == kbAltTab) {
-		switchWindow();
-		return;
-	    }
-
-	    // F6 - behave like Alt-TAB
-	    if (keypress.key == kbF6) {
-		switchWindow();
-		return;
-	    }
-
 	    // See if this key matches an accelerator, and if so dispatch the
 	    // command.
 	    TKeypress keypressLowercase = toLower(keypress.key);
-	    foreach (key, cmd; accelerators) {
-		if (keypressLowercase == key) {
-		    // Dispatch this command
-		    addEvent(new TCommandEvent(cmd));
+	    TCommand *cmd = (keypressLowercase in accelerators);
+	    if (cmd !is null) {
+		// Dispatch this command
+		addEvent(new TCommandEvent(*cmd));
+		return;
+	    } else {
+		// Handle the keypress
+		if (onKeypress(keypress)) {
+		    return;
 		}
 	    }
 	}
 
 	if (auto cmd = cast(TCommandEvent)event) {
-	    // Check for special case commands
-	    if (cmd.cmd == cmExit) {
-		if (messageBox("Confirmation", "Exit application?",
-			TMessageBox.Type.YESNO).result == TMessageBox.Result.YES) {	
-		    quit = true;
-		}
-		repaint = true;
+	    if (onCommand(cmd)) {
 		return;
 	    }
 	}
@@ -648,13 +673,78 @@ public class TApplication {
     }
 
     /**
+     * Method that TApplication subclasses can override to handle menu or
+     * posted command events.
+     *
+     * Params:
+     *    cmd = command event
+     *
+     * Returns:
+     *    if true, this event was consumed
+     */
+    protected bool onCommand(TCommandEvent cmd) {
+	// Default: handle cmExit
+	if (cmd.cmd == cmExit) {
+	    if (messageBox("Confirmation", "Exit application?",
+		    TMessageBox.Type.YESNO).result == TMessageBox.Result.YES) {	
+		quit = true;
+	    }
+	    repaint = true;
+	    return true;
+	}
+	return false;
+    }
+
+    /**
+     * Method that TApplication subclasses can override to handle keystrokes.
+     *
+     * Params:
+     *    keypress = keystroke event
+     *
+     * Returns:
+     *    if true, this event was consumed
+     */
+    protected bool onKeypress(TKeypressEvent keypress) {
+	// Default: handle Alt-TAB, F6, and menu shortcuts
+
+	// Alt-TAB
+	if (keypress.key == kbAltTab) {
+	    switchWindow();
+	    return true;
+	}
+
+	// F6 - behave like Alt-TAB
+	if (keypress.key == kbF6) {
+	    switchWindow();
+	    return true;
+	}
+
+	if (!keypress.key.isKey &&
+	    keypress.key.alt &&
+	    !keypress.key.ctrl &&
+	    (activeMenu is null)) {
+
+	    foreach (m; menus) {
+		if (toLowercase(m.shortcut) == toLowercase(keypress.key.ch)) {
+		    activeMenu = m;
+		    m.active = true;
+		    repaint = true;
+		    return true;
+		}
+	    }
+	}
+
+	return false;
+    }
+
+    /**
      * Pass this raw input char into the event loop.  This will be
      * processed by Terminal.getEvent().
      *
      * Params:
      *    ch = Unicode code point
      */
-    public void processChar(dchar ch) {
+    final public void processChar(dchar ch) {
 	if (terminal is null) {
 	    terminal = new Terminal(false);
 	}
@@ -687,7 +777,7 @@ public class TApplication {
     }
 
     /// Run this application until it exits, using stdin and stdout
-    public void run() {
+    final public void run() {
 	// Create a terminal and explicitly set stdin into raw mode
 	assert(terminal is null);
 	terminal = new Terminal(true);
@@ -712,8 +802,18 @@ public class TApplication {
 	    pfd.fd = stdin.fileno();
 	    pfd.events = POLLIN;
 	    pfd.revents = 0;
+	    // Timeout is in milliseconds, so default timeout after 0.1
+	    // seconds of inactivity.
+	    uint timeout = 100;
 
-	    auto poll_rc = poll(&pfd, 1, 100);
+	    if ((eventQueue.length > 0) || (screen.dirty)) {
+		// Do not wait if there are definitely events waiting to be
+		// processed or a screen redraw to do.
+		// stderr.writefln("No timeout, eventQueue.length = %d", eventQueue.length);
+		timeout = 0;
+	    }
+
+	    auto poll_rc = poll(&pfd, 1, timeout);
 
 	    if (poll_rc < 0) {
 		// Interrupt
@@ -751,7 +851,7 @@ public class TApplication {
      * Returns:
      *    the new window
      */
-    public TWindow addWindow(dstring title, uint width, uint height,
+    final public TWindow addWindow(dstring title, uint width, uint height,
 	ubyte flags = TWindow.RESIZABLE) {
 
 	return new TWindow(this, title, width, height, flags);
@@ -771,7 +871,7 @@ public class TApplication {
      * Returns:
      *    the new window
      */
-    public TWindow addWindow(dstring title, uint x, uint y, uint width, uint height,
+    final public TWindow addWindow(dstring title, uint x, uint y, uint width, uint height,
 	ubyte flags = TWindow.RESIZABLE) {
 
 	return new TWindow(this, title, x, y, width, height, flags);
@@ -788,7 +888,7 @@ public class TApplication {
      * Returns:
      *    the new message box
      */
-    public TMessageBox messageBox(dstring title, dstring caption,
+    final public TMessageBox messageBox(dstring title, dstring caption,
 	TMessageBox.Type type = TMessageBox.Type.OK) {
 
 	return new TMessageBox(this, title, caption, type);
@@ -797,7 +897,7 @@ public class TApplication {
     /**
      * Recompute menu x positions based on their title length.
      */
-    public void recomputeMenuX() {
+    final public void recomputeMenuX() {
 	uint x = 0;
 	foreach (m; menus) {
 	    m.x = x;
@@ -814,7 +914,7 @@ public class TApplication {
      * Returns:
      *    the new menu
      */
-    public TMenu addMenu(dstring title) {
+    final public TMenu addMenu(dstring title) {
 	uint x = 0;
 	uint y = 0;
 	TMenu menu = new TMenu(this, x, y, title);

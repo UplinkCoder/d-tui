@@ -229,9 +229,9 @@ private class DemoApplication : TApplication {
 	new DemoMainWindow(this);
 
 	// Add the menus
-	TMenu fileMenu = addMenu("File");
-	TMenu editMenu = addMenu("Edit");
-	TMenu viewMenu = addMenu("View");
+	TMenu fileMenu = addMenu("&File");
+	TMenu editMenu = addMenu("&Edit");
+	TMenu viewMenu = addMenu("&View");
 	fileMenu.addItem("Open", cmOpen, kbAltO);
 	fileMenu.addSeparator();
 	fileMenu.addItem("Exit", cmExit, kbAltX);

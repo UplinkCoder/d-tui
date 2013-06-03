@@ -56,6 +56,9 @@ import std.stdio;
  */
 public class TMenu : TWindow {
 
+    /// Keyboard shortcut to activate this menu
+    public dchar shortcut;
+
     /**
      * Public constructor
      *
@@ -63,17 +66,40 @@ public class TMenu : TWindow {
      *    parent = parent application
      *    x = column relative to parent
      *    y = row relative to parent
-     *    title = menu title
+     *    title = menu title.  Title must contain a keyboard shortcut, denoted by prefixing a letter with "&", e.g. "&File"
      */
     public this(TApplication parent, uint x, uint y, dstring label) {
 	super(parent, label, x, y, parent.screen.getWidth(), parent.screen.getHeight(), 0);
 
-	// Recompute width and height to reflect an empty menu
-	width = cast(uint)title.length + 4;
-	height = 2;
-
 	// My parent constructor added me as a window, get rid of that
 	parent.closeWindow(this);
+
+	// Setup the menu shortcut
+	dstring newTitle = "";
+	bool foundAmp = false;
+	bool foundShortcut = false;
+	foreach (c; title) {
+	    if (c == '&') {
+		if (foundAmp == true) {
+		    newTitle ~= '&';
+		} else {
+		    foundAmp = true;
+		}
+	    } else {
+		newTitle ~= c;
+		if (foundAmp == true) {
+		    assert(foundShortcut == false);
+		    shortcut = toLowercase(c);
+		    foundAmp = false;
+		    foundShortcut = true;
+		}
+	    }
+	}
+	this.title = newTitle;
+
+	// Recompute width and height to reflect an empty menu
+	width = cast(uint)this.title.length + 4;
+	height = 2;
 
 	this.active = false;
     }
@@ -185,6 +211,45 @@ public class TMenu : TWindow {
     }
 
     /**
+     * Handle keystrokes.
+     *
+     * Params:
+     *    event = keystroke event
+     */
+    override protected void onKeypress(TKeypressEvent event) {
+
+	if (event.key == kbEsc) {
+	    application.closeMenu();
+	    return;
+	}
+	if (event.key == kbDown) {
+	    switchWidget(true);
+	    return;
+	}
+	if (event.key == kbUp) {
+	    switchWidget(false);
+	    return;
+	}
+	if (event.key == kbRight) {
+	    application.switchMenu(true);
+	    return;
+	}
+	if (event.key == kbLeft) {
+	    application.switchMenu(false);
+	    return;
+	}
+
+	// Dispatch the keypress to an active widget
+	foreach (w; children) {
+	    if (w.active) {
+		window.application.repaint = true;
+		w.handleEvent(event);
+		return;
+	    }
+	}
+    }
+
+    /**
      * Convenience function to add a menu item.
      *
      * Params:
@@ -200,10 +265,13 @@ public class TMenu : TWindow {
 	
 	assert(y < height);
 	TMenuItem menuItem = new TMenuItem(this, 1, y, label);
-	menuItem.setCommand(cmd);
+	menuItem.setCommand(cmd, key);
 	height++;
-	if (label.length + 6 > width) {
-	    width = cast(uint)label.length + 6;
+	if (menuItem.width + 2 > width) {
+	    width = menuItem.width + 2;
+	    foreach (i; children) {
+		i.width = width - 2;
+	    }
 	}
 	application.addAccelerator(cmd, toLower(key));
 	application.recomputeMenuX();
@@ -232,6 +300,7 @@ public class TMenuItem : TWidget {
 
     /// Optional command this item executes
     private TCommand cmd;
+    private TKeypress key;
     private bool hasCommand = false;
 
     /**
@@ -239,10 +308,17 @@ public class TMenuItem : TWidget {
      *
      * Params:
      *    cmd = command to execute on Enter
+     *    key = global keyboard accelerator
      */
-    public void setCommand(TCommand cmd) {
+    public void setCommand(TCommand cmd, TKeypress key) {
 	hasCommand = true;
 	this.cmd = cmd;
+	this.key = key;
+
+	uint newWidth = cast(uint)(label.length + 4 + key.toString().length + 2);
+	if (newWidth > width) {
+	    width = newWidth;
+	}
     }
 
     /**
@@ -299,6 +375,10 @@ public class TMenuItem : TWidget {
 
 	window.hLineXY(1, 0, width - 2, ' ', menuColor);
 	window.putStrXY(2, 0, label, menuColor);
+	if (hasCommand) {
+	    dstring keyLabel = key.toString();
+	    window.putStrXY(cast(uint)(width - keyLabel.length - 2), 0, keyLabel, menuColor);
+	}
     }
 
     /**
@@ -355,12 +435,12 @@ public class TMenuSeparator : TMenuItem {
 	super(parent, x, y, "");
 	enabled = false;
 	active = false;
+	width = parent.width - 2;
     }
 
     /// Draw a menu separator
     override public void draw() {
 	CellAttributes background = window.application.theme.getColor("tmenu");
-	width = parent.width - 2;
 
 	window.putCharXY(0, 0, cp437_chars[0xC3], background);
 	window.putCharXY(width - 1, 0, cp437_chars[0xB4], background);

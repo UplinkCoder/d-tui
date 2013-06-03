@@ -293,7 +293,7 @@ public class TWidget {
      * Param:
      *    forward = switch to the next enabled widget in the list
      */
-    private void switchWidget(bool forward) {
+    final protected void switchWidget(bool forward) {
 
 	// Only switch if there are multiple enabled widgets
 	if ((children.length < 2) || (activeChild is null)) {
@@ -471,6 +471,17 @@ public class TWidget {
     }
 
     /**
+     * Method that subclasses can override to handle menu or posted command
+     * events.
+     *
+     * Params:
+     *    event = command event
+     */
+    protected void onCommand(TCommandEvent event) {
+	// Default: do nothing
+    }
+
+    /**
      * Consume event.  Subclasses that want to intercept all events
      * in one go can override this method.
      *
@@ -501,6 +512,8 @@ public class TWidget {
 	    }
 	} else if (auto resize = cast(TResizeEvent)event) {
 	    onResize(resize);
+	} else if (auto cmd = cast(TCommandEvent)event) {
+	    onCommand(cmd);
 	}
 
 	// Do nothing else

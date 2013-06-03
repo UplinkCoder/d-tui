@@ -72,8 +72,8 @@ calling this version 1.0:
 - TMenu / TMenuItem
   - [ ] submenus
   - [ ] active, inactive, checked, unchecked
-  - [ ] Keyboard shortcut ("&File" or "~F~ile" ?)
-  - [ ] Keyboard accelerator ("Ctrl-F10")
+  - [X] Keyboard shortcut ("&File" or "~F~ile" ?)
+  - [X] Keyboard accelerator ("Ctrl-F10")
 - TInputBox - simple method to grab a string
 - Screen
   - [ ] putColorizedStrXY : colorized string markup style - use for highlights and general dialog boxes
