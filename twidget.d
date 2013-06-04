@@ -153,7 +153,7 @@ public class TWidget {
      * Returns:
      *    absolute screen column number for my X position
      */
-    public uint getAbsoluteX() {
+    public int getAbsoluteX() {
 	assert (parent !is null);
 	if (parent is this) {
 	    return x;
@@ -173,7 +173,7 @@ public class TWidget {
      * Returns:
      *    absolute screen row number for my Y position
      */
-    public uint getAbsoluteY() {
+    public int getAbsoluteY() {
 	assert (parent !is null);
 	if (parent is this) {
 	    return y;

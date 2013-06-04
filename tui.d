@@ -45,5 +45,7 @@ public import tlabel;
 public import tmenu;
 public import tmessagebox;
 public import tradio;
+public import ttext;
+public import ttimer;
 public import twidget;
 public import twindow;

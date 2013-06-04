@@ -36,11 +36,7 @@ import std.format;
 import std.stdio;
 import tui;
 
-private class DemoWindow2 : TWindow {
-
-    private void closeMe() {
-	application.closeWindow(this);
-    }
+private class DemoCheckboxWindow : TWindow {
 
     /// Constructor
     this(TApplication parent) {
@@ -51,7 +47,7 @@ private class DemoWindow2 : TWindow {
     this(TApplication parent, ubyte flags) {
 	// Construct a demo window.  X and Y don't matter because it
 	// will be centered on screen.
-	super(parent, "Demo Window 2", 0, 0, 60, 15, flags);
+	super(parent, "Radiobuttons and Checkboxes", 0, 0, 60, 15, flags);
 
 	uint row = 1;
 
@@ -67,30 +63,43 @@ private class DemoWindow2 : TWindow {
 	group.addRadioButton("Radio option 2");
 	group.addRadioButton("Radio option 3");
 
-	addButton("Close Window", (width - 14) / 2, height - 6, &closeMe);
-	if (!isModal()) {
-	    addLabel("(Alt-X to exit application)", (width - 27)/2, height - 4);
-	}
+	addButton("Close Window", (width - 14) / 2, height - 4,
+	    {
+		application.closeWindow(this);
+	    }
+	    
+	);
     }
 
 }
 
-private class DemoMainWindow : TWindow {
-    private TWindow modalWindow;
+private class DemoEditorWindow : TWindow {
 
-    private void openModalWindow() {
-	modalWindow = application.addWindow("Demo Modal Window", 0, 0,
-	    58, 15, TWindow.MODAL);
-	modalWindow.addLabel("This is an example of a very braindead modal window.", 1, 1);
-	modalWindow.addLabel("Modal windows are centered by default.", 1, 2);
-	modalWindow.addLabel("Only one window may be modal at a time (for now).", 1, 5);
-	modalWindow.addButton("Close", (modalWindow.width - 8)/2,
-	    modalWindow.height - 4, &modalWindowClose);
+    /// Constructor
+    this(TApplication parent) {
+	super(parent, "Editor", 0, 0, 60, 15, TWindow.CENTERED | TWindow.RESIZABLE);
+
+	// TODO
+
+
     }
 
-    private void modalWindowClose() {
-	application.closeWindow(modalWindow);
+}
+
+private class DemoTextWindow : TWindow {
+
+    /// Constructor
+    this(TApplication parent) {
+	super(parent, "Text Areas", 0, 0, 60, 15, TWindow.RESIZABLE);
+
+	// TODO
+
+
     }
+
+}
+
+private class DemoMsgBoxWindow : TWindow {
 
     private void openYNCMessageBox() {
 	application.messageBox("Yes/No/Cancel MessageBox",
@@ -149,18 +158,6 @@ EOS",
 	TMessageBox.Type.OK);
     }
 
-    private void openThisModal() {
-	new DemoMainWindow(application, MODAL);
-    }
-
-    private void openWindow2() {
-	new DemoWindow2(application);
-    }
-
-    private void closeMe() {
-	application.closeWindow(this);
-    }
-
     /// Constructor
     this(TApplication parent) {
 	this(parent, TWindow.CENTERED | TWindow.RESIZABLE);
@@ -170,17 +167,11 @@ EOS",
     this(TApplication parent, ubyte flags) {
 	// Construct a demo window.  X and Y don't matter because it
 	// will be centered on screen.
-	super(parent, "Demo Window", 0, 0, 60, 23, flags);
+	super(parent, "Message Boxes", 0, 0, 60, 15, flags);
 
 	uint row = 1;
 
 	// Add some widgets
-	if (!isModal()) {
-	    addLabel("Open a modal dialog", 1, row);
-	    addButton("Modal", 35, row, &openModalWindow);
-	}
-	row += 2;
-
 	addLabel("Default OK message box", 1, row);
 	addButton("Open OK MB", 35, row, &openOKMessageBox);
 	row += 2;
@@ -197,10 +188,78 @@ EOS",
 	addButton("Open YNC MB", 35, row, &openYNCMessageBox);
 	row += 2;
 
-	if (!isModal()) {
-	    addLabel("Open me as modal", 1, row);
-	    addButton("Window", 35, row, &openThisModal);
+	addButton("Close Window", (width - 14) / 2, height - 4,
+	    {
+		application.closeWindow(this);
+	    }
+	);
+    }
+
+}
+
+private class DemoMainWindow : TWindow {
+    // Timer that increments a number
+    private TTimer timer;
+
+    // The modal window is a more low-level example of controlling a window
+    // "from the outside".  Most windows will probably subclass TWindow and
+    // do this kind of logic on their own.
+    private TWindow modalWindow;
+    private void openModalWindow() {
+	modalWindow = application.addWindow("Demo Modal Window", 0, 0,
+	    58, 15, TWindow.MODAL);
+	modalWindow.addLabel("This is an example of a very braindead modal window.", 1, 1);
+	modalWindow.addLabel("Modal windows are centered by default.", 1, 2);
+	modalWindow.addButton("Close", (modalWindow.width - 8)/2,
+	    modalWindow.height - 4, &modalWindowClose);
+    }
+    private void modalWindowClose() {
+	application.closeWindow(modalWindow);
+    }
+
+    /// This is an example of having a button call a function.
+    private void openCheckboxWindow() {
+	new DemoCheckboxWindow(application);
+    }
+
+    /// We need to override onClose so that the timer will no longer be
+    /// called after we close the window.  TTimers currently are completely
+    /// unaware of the rest of the UI classes.
+    override public void onClose() {
+	application.removeTimer(timer);
+    }
+
+    /// Constructor
+    this(TApplication parent) {
+	this(parent, TWindow.CENTERED | TWindow.RESIZABLE);
+    }
+
+    /// Constructor
+    this(TApplication parent, ubyte flags) {
+	// Construct a demo window.  X and Y don't matter because it
+	// will be centered on screen.
+	super(parent, "Demo Window", 0, 0, 60, 23, flags);
+
+	uint row = 1;
+
+	// Add some widgets
+	if (!isModal) {
+	    addLabel("Message Boxes", 1, row);
+	    addButton("MessageBoxes", 35, row,
+		{
+		    new DemoMsgBoxWindow(application);
+		}
+	    );
 	}
+	row += 2;
+
+	addLabel("Open me as modal", 1, row);
+	addButton("Window", 35, row,
+	    {
+		new DemoMainWindow(application, MODAL);
+	    }
+	);
+
 	row += 2;
 
 	addLabel("Variable-width text field:", 1, row);
@@ -210,14 +269,34 @@ EOS",
 	addField(35, row, 15, true);
 	row += 2;
 
-	if (!isModal()) {
-	    addLabel("Buttons and boxes", 1, row);
-	    addButton("Window 2", 35, row, &openWindow2);
+	if (!isModal) {
+	    addLabel("Radio buttons and checkboxes", 1, row);
+	    addButton("Checkboxes", 35, row, &openCheckboxWindow);
+	}
+	row += 2;
+
+	if (!isModal) {
+	    addLabel("Editor window", 1, row);
+	    addButton("Editor", 35, row,
+		{
+		    new DemoEditorWindow(application);
+		}
+	    );
+	}
+	row += 2;
+
+	if (!isModal) {
+	    addLabel("Text areas", 1, row);
+	    addButton("Text", 35, row,
+		{
+		    new DemoTextWindow(application);
+		}
+	    );
 	}
 	row += 2;
 
 	TLabel timerLabel = addLabel("Timer", 1, row);
-	parent.addTimer(200,
+	timer = parent.addTimer(200,
 	    {
 		static int i = 0;
 		auto writer = appender!dstring();
@@ -229,10 +308,11 @@ EOS",
 	    }, true);
 	
 
-	addButton("Close Window", (width - 14) / 2, height - 5, &closeMe);
-	if (!isModal()) {
-	    addLabel("(Alt-X to exit application)", (width - 27)/2, height - 3);
-	}
+	addButton("Close Window", (width - 14) / 2, height - 5,
+	    {
+		application.closeWindow(this);
+	    }
+	);
     }
 
 }

@@ -42,8 +42,8 @@ applications somewhat as follows:
 
             // Create a menu with Open and Exit actions
             TMenu menu = addMenu("&File");
-	    menu.addItem("&Open", cmOpen, kbAltO);
-	    menu.addItem("E&xit", cmExit, kbAltX);
+            menu.addItem("&Open", cmOpen, kbAltO);
+            menu.addItem("E&xit", cmExit, kbAltX);
 
             // Add the Edit menu
             editor.addMenu(this);
@@ -64,24 +64,23 @@ I am just beginning as a work in progress.  Many tasks remain before
 calling this version 1.0:
 
 - [ ] Demo
-  - [ ] Put messageboxes on new window
   - [ ] Add editor window
-- [ ] TApplication
-  - [ ] Support multiple modal windows
+- [ ] TText
+  - [ ] Reflows with window resize
+  - [ ] Horizontal scrollbar
+  - [ ] Vertical scrollbar
 - [ ] TInputBox - simple method to grab a string
+- [ ] TProgressBar
 - [ ] TMenu / TMenuItem
   - [ ] Highlight keyboard shortcut char
   - [ ] Add keyboard shortcut+highlight for menuItem
   - [ ] TSubMenu
-  - [ ] TMenuItem: active, inactive, checked, unchecked
-- [ ] TButton: active, inactive
+  - [ ] TMenuItem: enabled, disabled, checked, unchecked
+- [ ] TButton: enabled, disabled
 - [ ] TWindow
   - [ ] Horizontal scrollbar
   - [ ] Vertical scrollbar
   - [ ] Dispatch window resize events to children
-- [ ] TTextArea
-- [ ] TText
-  - [ ] Reflows with window resize
 - [ ] TFileOpenDialog
 - [ ] TApplicationSocket - socket that knows about environment variables and
         rows X cols

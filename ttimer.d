@@ -37,7 +37,6 @@
 
 import core.time;
 import std.datetime;
-import tapplication;
 
 // Defines -------------------------------------------------------------------
 
@@ -131,6 +130,7 @@ public class TTimer {
 	this.actionDelegate = actionFn;
 	this(duration, recurring);
     }
+
 }
 
 // Functions -----------------------------------------------------------------

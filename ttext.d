@@ -1,5 +1,5 @@
 /**
- * D Text User Interface library - TLabel class
+ * D Text User Interface library - TText class
  *
  * Version: $Id$
  *
@@ -47,14 +47,14 @@ import twidget;
 // Classes -------------------------------------------------------------------
 
 /**
- * TLabel implements a simple label.
+ * TText implements a simple text.
  */
-public class TLabel : TWidget {
+public class TText : TWidget {
 
-    /// Label text
+    /// Text text
     public dstring text = "";
 
-    /// Label color
+    /// Text color
     private CellAttributes color;
 
     /**
@@ -62,13 +62,13 @@ public class TLabel : TWidget {
      *
      * Params:
      *    parent = parent widget
-     *    text = label on the screen
+     *    text = text on the screen
      *    x = column relative to parent
      *    y = row relative to parent
-     *    colorKey = ColorTheme key color to use for foreground text.  Default is "tlabel"
+     *    colorKey = ColorTheme key color to use for foreground text.  Default is "ttext"
      */
     public this(TWidget parent, dstring text, uint x, uint y,
-	string colorKey = "tlabel") {
+	string colorKey = "ttext") {
 
 	// Do this before the twidget constructor
 	this.enabled = false;
@@ -89,7 +89,7 @@ public class TLabel : TWidget {
 	color.backColor = background.backColor;
     }
 
-    /// Draw a static label
+    /// Draw a static text
     override public void draw() {
 	window.putStrXY(0, 0, text, color);
     }

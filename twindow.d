@@ -151,9 +151,6 @@ public class TWindow : TWidget {
 	this.parent = this;
 	this.window = this;
 
-	// Add me to the application
-	application.addWindow(this);
-
 	this.title = title;
 	this.application = application;
 	this.screen = application.screen;
@@ -183,6 +180,9 @@ public class TWindow : TWidget {
 	    }
 	    this.y += application.desktopTop;
 	}
+
+	// Add me to the application
+	application.addWindow(this);
     }
 
     /// Returns true if this window is modal
@@ -250,8 +250,10 @@ public class TWindow : TWidget {
 	    assert(active == 1);
 	    return application.theme.getColor("twindow.background.modal");
 	} else if (isModal()) {
-	    assert(active == 1);
-	    return application.theme.getColor("twindow.background.modal");
+	    if (active) {
+		return application.theme.getColor("twindow.background.modal");
+	    }
+	    return application.theme.getColor("twindow.background.modal.inactive");
 	} else if (active) {
 	    assert(!isModal());
 	    return application.theme.getColor("twindow.background");
@@ -259,6 +261,14 @@ public class TWindow : TWidget {
 	    assert(!isModal());
 	    return application.theme.getColor("twindow.background.inactive");
 	}
+    }
+
+    /**
+     * Subclasses should override this method to cleanup resources.  This is
+     * called by application.closeWindow().
+     */
+    public void onClose() {
+	// Default: do nothing
     }
 
     /// Called by TApplication.drawChildren() to render on screen.
@@ -275,9 +285,13 @@ public class TWindow : TWidget {
 	    assert(active == 1);
 	    border = application.theme.getColor("twindow.border.modal.windowmove");
 	} else if (isModal()) {
-	    assert(active == 1);
-	    border = application.theme.getColor("twindow.border.modal");
-	    borderType = 2;
+	    if (active) {
+		border = application.theme.getColor("twindow.border.modal");
+		borderType = 2;
+	    } else {
+		border = application.theme.getColor("twindow.border.modal.inactive");
+		borderType = 1;
+	    }
 	} else if (active) {
 	    assert(!isModal());
 	    border = application.theme.getColor("twindow.border");
@@ -354,7 +368,7 @@ public class TWindow : TWidget {
 
 	if ((mouse.absoluteY == y) &&
 	    mouse.mouse1 &&
-	    (mouse.absoluteX >= x) &&
+	    (x <= mouse.absoluteX) &&
 	    (mouse.absoluteX < x + width) &&
 	    !mouseOnClose() &&
 	    !mouseOnMaximize()

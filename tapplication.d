@@ -245,9 +245,11 @@ public class TApplication {
      *    window = new window to add
      */
     final public void addWindow(TWindow window) {
+	// Do not allow a modal window to spawn a non-modal window
+	if ((windows.length > 0) && (windows[0].isModal())) {
+	    assert(window.isModal());
+	}
 	foreach (w; windows) {
-	    // Only one modal window at a time
-	    assert(!w.isModal());
 	    w.active = false;
 	    w.z++;
 	}
@@ -386,6 +388,9 @@ public class TApplication {
 		}
 	    }
 	}
+
+	// Perform window cleanup
+	window.onClose();
 
 	// Check if we are closing a TMessageBox or similar
 	if (secondaryEventReceiver !is null) {
@@ -987,6 +992,22 @@ public class TApplication {
 	TTimer timer = new TTimer(duration, actionFn, recurring);
 	timers ~= timer;
 	return timer;
+    }
+
+    /**
+     * Convenience function to remove a timer.
+     *
+     * Params:
+     *    timer = timer to remove
+     */
+    final public void removeTimer(TTimer timer) {
+	TTimer [] newTimers;
+	foreach (t; timers) {
+	    if (t !is timer) {
+		newTimers ~= t;
+	    }
+	}
+	timers = newTimers;
     }
 
 }

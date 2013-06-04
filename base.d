@@ -1471,10 +1471,10 @@ public class TMouseEvent : TInputEvent {
     public int y;
 
     /// Mouse X - absolute screen coordinates
-    public uint absoluteX;
+    public int absoluteX;
 
     /// Mouse Y - absolute screen coordinate
-    public uint absoluteY;
+    public int absoluteY;
 
     /// Mouse button 1 (left button)
     public bool mouse1;
@@ -1499,32 +1499,15 @@ public class TMouseEvent : TInputEvent {
     /// Make human-readable description of this event
     override public string toString() {
 	auto writer = appender!string();
-	final switch (type) {
-	case Type.MOUSE_DOWN:
-	    formattedWrite(writer, "MouseDown: %d %d %s %s %s %s %s",
-		x, y, mouse1 ? "mouse1" : "",
-		mouse2 ? "mouse2" : "",
-		mouse3 ? "mouse3" : "",
-		mouseWheelUp ? "wheelUP" : "",
-		mouseWheelDown ? "wheelDOWN" : "");
-	    break;
-	case Type.MOUSE_UP:
-	    formattedWrite(writer, "MouseUp: %d %d %s %s %s %s %s",
-		x, y, mouse1 ? "mouse1" : "",
-		mouse2 ? "mouse2" : "",
-		mouse3 ? "mouse3" : "",
-		mouseWheelUp ? "wheelUP" : "",
-		mouseWheelDown ? "wheelDOWN" : "");
-	    break;
-	case Type.MOUSE_MOTION:
-	    formattedWrite(writer, "MouseMotion: %d %d %s %s %s %s %s",
-		x, y, mouse1 ? "mouse1" : "",
-		mouse2 ? "mouse2" : "",
-		mouse3 ? "mouse3" : "",
-		mouseWheelUp ? "wheelUP" : "",
-		mouseWheelDown ? "wheelDOWN" : "");
-	    break;
-	}
+	formattedWrite(writer, "Mouse: %s x %d y %d absoluteX %d absoluteY %d 1 %s 2 %s 3 %s DOWN %s UP %s",
+	    type,
+	    x, y,
+	    absoluteX, absoluteY,
+	    mouse1,
+	    mouse2,
+	    mouse3,
+	    mouseWheelUp,
+	    mouseWheelDown);
 	return writer.data;
     }
 
@@ -2883,6 +2866,20 @@ public class ColorTheme {
 	color.backColor = COLOR_WHITE;
 	color.bold = false;
 	colors["twindow.background.modal"] = color;
+
+	// TWindow border - modal + inactive
+	color = new CellAttributes();
+	color.foreColor = COLOR_BLACK;
+	color.backColor = COLOR_WHITE;
+	color.bold = true;
+	colors["twindow.border.modal.inactive"] = color;
+
+	// TWindow background - modal + inactive
+	color = new CellAttributes();
+	color.foreColor = COLOR_BLACK;
+	color.backColor = COLOR_WHITE;
+	color.bold = false;
+	colors["twindow.background.modal.inactive"] = color;
 
 	// TWindow border - during window movement - modal
 	color = new CellAttributes();
