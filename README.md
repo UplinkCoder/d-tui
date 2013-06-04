@@ -40,15 +40,13 @@ applications somewhat as follows:
             // and vertical scrollbar, etc.
             TEditor editor = new TEditor(this);
 
-            // Create a menu
-            TMenu menu = new TMenu(this);
-
-            // Create a "File" menu with an Exit action
-            TMenu fileMenu = menu.addMenu("&File");
-            fileMenu.addItem("E&xit");
+            // Create a menu with Open and Exit actions
+            TMenu menu = addMenu("&File");
+	    menu.addItem("&Open", cmOpen, kbAltO);
+	    menu.addItem("E&xit", cmExit, kbAltX);
 
             // Add the Edit menu
-            menu.addMenu(editor.getMenu());
+            editor.addMenu(this);
         }
     }
 
@@ -65,32 +63,43 @@ Roadmap
 I am just beginning as a work in progress.  Many tasks remain before
 calling this version 1.0:
 
-- TMenu / TMenuItem
-  - [ ] submenus
-  - [ ] active, inactive, checked, unchecked
-  - [X] Keyboard shortcut ("&File")
-- TInputBox - simple method to grab a string
-- Screen
-  - [ ] putColorizedStrXY : colorized string markup style - use for highlights and general dialog boxes
-  - [ ] allow complex characters in putCharXY() and detect them in putStrXY().
-- TWindow
-  - [ ] SMARTPLACE (use smart placement for x, y)
+- [ ] Demo
+  - [ ] Put messageboxes on new window
+  - [ ] Add editor window
+- [ ] TApplication
+  - [ ] Support multiple modal windows
+- [ ] TInputBox - simple method to grab a string
+- [ ] TMenu / TMenuItem
+  - [ ] Highlight keyboard shortcut char
+  - [ ] Add keyboard shortcut+highlight for menuItem
+  - [ ] TSubMenu
+  - [ ] TMenuItem: active, inactive, checked, unchecked
+- [ ] TButton: active, inactive
+- [ ] TWindow
   - [ ] Horizontal scrollbar
   - [ ] Vertical scrollbar
-  - [ ] Dispatch window resize events
+  - [ ] Dispatch window resize events to children
 - [ ] TTextArea
 - [ ] TText
   - [ ] Reflows with window resize
+- [ ] TFileOpenDialog
+- [ ] TApplicationSocket - socket that knows about environment variables and
+        rows X cols
+      - [ ] this(TApplication application)
+- [ ] TEditor : TWindow
+- [ ] TTerminal
+
+Wishlist features:
+
+- [ ] Terminal
+  - [ ] Mouse 1006 mode parsing
+  - [ ] Win32 console support
+- [ ] TWindow
+  - [ ] SMARTPLACE (use smart placement for x, y)
+  - [ ] &Window menu with Cascade, Tile, Close, Switch, etc.
+- [ ] Screen
+  - [ ] allow complex characters in putCharXY() and detect them in putStrXY().
 - [ ] Drag and drop / copy and paste
   - [ ] TTextArea
   - [ ] TField
   - [ ] TText
-- [ ] TFileOpenDialog
-- [ ] TTerminal
-- [ ] TApplicationSocket - socket that knows about environment variables and
-        rows X cols
-      - [ ] this(TApplication application)
-- Terminal
-  - [X] Mouse 1000 mode parsing
-  - [ ] Mouse 1006 mode parsing
-  - [ ] Win32 console support
