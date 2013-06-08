@@ -69,7 +69,6 @@ calling this version 1.0:
   - [ ] Reflows with window resize
   - [ ] Horizontal scrollbar
   - [ ] Vertical scrollbar
-- [ ] TInputBox - simple method to grab a string
 - [ ] TProgressBar
 - [ ] TMenu / TMenuItem
   - [ ] TSubMenu

@@ -52,7 +52,7 @@ import twidget;
 public class TField : TWidget {
 
     /// Field text
-    private dstring text = "";
+    public dstring text = "";
 
     /// Remember mouse state
     private TMouseEvent mouse;

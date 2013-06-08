@@ -944,6 +944,23 @@ public class TApplication {
     }
 
     /**
+     * Convenience function to spawn an input box.
+     *
+     * Params:
+     *    title = window title, will be centered along the top border
+     *    caption = message to display.  Use embedded newlines to get a multi-line box.
+     *    text = optional text to seed the field with
+     *
+     * Returns:
+     *    the new input box
+     */
+    final public TInputBox inputBox(dstring title, dstring caption,
+	dstring text) {
+
+	return new TInputBox(this, title, caption, text);
+    }
+
+    /**
      * Recompute menu x positions based on their title length.
      */
     final public void recomputeMenuX() {

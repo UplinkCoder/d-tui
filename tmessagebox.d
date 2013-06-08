@@ -41,6 +41,7 @@ import std.utf;
 import tapplication;
 import twindow;
 import tbutton;
+import tfield;
 
 // Defines -------------------------------------------------------------------
 
@@ -75,9 +76,6 @@ public class TMessageBox : TWindow {
     /// Which button was clicked: OK, CANCEL, YES, or NO.
     public Result result = Result.OK;
 
-    /// When true, kill this message box
-    private bool quit = false;
-
     /**
      * Public constructor.  The message box will be centered on
      * screen.
@@ -90,6 +88,23 @@ public class TMessageBox : TWindow {
      */
     public this(TApplication application, dstring title, dstring caption,
 	Type type = Type.OK) {
+
+	this(application, title, caption, type, true);
+    }
+    
+    /**
+     * Public constructor.  The message box will be centered on
+     * screen.
+     *
+     * Params:
+     *    application = TApplication that manages this window
+     *    title = window title, will be centered along the top border
+     *    caption = message to display.  Use embedded newlines to get a multi-line box.
+     *    type = one of the Type constants.  Default is Type.OK.
+     *    yield = if true, yield this Fiber.  Subclasses need to set this to false.
+     */
+    protected this(TApplication application, dstring title, dstring caption,
+	Type type = Type.OK, bool yield = true) {
 
 	// Determine width and height
 	dstring [] lines = splitLines!(dstring)(caption);
@@ -216,12 +231,65 @@ public class TMessageBox : TWindow {
 	// Set the secondaryFiber to run me
 	application.enableSecondaryEventReceiver(this);
 
-	// Yield my fiber.  When I come back from the constructor response
-	// will already be set.
+	if (yield) {
+	    // Yield my fiber.  When I come back from the constructor
+	    // response will already be set.
+	    Fiber.yield();
+	}
+    }
+
+}
+
+/**
+ * TInputBox is a system-modal dialog with an OK button and a text
+ * input field.
+ *
+ * Call it like:
+ *
+ *     box = application.inputBox(title, caption);
+ *     if (box.text == "yes") {
+ *        ... the user entered "yes", do stuff ...
+ *     }
+ *
+ */
+public class TInputBox : TMessageBox {
+
+    /// The input field.
+    public TField field;
+
+    /// Convenience alias so that callers can just access this.text
+    alias field this;
+
+    /**
+     * Public constructor.  The input box will be centered on screen.
+     *
+     * Params:
+     *    application = TApplication that manages this window
+     *    title = window title, will be centered along the top border
+     *    caption = message to display.  Use embedded newlines to get a multi-line box.
+     *    text = optional text to seed the field with
+     */
+    public this(TApplication application, dstring title, dstring caption,
+	dstring text = "") {
+
+	super(application, title, caption, Type.OK, false);
+
+	foreach (w; children) {
+	    if (auto button = cast(TButton)w) {
+		button.y += 2;
+	    }
+	}
+
+	height += 2;
+	field = addField(1, height - 6, width - 4, false, text);
+	field.text = text;
+
+	// Yield my fiber.  When I come back from the constructor
+	// response will already be set.
 	Fiber.yield();
     }
 
-
 }
+
 
 // Functions -----------------------------------------------------------------

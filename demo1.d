@@ -188,6 +188,20 @@ EOS",
 	addButton("Open YNC MB", 35, row, &openYNCMessageBox);
 	row += 2;
 
+	addLabel("Input box", 1, row);
+	addButton("Open input box", 35, row,
+	    {
+		application.inputBox("Input Box",
+	    q"EOS
+This is an example of an InputBox.
+
+Note that the InputBox text can span multiple
+lines.
+EOS",
+		    "some input text");
+	    }
+	);
+
 	addButton("Close Window", (width - 14) / 2, height - 4,
 	    {
 		application.closeWindow(this);
