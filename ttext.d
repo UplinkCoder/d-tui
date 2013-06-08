@@ -35,6 +35,7 @@
 
 // Imports -------------------------------------------------------------------
 
+import std.string;
 import std.utf;
 import base;
 import codepage;
@@ -51,8 +52,11 @@ import twidget;
  */
 public class TText : TWidget {
 
-    /// Text text
+    /// Text raw text
     public dstring text = "";
+
+    /// Text converted to paragraph
+    private dstring paragraph;
 
     /// Text color
     private CellAttributes color;
@@ -79,19 +83,37 @@ public class TText : TWidget {
 	this.text = text;
 	this.x = x;
 	this.y = y;
-	this.height = 1;
-	this.width = cast(uint)text.length;
+
+	// Set my size
+	onResize(new TResizeEvent(parent.width, parent.height));
 
 	// Setup my color
-	color = new CellAttributes();
-	color.setTo(window.application.theme.getColor(colorKey));
-	CellAttributes background = window.getBackground();
-	color.backColor = background.backColor;
+	color = window.application.theme.getColor(colorKey);
     }
 
     /// Draw a static text
     override public void draw() {
-	window.putStrXY(0, 0, text, color);
+	this.paragraph = wrap!(dstring)(text, this.width);
+	dstring [] lines = splitLines!(dstring)(this.paragraph);
+	this.height = cast(uint)lines.length;
+
+	for (auto i = 0; i < lines.length; i++) {
+	    window.putStrXY(0, i, leftJustify!(dstring)(lines[i], this.width),
+		color);
+	}
+    }
+
+    /**
+     * Handle window resize.
+     *
+     * Params:
+     *    resize = resize event
+     */
+    override protected void onResize(TResizeEvent resize) {
+	this.width = parent.width - this.x - 3;
+	this.paragraph = wrap!(dstring)(text, this.width);
+	dstring [] lines = splitLines!(dstring)(this.paragraph);
+	this.height = cast(uint)lines.length;
     }
 
 }

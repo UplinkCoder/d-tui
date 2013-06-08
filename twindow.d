@@ -501,6 +501,8 @@ public class TWindow : TWidget {
 		height = 2;
 		inWindowResize = false;
 	    }
+	    // Pass a resize event to my children
+	    onResize(new TResizeEvent(width, height));
 	    return;
 	}
 

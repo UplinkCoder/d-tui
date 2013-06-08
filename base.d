@@ -2932,6 +2932,13 @@ public class ColorTheme {
 	color.backColor = COLOR_BLUE;
 	color.bold = true;
 	colors["tlabel"] = color;
+
+	// TText text
+	color = new CellAttributes();
+	color.foreColor = COLOR_BLACK;
+	color.backColor = COLOR_CYAN;
+	color.bold = false;
+	colors["ttext"] = color;
 	
 	// TField text
 	color = new CellAttributes();

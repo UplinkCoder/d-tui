@@ -66,7 +66,6 @@ calling this version 1.0:
 - [ ] Demo
   - [ ] Add editor window
 - [ ] TText
-  - [ ] Reflows with window resize
   - [ ] Horizontal scrollbar
   - [ ] Vertical scrollbar
 - [ ] TProgressBar

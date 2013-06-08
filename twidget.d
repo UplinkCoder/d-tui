@@ -45,6 +45,7 @@ import tlabel;
 import tfield;
 import tcheckbox;
 import tradio;
+import ttext;
 
 // Defines -------------------------------------------------------------------
 
@@ -493,7 +494,10 @@ public class TWidget {
      *    event = resize event
      */
     protected void onResize(TResizeEvent event) {
-	// Default: do nothing
+	// Default: do nothing, pass to children instead
+	foreach (w; children) {
+	    w.onResize(event);
+	}
     }
 
     /**
@@ -676,6 +680,22 @@ public class TWidget {
     public TRadioGroup addRadioGroup(uint x, uint y, dstring label) {
 	return new TRadioGroup(this, x, y, label);
     }
+
+    /**
+     * Convenience function to add a resizable text area to this
+     * container/window.
+     *
+     * Params:
+     *    text = text on the screen
+     *    x = column relative to parent
+     *    y = row relative to parent
+     *    colorKey = ColorTheme key color to use for foreground text.  Default is "ttext"
+     */
+    public TText addText(dstring text, uint x, uint y,
+	string colorKey = "ttext") {
+
+	return new TText(this, text, x, y, colorKey);
+    }    
 
 }
 

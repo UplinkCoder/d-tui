@@ -92,9 +92,20 @@ private class DemoTextWindow : TWindow {
     this(TApplication parent) {
 	super(parent, "Text Areas", 0, 0, 60, 15, TWindow.RESIZABLE);
 
-	// TODO
+	addText(
+	    q"EOS
+This is an example of a reflowable text field.  Some example text follows.
+
+This library implements a text-based windowing system loosely
+reminiscient of Borland's [Turbo
+Vision](http://en.wikipedia.org/wiki/Turbo_Vision) library.  For those
+wishing to use the actual C++ Turbo Vision library, see [Sergio
+Sigala's updated version](http://tvision.sourceforge.net/) that runs
+on many more platforms.
 
 
+EOS",
+	    1, 1);
     }
 
 }
