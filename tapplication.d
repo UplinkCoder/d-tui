@@ -188,14 +188,20 @@ public class TApplication {
 	uint x = 1;
 	foreach (m; menus) {
 	    CellAttributes menuColor;
+	    CellAttributes menuAcceleratorColor;
 	    if (m.active) {
 		menuColor = theme.getColor("tmenu.highlighted");
+		menuAcceleratorColor = theme.getColor("tmenu.accelerator.highlighted");
 	    } else {
 		menuColor = theme.getColor("tmenu");
+		menuAcceleratorColor = theme.getColor("tmenu.accelerator");
 	    }
 	    // Draw the menu title
 	    screen.hLineXY(x, 0, cast(uint)m.title.length + 2, ' ', menuColor);
 	    screen.putStrXY(x + 1, 0, m.title, menuColor);
+	    // Draw the highlight character
+	    screen.putCharXY(x + 1 + m.accelerator.shortcutIdx, 0,
+		m.accelerator.shortcut, menuAcceleratorColor);
 
 	    if (m.active) {
 		m.drawChildren();
@@ -736,7 +742,7 @@ public class TApplication {
 	    (activeMenu is null)) {
 
 	    foreach (m; menus) {
-		if (toLowercase(m.shortcut) == toLowercase(keypress.key.ch)) {
+		if (toLowercase(m.accelerator.shortcut) == toLowercase(keypress.key.ch)) {
 		    activeMenu = m;
 		    m.active = true;
 		    repaint = true;

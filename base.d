@@ -1552,6 +1552,11 @@ public class TKeypressEvent : TInputEvent {
 	key = TKeypress(false, 0, ' ', false, false, false);
     }
 
+    /// Contructor
+    public this(TKeypress key) {
+	this.key = key;
+    }
+
     /// Make human-readable description of this event
     override public string toString() {
 	auto writer = appender!string();
@@ -2988,6 +2993,16 @@ public class ColorTheme {
 	color.backColor = COLOR_GREEN;
 	color.bold = false;
 	colors["tmenu.highlighted"] = color;
+	color = new CellAttributes();
+	color.foreColor = COLOR_RED;
+	color.backColor = COLOR_WHITE;
+	color.bold = false;
+	colors["tmenu.accelerator"] = color;
+	color = new CellAttributes();
+	color.foreColor = COLOR_RED;
+	color.backColor = COLOR_GREEN;
+	color.bold = false;
+	colors["tmenu.accelerator.highlighted"] = color;
 
     }
 

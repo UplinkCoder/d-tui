@@ -52,12 +52,66 @@ import std.stdio;
 // Classes -------------------------------------------------------------------
 
 /**
+ * AcceleratorString is used to render a string like "&File" into a
+ * highlighted 'F' and the rest of 'ile'.
+ */
+private class AcceleratorString {
+
+    /// Keyboard shortcut to activate this menu
+    public dchar shortcut;
+
+    /// Location of the highlighted character
+    public int shortcutIdx = -1;
+
+    /// The raw (uncolored) string
+    public dstring rawTitle;
+
+    /**
+     * Public constructor
+     *
+     * Params:
+     *    title = menu or menuitem title.  Title must contain a keyboard shortcut, denoted by prefixing a letter with "&", e.g. "&File"
+     */
+    public this(dstring label) {
+
+	// Setup the menu shortcut
+	dstring newTitle = "";
+	bool foundAmp = false;
+	bool foundShortcut = false;
+	uint shortcutIdx = 0;
+	foreach (c; label) {
+	    if (c == '&') {
+		if (foundAmp == true) {
+		    newTitle ~= '&';
+		    shortcutIdx++;
+		} else {
+		    foundAmp = true;
+		}
+	    } else {
+		newTitle ~= c;
+		if (foundAmp == true) {
+		    assert(foundShortcut == false);
+		    shortcut = c;
+		    foundAmp = false;
+		    foundShortcut = true;
+		    this.shortcutIdx = shortcutIdx;
+		} else {
+		    shortcutIdx++;
+		}
+	    }
+	}
+	this.rawTitle = newTitle;
+    }
+
+}
+
+/**
  * TMenu is a top-level collection of TMenuItems
  */
 public class TMenu : TWindow {
 
-    /// Keyboard shortcut to activate this menu
-    public dchar shortcut;
+    /// The shortcut and title
+    public AcceleratorString accelerator;
 
     /**
      * Public constructor
@@ -75,27 +129,9 @@ public class TMenu : TWindow {
 	parent.closeWindow(this);
 
 	// Setup the menu shortcut
-	dstring newTitle = "";
-	bool foundAmp = false;
-	bool foundShortcut = false;
-	foreach (c; title) {
-	    if (c == '&') {
-		if (foundAmp == true) {
-		    newTitle ~= '&';
-		} else {
-		    foundAmp = true;
-		}
-	    } else {
-		newTitle ~= c;
-		if (foundAmp == true) {
-		    assert(foundShortcut == false);
-		    shortcut = toLowercase(c);
-		    foundAmp = false;
-		    foundShortcut = true;
-		}
-	    }
-	}
-	this.title = newTitle;
+	accelerator = new AcceleratorString(title);
+	this.title = accelerator.rawTitle;
+	assert(accelerator.shortcutIdx >= 0);
 
 	// Recompute width and height to reflect an empty menu
 	width = cast(uint)this.title.length + 4;
@@ -116,7 +152,7 @@ public class TMenu : TWindow {
 	}
 
 	assert(getAbsoluteActive());
-	
+
 	// Fill in the interior background
 	for (auto i = 0; i < height; i++) {
 	    screen.hLineXY(0, i, width, ' ', background);
@@ -216,34 +252,50 @@ public class TMenu : TWindow {
      * Params:
      *    event = keystroke event
      */
-    override protected void onKeypress(TKeypressEvent event) {
+    override protected void onKeypress(TKeypressEvent keypress) {
 
-	if (event.key == kbEsc) {
+	if (keypress.key == kbEsc) {
 	    application.closeMenu();
 	    return;
 	}
-	if (event.key == kbDown) {
+	if (keypress.key == kbDown) {
 	    switchWidget(true);
 	    return;
 	}
-	if (event.key == kbUp) {
+	if (keypress.key == kbUp) {
 	    switchWidget(false);
 	    return;
 	}
-	if (event.key == kbRight) {
+	if (keypress.key == kbRight) {
 	    application.switchMenu(true);
 	    return;
 	}
-	if (event.key == kbLeft) {
+	if (keypress.key == kbLeft) {
 	    application.switchMenu(false);
 	    return;
+	}
+
+	// Switch to a menuItem if it has an accelerator
+	if (!keypress.key.isKey &&
+	    !keypress.key.alt &&
+	    !keypress.key.ctrl) {
+	    foreach (w; cast(TMenuItem [])children) {
+		if ((w.accelerator !is null) &&
+		    (toLowercase(w.accelerator.shortcut) == toLowercase(keypress.key.ch))
+		) {
+		    // Send an enter keystroke to it
+		    activate(w);
+		    w.handleEvent(new TKeypressEvent(kbEnter));
+		    return;
+		}
+	    }
 	}
 
 	// Dispatch the keypress to an active widget
 	foreach (w; children) {
 	    if (w.active) {
 		window.application.repaint = true;
-		w.handleEvent(event);
+		w.handleEvent(keypress);
 		return;
 	    }
 	}
@@ -275,6 +327,7 @@ public class TMenu : TWindow {
 	}
 	application.addAccelerator(cmd, toLower(key));
 	application.recomputeMenuX();
+	activate(0);
 	return menuItem;
     }
 
@@ -302,6 +355,9 @@ public class TMenuItem : TWidget {
     private TCommand cmd;
     private TKeypress key;
     private bool hasCommand = false;
+
+    /// The shortcut and title
+    public AcceleratorString accelerator;
 
     /**
      * Set a command for this menu to execute
@@ -335,10 +391,13 @@ public class TMenuItem : TWidget {
 	// Set parent and window
 	super(parent);
 
+	accelerator = new AcceleratorString(label);
+	// assert(accelerator.shortcutIdx >= 0);
+
 	this.x = x;
 	this.y = y;
 	this.height = 1;
-	this.label = label;
+	this.label = accelerator.rawTitle;
 	this.width = cast(uint)label.length + 4;
     }
 
@@ -360,13 +419,15 @@ public class TMenuItem : TWidget {
 
     /// Draw a menu item with label
     override public void draw() {
-	CellAttributes menuColor;
 	CellAttributes background = window.application.theme.getColor("tmenu");
-
+	CellAttributes menuColor;
+	CellAttributes menuAcceleratorColor;
 	if (getAbsoluteActive()) {
 	    menuColor = window.application.theme.getColor("tmenu.highlighted");
+	    menuAcceleratorColor = window.application.theme.getColor("tmenu.accelerator.highlighted");
 	} else {
 	    menuColor = window.application.theme.getColor("tmenu");
+	    menuAcceleratorColor = window.application.theme.getColor("tmenu.accelerator");
 	}
 
 	dchar cVSide = GraphicsChars.WINDOW_SIDE;
@@ -374,10 +435,14 @@ public class TMenuItem : TWidget {
 	window.vLineXY(width - 1, 0, 1, cVSide, background);
 
 	window.hLineXY(1, 0, width - 2, ' ', menuColor);
-	window.putStrXY(2, 0, label, menuColor);
+	window.putStrXY(2, 0, accelerator.rawTitle, menuColor);
 	if (hasCommand) {
 	    dstring keyLabel = key.toString();
 	    window.putStrXY(cast(uint)(width - keyLabel.length - 2), 0, keyLabel, menuColor);
+	}
+	if (accelerator.shortcutIdx >= 0) {
+	    window.putCharXY(2 + accelerator.shortcutIdx, 0,
+		accelerator.shortcut, menuAcceleratorColor);
 	}
     }
 

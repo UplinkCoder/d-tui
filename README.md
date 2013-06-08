@@ -72,8 +72,6 @@ calling this version 1.0:
 - [ ] TInputBox - simple method to grab a string
 - [ ] TProgressBar
 - [ ] TMenu / TMenuItem
-  - [ ] Highlight keyboard shortcut char
-  - [ ] Add keyboard shortcut+highlight for menuItem
   - [ ] TSubMenu
   - [ ] TMenuItem: enabled, disabled, checked, unchecked
 - [ ] TButton: enabled, disabled

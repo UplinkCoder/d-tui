@@ -288,6 +288,32 @@ public class TWidget {
     }
 
     /**
+     * Switch the active child
+     *
+     * Params:
+     *    tabOrder = tabOrder of the child to activate.  If that child
+     *    isn't enabled, then the next enabled child will be
+     *    activated.
+     */
+    public void activate(ulong tabOrder) {
+	if (activeChild is null) {
+	    return;
+	}
+	TWidget child = null;
+	foreach (w; children) {
+	    if ((w.enabled == true) && (w.tabOrder >= tabOrder)) {
+		child = w;
+		break;
+	    }
+	}
+	if ((child !is null) && (child !is activeChild)) {
+	    activeChild.active = false;
+	    child.active = true;
+	    activeChild = child;
+	}
+    }
+
+    /**
      * Switch the active widget with the next in the tab order.
      *
      * Param:
