@@ -53,6 +53,7 @@
 import std.array;
 import std.conv;
 import std.datetime;
+import std.file;
 import std.format;
 import std.string;
 import std.stdio;
@@ -183,11 +184,13 @@ public class Cell : CellAttributes {
 
     /// Set my field values to that's field
     override public void setTo(Object rhs) {
-	auto that = cast(Cell)rhs;
-	assert(that);
+	auto thatAttr = cast(CellAttributes)rhs;
+	assert(thatAttr);
+	super.setTo(thatAttr);
 
-	super.setTo(that);
-	this.ch = that.ch;
+	if (auto that = cast(Cell)rhs) {
+	    this.ch = that.ch;
+	}
     }
 
     /// Set my field attr values to that's field
@@ -198,6 +201,17 @@ public class Cell : CellAttributes {
     /// Constructor
     public this() {
 	reset();
+    }
+
+    /**
+     * Constructor
+     *
+     * Params:
+     *    ch = character to set to
+     */
+    public this(dchar ch) {
+	reset();
+	this.ch = ch;
     }
 
     /// Make human-readable description of this Keystroke.
@@ -310,6 +324,18 @@ public class Screen {
 		putCharXY(x, y, ch, attr);
 	    }
 	}
+    }
+
+    /**
+     * Render one character with attributes.
+     *
+     * Params:
+     *    x = column coordinate.  0 is the left-most column.
+     *    y = row coordinate.  0 is the top-most row.
+     *    ch = character + attributes to draw
+     */ 
+    public void putCharXY(uint x, uint y, Cell ch) {
+	putCharXY(x, y, ch.ch, ch);
     }
 
     /**
@@ -1655,7 +1681,7 @@ public class Terminal {
 	import core.sys.posix.unistd;
 
 	// This definition is taken from the Linux man page
-	private void cfmakeraw(termios * termios_p) {
+	public static void cfmakeraw(termios * termios_p) {
 	    termios_p.c_iflag &= ~(IGNBRK | BRKINT | PARMRK | ISTRIP | INLCR | IGNCR | ICRNL | IXON);
 	    termios_p.c_oflag &= ~OPOST;
 	    termios_p.c_lflag &= ~(ECHO | ECHONL | ICANON | ISIG | IEXTEN);
@@ -1674,20 +1700,20 @@ public class Terminal {
     /**
      * Read one Unicode code point from stdin.
      *
+     * Params:
+     *    fileno = file number to read from
+     *
      * Returns:
      *    one Unicode code point
      */
-    public dchar getCharStdin() {
+    static public dchar getCharFileno(int fileno) {
 	char[4] buffer;
 
-	read(stdin.fileno(), buffer.ptr, 1);
-	if ((brokenTerminalUTFMouse == true) && (state == STATE.MOUSE)) {
-	    // This terminal is sending non-UTF8 characters in its
-	    // mouse reporting.  Do not decode stuff, just return
-	    // buffer[0].
-	    return buffer[0];
+	auto rc = read(fileno, buffer.ptr, 1);
+	if (rc == 0) {
+	    // This is EOF
+	    throw new FileException("EOF");
 	}
-
 	size_t len = 0;
 	if ((buffer[0] & 0xF0) == 0xF0) {
 	    // 3 more bytes coming
@@ -1699,11 +1725,42 @@ public class Terminal {
 	    // 1 more byte coming
 	    len = 1;
 	}
-	read(stdin.fileno(), cast(void *)(buffer.ptr) + 1, len);
+	read(fileno, cast(void *)(buffer.ptr) + 1, len);
+	size_t i;
+	return decode(buffer, i);
+    }
+
+    /**
+     * Read one Unicode code point from stdin.
+     *
+     * Returns:
+     *    one Unicode code point
+     */
+    public dchar getCharStdin() {
 	try {
+	    char[4] buffer;
+	    read(stdin.fileno(), buffer.ptr, 1);
+	    if ((brokenTerminalUTFMouse == true) && (state == STATE.MOUSE)) {
+		// This terminal is sending non-UTF8 characters in its
+		// mouse reporting.  Do not decode stuff, just return
+		// buffer[0].
+		return buffer[0];
+	    }
+
+	    size_t len = 0;
+	    if ((buffer[0] & 0xF0) == 0xF0) {
+		// 3 more bytes coming
+		len = 3;
+	    } else if ((buffer[0] & 0xE0) == 0xE0) {
+		// 2 more bytes coming
+		len = 2;
+	    } else if ((buffer[0] & 0xC0) == 0xC0) {
+		// 1 more byte coming
+		len = 1;
+	    }
+	    read(stdin.fileno(), cast(void *)(buffer.ptr) + 1, len);
 	    size_t i;
-	    dchar ch = decode(buffer, i);
-	    return ch;
+	    return decode(buffer, i);
 	} catch (UTFException e) {
 	    if (state == STATE.MOUSE) {
 		// The terminal we are using (e.g. gnome-terminal,

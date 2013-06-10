@@ -106,7 +106,7 @@ public class TApplication {
     public bool flush = false;
 
     /// Y coordinate of the top edge of the desktop.
-    public immutable uint desktopTop = 1;
+    public static immutable uint desktopTop = 1;
 
     /// Y coordinate of the bottom edge of the desktop.
     public uint desktopBottom;
@@ -797,6 +797,11 @@ public class TApplication {
 	    }
 	}
 	timers = keepTimers;
+
+	// Call onIdle's
+	foreach (w; windows) {
+	    w.onIdle();
+	}
     }
 
     /**
@@ -901,7 +906,7 @@ public class TApplication {
      *    the new window
      */
     final public TWindow addWindow(dstring title, uint width, uint height,
-	ubyte flags = TWindow.RESIZABLE) {
+	TWindow.Flag flags = TWindow.Flag.RESIZABLE) {
 
 	return new TWindow(this, title, width, height, flags);
     }
@@ -921,7 +926,7 @@ public class TApplication {
      *    the new window
      */
     final public TWindow addWindow(dstring title, uint x, uint y, uint width, uint height,
-	ubyte flags = TWindow.RESIZABLE) {
+	TWindow.Flag flags = TWindow.Flag.RESIZABLE) {
 
 	return new TWindow(this, title, x, y, width, height, flags);
     }

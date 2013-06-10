@@ -40,11 +40,11 @@ private class DemoCheckboxWindow : TWindow {
 
     /// Constructor
     this(TApplication parent) {
-	this(parent, TWindow.CENTERED | TWindow.RESIZABLE);
+	this(parent, TWindow.Flag.CENTERED | TWindow.Flag.RESIZABLE);
     }
     
     /// Constructor
-    this(TApplication parent, ubyte flags) {
+    this(TApplication parent, Flag flags) {
 	// Construct a demo window.  X and Y don't matter because it
 	// will be centered on screen.
 	super(parent, "Radiobuttons and Checkboxes", 0, 0, 60, 15, flags);
@@ -77,7 +77,7 @@ private class DemoEditorWindow : TWindow {
 
     /// Constructor
     this(TApplication parent) {
-	super(parent, "Editor", 0, 0, 60, 15, TWindow.CENTERED | TWindow.RESIZABLE);
+	super(parent, "Editor", 0, 0, 60, 15, TWindow.Flag.CENTERED | TWindow.Flag.RESIZABLE);
 
 	// TODO
 
@@ -90,7 +90,7 @@ private class DemoTextWindow : TWindow {
 
     /// Constructor
     this(TApplication parent) {
-	super(parent, "Text Areas", 0, 0, 60, 15, TWindow.RESIZABLE);
+	super(parent, "Text Areas", 0, 0, 60, 15, TWindow.Flag.RESIZABLE);
 
 	addText(
 	    q"EOS
@@ -171,11 +171,11 @@ EOS",
 
     /// Constructor
     this(TApplication parent) {
-	this(parent, TWindow.CENTERED | TWindow.RESIZABLE);
+	this(parent, TWindow.Flag.CENTERED | TWindow.Flag.RESIZABLE);
     }
     
     /// Constructor
-    this(TApplication parent, ubyte flags) {
+    this(TApplication parent, Flag flags) {
 	// Construct a demo window.  X and Y don't matter because it
 	// will be centered on screen.
 	super(parent, "Message Boxes", 0, 0, 60, 15, flags);
@@ -232,7 +232,7 @@ private class DemoMainWindow : TWindow {
     private TWindow modalWindow;
     private void openModalWindow() {
 	modalWindow = application.addWindow("Demo Modal Window", 0, 0,
-	    58, 15, TWindow.MODAL);
+	    58, 15, TWindow.Flag.MODAL);
 	modalWindow.addLabel("This is an example of a very braindead modal window.", 1, 1);
 	modalWindow.addLabel("Modal windows are centered by default.", 1, 2);
 	modalWindow.addButton("Close", (modalWindow.width - 8)/2,
@@ -256,11 +256,11 @@ private class DemoMainWindow : TWindow {
 
     /// Constructor
     this(TApplication parent) {
-	this(parent, TWindow.CENTERED | TWindow.RESIZABLE);
+	this(parent, TWindow.Flag.CENTERED | TWindow.Flag.RESIZABLE);
     }
 
     /// Constructor
-    this(TApplication parent, ubyte flags) {
+    this(TApplication parent, Flag flags) {
 	// Construct a demo window.  X and Y don't matter because it
 	// will be centered on screen.
 	super(parent, "Demo Window", 0, 0, 60, 23, flags);
@@ -281,7 +281,7 @@ private class DemoMainWindow : TWindow {
 	addLabel("Open me as modal", 1, row);
 	addButton("Window", 35, row,
 	    {
-		new DemoMainWindow(application, MODAL);
+		new DemoMainWindow(application, Flag.MODAL);
 	    }
 	);
 
@@ -315,6 +315,16 @@ private class DemoMainWindow : TWindow {
 	    addButton("Text", 35, row,
 		{
 		    new DemoTextWindow(application);
+		}
+	    );
+	}
+	row += 2;
+
+	if (!isModal) {
+	    addLabel("Terminal", 1, row);
+	    addButton("Terminal", 35, row,
+		{
+		    new TTerminal(application, 0, 0);
 		}
 	    );
 	}

@@ -71,17 +71,21 @@ public class TWindow : TWidget {
     /// Window title
     dstring title = "";
 
-    /// Window is resizable (default yes)
-    public immutable ubyte RESIZABLE	= 0x01;
+    enum Flag {
+	
+	/// Window is resizable (default yes)
+	RESIZABLE = 0x01,
 
-    /// Window is modal (default no)
-    public immutable ubyte MODAL	= 0x02;
+	/// Window is modal (default no)
+	MODAL = 0x02,
 
-    /// Window is centered
-    public immutable ubyte CENTERED	= 0x04;
+	/// Window is centered
+	CENTERED = 0x04,
+
+	};
 
     /// Window flags
-    private ubyte flags = RESIZABLE;
+    private Flag flags = Flag.RESIZABLE;
 
     /// Z order.  Lower number means more in-front.
     public uint z = false;
@@ -127,7 +131,7 @@ public class TWindow : TWidget {
      *    flags = mask of RESIZABLE, CENTERED, or MODAL
      */
     public this(TApplication application, dstring title,
-	uint width, uint height, ubyte flags = RESIZABLE) {
+	uint width, uint height, Flag flags = Flag.RESIZABLE) {
 
 	this(application, title, 0, 0, width, height, flags);
     }
@@ -144,8 +148,8 @@ public class TWindow : TWidget {
      *    height = height of window
      *    flags = mask of RESIZABLE, CENTERED, or MODAL
      */
-    public this(TApplication application, dstring title, uint x, uint y,
-	uint width, uint height, ubyte flags = RESIZABLE) {
+    public this(TApplication application, dstring title, int x, int y,
+	uint width, uint height, Flag flags = Flag.RESIZABLE) {
 
 	// I am my own window and parent
 	this.parent = this;
@@ -166,11 +170,11 @@ public class TWindow : TWidget {
 
 	// MODAL implies CENTERED
 	if (isModal()) {
-	    this.flags |= CENTERED;
+	    this.flags |= Flag.CENTERED;
 	}
 
 	// Center window if specified
-	if ((this.flags & CENTERED) != 0) {
+	if ((this.flags & Flag.CENTERED) != 0) {
 	    this.x = (screen.getWidth() - width) / 2;
 	    this.y = (application.desktopBottom - application.desktopTop);
 	    this.y -= height;
@@ -187,7 +191,7 @@ public class TWindow : TWidget {
 
     /// Returns true if this window is modal
     public bool isModal() {
-	if ((flags & MODAL) == 0) {
+	if ((flags & Flag.MODAL) == 0) {
 	    return false;
 	}
 	return true;
@@ -229,7 +233,7 @@ public class TWindow : TWidget {
     /// Returns true if the mouse is currently on the resizable lower
     /// right corner
     private bool mouseOnResize() {
-	if (((flags & RESIZABLE) != 0) &&
+	if (((flags & Flag.RESIZABLE) != 0) &&
 	    !isModal() &&
 	    (mouse !is null) &&
 	    (mouse.absoluteY == y + height - 1) &&
@@ -346,7 +350,7 @@ public class TWindow : TWidget {
 		}
 
 		// Draw the resize corner
-		if (!inWindowResize && ((flags & RESIZABLE) != 0)) {
+		if (!inWindowResize && ((flags & Flag.RESIZABLE) != 0)) {
 		    putCharXY(width - 2, height - 1, GraphicsChars.SINGLE_BAR,
 			application.theme.getColor("twindow.border.windowmove"));
 		    putCharXY(width - 1, height - 1, GraphicsChars.LRCORNER,
@@ -451,6 +455,8 @@ public class TWindow : TWidget {
 		y = 1;
 		maximized = true;
 	    }
+	    // Pass a resize event to my children
+	    onResize(new TResizeEvent(width, height));
 	    return;
 	}
 

@@ -508,7 +508,21 @@ public class TWidget {
      *    event = command event
      */
     protected void onCommand(TCommandEvent event) {
-	// Default: do nothing
+	// Default: do nothing, pass to children instead
+	foreach (w; children) {
+	    w.onCommand(event);
+	}
+    }
+
+    /**
+     * Method that subclasses can override to do processing when the UI is
+     * idle.
+     */
+    public void onIdle() {
+	// Default: do nothing, pass to children instead
+	foreach (w; children) {
+	    w.onIdle();
+	}
     }
 
     /**

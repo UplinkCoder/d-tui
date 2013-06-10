@@ -65,6 +65,7 @@ calling this version 1.0:
 
 - [ ] Demo
   - [ ] Add editor window
+- [ ] TTerminal
 - [ ] TText
   - [ ] Horizontal scrollbar
   - [ ] Vertical scrollbar
@@ -76,13 +77,11 @@ calling this version 1.0:
 - [ ] TWindow
   - [ ] Horizontal scrollbar
   - [ ] Vertical scrollbar
-  - [ ] Dispatch window resize events to children
 - [ ] TFileOpenDialog
 - [ ] TApplicationSocket - socket that knows about environment variables and
         rows X cols
       - [ ] this(TApplication application)
 - [ ] TEditor : TWindow
-- [ ] TTerminal
 
 Wishlist features:
 

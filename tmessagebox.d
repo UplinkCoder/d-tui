@@ -121,7 +121,7 @@ public class TMessageBox : TWindow {
 	}
 
 	// Register with the TApplication
-	super(application, title, 0, 0, this.width, this.height, MODAL);
+	super(application, title, 0, 0, this.width, this.height, Flag.MODAL);
 
 	// Now add my elements
 	uint lineI = 1;

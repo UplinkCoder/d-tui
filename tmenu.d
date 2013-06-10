@@ -123,7 +123,7 @@ public class TMenu : TWindow {
      *    title = menu title.  Title must contain a keyboard shortcut, denoted by prefixing a letter with "&", e.g. "&File"
      */
     public this(TApplication parent, uint x, uint y, dstring label) {
-	super(parent, label, x, y, parent.screen.getWidth(), parent.screen.getHeight(), 0);
+	super(parent, label, x, y, parent.screen.getWidth(), parent.screen.getHeight());
 
 	// My parent constructor added me as a window, get rid of that
 	parent.closeWindow(this);
