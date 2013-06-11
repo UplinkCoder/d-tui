@@ -35,6 +35,7 @@
 
 // Imports -------------------------------------------------------------------
 
+import std.conv;
 import std.file;
 import std.process;
 import std.stdio;
@@ -47,8 +48,6 @@ import twindow;
 
 // Defines -------------------------------------------------------------------
 
-private immutable size_t ECMA48_PARAM_LENGTH = 16;
-private immutable size_t ECMA48_PARAM_MAX = 16;
 private immutable size_t ECMA48_MAX_LINE_LENGTH = 256;
 
 // Globals -------------------------------------------------------------------
@@ -239,10 +238,10 @@ private class ECMA48 {
     public uint height;
 
     /// Top margin of the scrolling region
-    public int scrollRegionTop;
+    private int scrollRegionTop;
 
     /// Bottom margin of the scrolling region
-    public int scrollRegionBottom;
+    private int scrollRegionBottom;
 
     /// Right margin
     private uint rightMargin;
@@ -252,7 +251,7 @@ private class ECMA48 {
      * 132), but the line does NOT wrap until another character is written to
      * column 1 of the next line, after which the cursor moves to column 2.
      */
-    public bool wrapLineFlag;
+    private bool wrapLineFlag;
 
     /// VT220 single shift flag
     Singleshift singleshift = Singleshift.NONE;
@@ -267,7 +266,7 @@ private class ECMA48 {
     char [] csiFlags;
 
     /// Parameter characters being collected
-    char [][] csiParams;
+    string [] csiParams;
 
     /// Non-csi collect buffer
     dchar [] collectBuffer;
@@ -365,9 +364,10 @@ private class ECMA48 {
      * Clear the CSI parameters and flags
      */
     private void clearCsi() {
-	csiParams = new char[][](ECMA48_PARAM_MAX, ECMA48_PARAM_LENGTH);
+	csiParams.length = 0;
 	csiFlags.length = 0;
 	collectBuffer.length = 0;
+	scanState = ScanState.GROUND;
     }
 
     /**
@@ -452,12 +452,61 @@ private class ECMA48 {
     }
 
     /**
+     * Handle a carriage return
+     */
+    private void carriageReturn() {
+	currentState.cursorX = 0;
+	wrapLineFlag = false;
+    }
+
+    /**
+     * Handle a linefeed
+     */
+    private void linefeed(bool newLineMode) {
+	int i;
+
+	if (currentState.cursorY < scrollRegionBottom) {
+	    // Increment screen y
+	    currentState.cursorY++;
+
+	} else {
+
+	    // Screen y does not increment
+
+	    /*
+	     * Two cases: either we're inside a scrolling region or not.  If
+	     * the scrolling region bottom is the bottom of the screen, then
+	     * push the top line into the buffer.  Else scroll the scrolling
+	     * region up.
+	     */
+	    if ((scrollRegionBottom == height - 1) && (scrollRegionTop == 0)) {
+
+		// We're at the bottom of the scroll region, AND the scroll
+		// region is the entire screen.
+
+		// New line
+		newDisplayLine();
+
+	    } else {
+		// We're at the bottom of the scroll region, AND the scroll
+		// region is NOT the entire screen.
+		scrollingRegionScrollUp(scrollRegionTop, scrollRegionBottom, 1);
+	    }
+	}
+
+	if (newLineMode == true) {
+	    currentState.cursorX = 0;
+	}
+	wrapLineFlag = false;
+    }
+
+    /**
      * Prints one character to the display buffer.
      *
      * Params:
      *     ch = character to display
      */
-    void printCharacter(dchar ch) {
+    private void printCharacter(dchar ch) {
 	size_t rightMargin = this.rightMargin;
 
 	// BEL
@@ -892,7 +941,7 @@ private class ECMA48 {
      * Return:
      *    character to display on the screen
      */
-    public dchar mapCharacter(dchar ch) {
+    private dchar mapCharacter(dchar ch) {
 	if (ch > 0xFF) {
 	    // Unicode character, just return it
 	    return ch;
@@ -903,14 +952,148 @@ private class ECMA48 {
     }
 
     /**
+     * Scroll the text within a scrolling region up n lines.
+     *
+     * Params:
+     *    regionTop = top row of the scrolling region
+     *    regionBottom = bottom row of the scrolling region
+     *    n = number of lines to scroll
+     */
+    private void scrollingRegionScrollUp(int regionTop, int regionBottom, int n) {
+	// TODO
+    }
+
+    /**
      * Process a control character
      *
      * Params:
      *    ch = UTF-decoded character from the remote side
      */
-    public void handleControlChar(dchar ch) {
+    private void handleControlChar(dchar ch) {
 	assert((ch <= 0x1F) || ((ch >= 0x7F) && (ch <= 0x9F)));
-	// TODO
+
+	switch (ch) {
+
+	case 0x00:
+	    // NUL - discard
+	    return;
+
+	case 0x05:
+	    // ENQ
+
+	    /*
+	     * Transmit the answerback message.  Answerback is usually
+	     * programmed into user memory.  I believe there is a DCS command
+	     * to set it remotely, but we won't support that (security hole).
+	     */
+	    // TODO
+	    break;
+
+	case 0x07:
+	    // BEL
+	    // screen_beep();
+	    break;
+
+	case 0x08:
+	    // BS
+	    cursorLeft(1, false);
+	    break;
+
+	case 0x09:
+	    // HT
+	    advanceToNextTabStop();
+	    break;
+
+	case 0x0A:
+	    // LF
+	    linefeed(newLineMode);
+	    break;
+
+	case 0x0B:
+	    // VT
+	    linefeed(newLineMode);
+	    break;
+
+	case 0x0C:
+	    // FF
+	    linefeed(newLineMode);
+	    break;
+
+	case 0x0D:
+	    // CR
+	    carriageReturn();
+	    break;
+
+	case 0x0E:
+	    // SO
+	    shiftOut = true;
+	    currentState.glLockshift = LockshiftMode.NONE;
+	    break;
+
+	case 0x0F:
+	    // SI
+	    shiftOut = false;
+	    currentState.glLockshift = LockshiftMode.NONE;
+	    break;
+
+	case 0x84:
+	    // IND
+	    ind();
+	    break;
+
+	case 0x85:
+	    // NEL
+	    nel();
+	    break;
+
+	case 0x88:
+	    // HTS
+	    hts();
+	    break;
+
+	case 0x8D:
+	    // RI
+	    ri();
+	    break;
+
+	case 0x8E:
+	    // SS2
+	    singleshift = Singleshift.SS2;
+	    break;
+
+	case 0x8F:
+	    // SS3
+	    singleshift = Singleshift.SS3;
+	    break;
+
+	default:
+	    break;
+	}
+
+
+    }
+
+    /**
+     * Advance the cursor to the next tab stop
+     */
+    private void advanceToNextTabStop() {
+	if (tabStops.length == 0) {
+	    // Go to the rightmost column
+	    cursorRight(width - 1 - currentState.cursorX, false);
+	    return;
+	}
+	foreach (stop; tabStops) {
+	    if (stop > currentState.cursorX) {
+		cursorRight(stop - currentState.cursorX, false);
+		return;
+	    }
+	}
+	/*
+	 * We got here, meaning there isn't a tab stop beyond the current
+	 * cursor position.  Place the cursor of the right-most edge of the
+	 * screen.
+	 */
+	cursorRight(width - 1 - currentState.cursorX, false);
     }
 
     /**
@@ -940,7 +1123,15 @@ private class ECMA48 {
      *    ch = byte to save
      */
     private void param(byte ch) {
-	// TODO
+	if (csiParams.length == 0) {
+	    csiParams.length = 1;
+	}
+	if ((ch >= '0') && (ch <= '9')) {
+	    csiParams[$ - 1] ~= ch;
+	}
+	if (ch == ';') {
+	    csiParams.length++;
+	}
     }
 
     /**
@@ -1008,7 +1199,37 @@ private class ECMA48 {
      *    honorScrollRegion = if true, then do nothing if the cursor is outside the scrolling region
      */
     private void cursorUp(int n, bool honorScrollRegion) {
-	// TODO
+	int top;
+
+	/*
+	 * Special case: if a user moves the cursor from the right margin,
+	 * we have to reset the VT100 right margin flag.
+	 */
+	if (n > 0) {
+	    wrapLineFlag = false;
+	}
+
+	for (auto i = 0; i < n; i++) {
+	    if (honorScrollRegion == true) {
+		// Honor the scrolling region
+		if ((currentState.cursorY < scrollRegionTop) ||
+		    (currentState.cursorY > scrollRegionBottom)
+		) {
+		    // Outside region, do nothing
+		    return;
+		}
+		// Inside region, go up
+		top = scrollRegionTop;
+	    } else {
+		// Non-scrolling case
+		top = 0;
+	    }
+
+
+	    if (currentState.cursorY > top) {
+		currentState.cursorY--;
+	    }
+	}
     }
 
     /**
@@ -1019,7 +1240,35 @@ private class ECMA48 {
      *    honorScrollRegion = if true, then do nothing if the cursor is outside the scrolling region
      */
     private void cursorDown(int n, bool honorScrollRegion) {
-	// TODO
+	int bottom;
+
+	/*
+	 * Special case: if a user moves the cursor from the right margin,
+	 * we have to reset the VT100 right margin flag.
+	 */
+	if (n > 0) {
+	    wrapLineFlag = false;
+	}
+
+	for (auto i = 0; i < n; i++) {
+
+	    if (honorScrollRegion == true) {
+		// Honor the scrolling region
+		if (currentState.cursorY > scrollRegionBottom) {
+		    // Outside region, do nothing
+		    return;
+		}
+		// Inside region, go down
+		bottom = scrollRegionBottom;
+	    } else {
+		// Non-scrolling case
+		bottom = height - 1;
+	    }
+
+	    if (currentState.cursorY < bottom) {
+		currentState.cursorY++;
+	    }
+	}
     }
 
     /**
@@ -1030,7 +1279,29 @@ private class ECMA48 {
      *    honorScrollRegion = if true, then do nothing if the cursor is outside the scrolling region
      */
     private void cursorLeft(int n, bool honorScrollRegion) {
-	// TODO
+	/*
+	 * Special case: if a user moves the cursor from the right margin,
+	 * we have to reset the VT100 right margin flag.
+	 */
+	if (n > 0) {
+	    wrapLineFlag = false;
+	}
+
+	for (auto i = 0; i < n; i++) {
+	    if (honorScrollRegion == true) {
+		// Honor the scrolling region
+		if ((currentState.cursorY < scrollRegionTop) ||
+		    (currentState.cursorY > scrollRegionBottom)
+		) {
+		    // Outside region, do nothing
+		    return;
+		}
+	    }
+
+	    if (currentState.cursorX > 0) {
+		currentState.cursorX--;
+	    }
+	}
     }
 
     /**
@@ -1041,18 +1312,88 @@ private class ECMA48 {
      *    honorScrollRegion = if true, then do nothing if the cursor is outside the scrolling region
      */
     private void cursorRight(int n, bool honorScrollRegion) {
-	// TODO
+	int rightMargin;
+
+	/*
+	 * Special case: if a user moves the cursor from the right margin,
+	 * we have to reset the VT100 right margin flag.
+	 */
+	if (n > 0) {
+	    wrapLineFlag = false;
+	}
+
+	if (this.rightMargin > 0) {
+	    rightMargin = this.rightMargin;
+	} else {
+	    rightMargin = width - 1;
+	}
+	if (display[currentState.cursorY].doubleWidth == true) {
+	    rightMargin = ((rightMargin + 1) / 2) - 1;
+	}
+
+	for (auto i = 0; i < n; i++) {
+	    if (honorScrollRegion == true) {
+		// Honor the scrolling region
+		if ((currentState.cursorY < scrollRegionTop) ||
+		    (currentState.cursorY > scrollRegionBottom)
+		) {
+		    // Outside region, do nothing
+		    return;
+		}
+	    }
+
+	    if (currentState.cursorX < rightMargin) {
+		currentState.cursorX++;
+	    }
+	}
     }
 
     /**
-     * Move cursor to (column, row) where (0, 0) is the top-left corner
+     * Move cursor to (col, row) where (0, 0) is the top-left corner
      *
      * Param:
      *    row = row to move to
-     *    colum = column to move to
+     *    col = column to move to
      */
-    private void cursorPosition(int row, int column) {
-	// TODO
+    private void cursorPosition(int row, int col) {
+	int rightMargin;
+
+	assert(col >= 0);
+	assert(row >= 0);
+
+	if (this.rightMargin > 0) {
+	    rightMargin = this.rightMargin;
+	} else {
+	    rightMargin = width - 1;
+	}
+	if (display[currentState.cursorY].doubleWidth == true) {
+	    rightMargin = ((rightMargin + 1) / 2) - 1;
+	}
+
+	// Set column number
+	currentState.cursorX = col;
+	if (currentState.cursorX > width - 1) {
+	    currentState.cursorX = width - 1;
+	}
+
+	// Sanity check, bring column back to margin.
+	if (this.rightMargin > 0) {
+	    if (currentState.cursorX > rightMargin) {
+		currentState.cursorX = rightMargin;
+	    }
+	}
+
+	// Set row number
+	if (currentState.originMode == true) {
+	    row += scrollRegionTop;
+	}
+	if (currentState.cursorY < row) {
+	    cursorDown(row - currentState.cursorY, false);
+	} else if (currentState.cursorY > row) {
+	    cursorUp(currentState.cursorY - row, false);
+	}
+
+	wrapLineFlag = false;
     }
 
     /*
@@ -1101,35 +1442,91 @@ private class ECMA48 {
      * CUD - Cursor down
      */
     private void cud() {
-	// TODO
+	if (csiParams.length == 0) {
+	    cursorDown(1, true);
+	} else {
+	    auto i = to!int(csiParams[0]);
+	    if (i <= 0) {
+		cursorDown(1, true);
+	    } else {
+		cursorDown(i, true);
+	    }
+	}
     }
 
     /**
      * CUF - Cursor forward
      */
     private void cuf() {
-	// TODO
+	if (csiParams.length == 0) {
+	    cursorRight(1, true);
+	} else {
+	    auto i = to!int(csiParams[0]);
+	    if (i <= 0) {
+		cursorRight(1, true);
+	    } else {
+		cursorRight(i, true);
+	    }
+	}
     }
 
     /**
      * CUB - Cursor backward
      */
     private void cub() {
-	// TODO
+	if (csiParams.length == 0) {
+	    cursorLeft(1, true);
+	} else {
+	    auto i = to!int(csiParams[0]);
+	    if (i <= 0) {
+		cursorLeft(1, true);
+	    } else {
+		cursorLeft(i, true);
+	    }
+	}
     }
 
     /**
      * CUU - Cursor up
      */
     private void cuu() {
-	// TODO
+	if (csiParams.length == 0) {
+	    cursorUp(1, true);
+	} else {
+	    auto i = to!int(csiParams[0]);
+	    if (i <= 0) {
+		cursorUp(1, true);
+	    } else {
+		cursorUp(i, true);
+	    }
+	}
     }
 
     /**
      * CUP - Cursor position
      */
     private void cup() {
-	// TODO
+	int row;
+	int col;
+	if (csiParams.length == 0) {
+	    cursorPosition(0, 0);
+	} else if (csiParams.length == 1) {
+	    row = to!int(csiParams[0]);
+	    if (row < 0) {
+		row = 0;
+	    }
+	    cursorPosition(row, 0);
+	} else {
+	    row = to!int(csiParams[0]);
+	    if (row < 0) {
+		row = 0;
+	    }
+	    col = to!int(csiParams[1]);
+	    if (col < 0) {
+		col = 0;
+	    }
+	    cursorPosition(row, col);
+	}
     }
 
     /**
@@ -1303,10 +1700,9 @@ private class ECMA48 {
 
 	    // Go to SCAN_GROUND state
 	    clearCsi();
-	    scanState = ScanState.GROUND;
 	    return;
 	}
-    } /* ---------------------------------------------------------------------- */
+    }
 
     /**
      * Run this input character through the ECMA48 state machine
@@ -1326,7 +1722,6 @@ private class ECMA48 {
 	if ((ch == 0x18) || (ch == 0x1A)) {
 	    // CAN and SUB abort escape sequences
 	    clearCsi();
-	    scanState = ScanState.GROUND;
 	    return;
 	}
 
@@ -1579,7 +1974,6 @@ private class ECMA48 {
 		    break;
 		}
 		clearCsi();
-		scanState = ScanState.GROUND;
 		return;
 	    }
 	    if ((ch >= 0x51) && (ch <= 0x57)) {
@@ -1594,7 +1988,6 @@ private class ECMA48 {
 		    break;
 		}
 		clearCsi();
-		scanState = ScanState.GROUND;
 		return;
 	    }
 	    if (ch == 0x59) {
@@ -1603,7 +1996,6 @@ private class ECMA48 {
 		    scanState = ScanState.VT52_DIRECT_CURSOR_ADDRESS;
 		} else {
 		    clearCsi();
-		    scanState = ScanState.GROUND;
 		}
 		return;
 	    }
@@ -1619,20 +2011,17 @@ private class ECMA48 {
 		    writeRemote(deviceTypeResponse());
 		}
 		clearCsi();
-		scanState = ScanState.GROUND;
 		return;
 	    }
 	    if (ch == 0x5C) {
 		// '\'
 		clearCsi();
-		scanState = ScanState.GROUND;
 		return;
 	    }
 
 	    // VT52 cannot get to any of these other states
 	    if (vt52Mode == true) {
 		clearCsi();
-		scanState = ScanState.GROUND;
 		return;
 	    }
 
@@ -1711,7 +2100,6 @@ private class ECMA48 {
 		    break;
 		}
 		clearCsi();
-		scanState = ScanState.GROUND;
 		return;
 	    }
 
@@ -2227,7 +2615,6 @@ private class ECMA48 {
 		    break;
 		}
 		clearCsi();
-		scanState = ScanState.GROUND;
 		return;
 	    }
 
@@ -2239,7 +2626,6 @@ private class ECMA48 {
 	    // 0x9C goes to ScanState.GROUND
 	    if (ch == 0x9C) {
 		clearCsi();
-		scanState = ScanState.GROUND;
 		return;
 	    }
 
@@ -2425,7 +2811,6 @@ private class ECMA48 {
 		    break;
 		}
 		clearCsi();
-		scanState = ScanState.GROUND;
 		return;
 	    }
 
@@ -2437,7 +2822,6 @@ private class ECMA48 {
 	    // 0x9C goes to ScanState.GROUND
 	    if (ch == 0x9C) {
 		clearCsi();
-		scanState = ScanState.GROUND;
 		return;
 	    }
 
@@ -2635,7 +3019,6 @@ private class ECMA48 {
 		    break;
 		}
 		clearCsi();
-		scanState = ScanState.GROUND;
 		return;
 	    }
 
@@ -2745,7 +3128,6 @@ private class ECMA48 {
 		    break;
 		}
 		clearCsi();
-		scanState = ScanState.GROUND;
 		return;
 	    }
 
@@ -2772,7 +3154,6 @@ private class ECMA48 {
 	    // 40-7E               --> ignore, then switch to ScanState.GROUND
 	    if ((ch >= 0x40) && (ch <= 0x7E)) {
 		clearCsi();
-		scanState = ScanState.GROUND;
 		return;
 	    }
 
@@ -2791,7 +3172,6 @@ private class ECMA48 {
 	    // 0x9C goes to ScanState.GROUND
 	    if (ch == 0x9C) {
 		clearCsi();
-		scanState = ScanState.GROUND;
 		return;
 	    }
 
@@ -2803,7 +3183,6 @@ private class ECMA48 {
 	    if (ch == 0x5C) {
 		if ((collectBuffer.length > 0) && (collectBuffer[$ - 1] == 0x1B)) {
 		    clearCsi();
-		    scanState = ScanState.GROUND;
 		    return;
 		}
 	    }
@@ -2867,7 +3246,6 @@ private class ECMA48 {
 	    // 0x9C goes to ScanState.GROUND
 	    if (ch == 0x9C) {
 		clearCsi();
-		scanState = ScanState.GROUND;
 		return;
 	    }
 
@@ -2879,7 +3257,6 @@ private class ECMA48 {
 	    if (ch == 0x5C) {
 		if ((collectBuffer.length > 0) && (collectBuffer[$ - 1] == 0x1B)) {
 		    clearCsi();
-		    scanState = ScanState.GROUND;
 		    return;
 		}
 	    }
@@ -2916,7 +3293,6 @@ private class ECMA48 {
 	    // 0x9C goes to ScanState.GROUND
 	    if (ch == 0x9C) {
 		clearCsi();
-		scanState = ScanState.GROUND;
 		return;
 	    }
 
@@ -2928,7 +3304,6 @@ private class ECMA48 {
 	    if (ch == 0x5C) {
 		if ((collectBuffer.length > 0) && (collectBuffer[$ - 1] == 0x1B)) {
 		    clearCsi();
-		    scanState = ScanState.GROUND;
 		    return;
 		}
 	    }
@@ -2986,7 +3361,6 @@ private class ECMA48 {
 	    // 0x9C goes to ScanState.GROUND
 	    if (ch == 0x9C) {
 		clearCsi();
-		scanState = ScanState.GROUND;
 		return;
 	    }
 
@@ -2998,7 +3372,6 @@ private class ECMA48 {
 	    if (ch == 0x5C) {
 		if ((collectBuffer.length > 0) && (collectBuffer[$ - 1] == 0x1B)) {
 		    clearCsi();
-		    scanState = ScanState.GROUND;
 		    return;
 		}
 	    }
@@ -3039,7 +3412,6 @@ private class ECMA48 {
 	    // 0x9C goes to ScanState.GROUND
 	    if (ch == 0x9C) {
 		clearCsi();
-		scanState = ScanState.GROUND;
 		return;
 	    }
 
@@ -3060,7 +3432,6 @@ private class ECMA48 {
 	    // 0x9C goes to ScanState.GROUND
 	    if (ch == 0x9C) {
 		clearCsi();
-		scanState = ScanState.GROUND;
 		return;
 	    }
 
@@ -3093,7 +3464,6 @@ private class ECMA48 {
 	    // 0x9C goes to ScanState.GROUND
 	    if (ch == 0x9C) {
 		clearCsi();
-		scanState = ScanState.GROUND;
 		return;
 	    }
 
@@ -3108,7 +3478,6 @@ private class ECMA48 {
 		// other in ch.
 		cursorPosition(collectBuffer[0] - '\040', ch - '\040');
 		clearCsi();
-		scanState = ScanState.GROUND;
 	    }
 	    return;
 	}
@@ -3135,12 +3504,6 @@ public class TTerminal : TWindow {
     /// If true, the process is still running
     private bool processRunning;
 
-    // Used for raw mode
-    version(Posix) {
-	import core.sys.posix.termios;
-	import core.sys.posix.unistd;
-    }
-    
     /**
      * Public constructor.
      *
@@ -3158,15 +3521,6 @@ public class TTerminal : TWindow {
 
 	process = pipeProcess(["setsid", "/bin/bash", "-i"],
 	    Redirect.stdin | Redirect.stderrToStdout | Redirect.stdout);
-
-	version(Posix) {
-	    termios newTermios;
-	    termios oldTermios;
-	    tcgetattr(process.stdout.fileno(), &oldTermios);
-	    newTermios = oldTermios;
-	    Terminal.cfmakeraw(&newTermios);
-	    tcsetattr(process.stdout.fileno(), TCSANOW, &newTermios);
-	}
 
 	processRunning = true;
     }
@@ -3220,12 +3574,19 @@ public class TTerminal : TWindow {
 		// We have data, read it
 		try {
 		    dchar ch = Terminal.getCharFileno(process.stdout.fileno());
+		    // Special case: if we see LF, then send CRLF to the
+		    // emulation.  This is because we don't have a true TTY
+		    // to do that for us.
+		    if (ch == '\n') {
+			emulator.consume('\r');
+		    }
 		    emulator.consume(ch);
 		} catch (FileException e) {
 		    // We got EOF, close the file
 		    title = title ~ " (Offline)";
 		    processRunning = false;
-		    break;
+		    wait(process.pid);
+		    return;
 		}
 	    }
 	    i++;
@@ -3239,9 +3600,11 @@ public class TTerminal : TWindow {
      *    event = keystroke event
      */
     override protected void onKeypress(TKeypressEvent event) {
-	dstring response = emulator.keypress(event.key);
-	process.stdin.write(response);
-	process.stdin.flush();
+	if (processRunning) {
+	    dstring response = emulator.keypress(event.key);
+	    process.stdin.write(response);
+	    process.stdin.flush();
+	}
     }
 
 }

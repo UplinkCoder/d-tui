@@ -842,7 +842,7 @@ public class TApplication {
 	desktopBottom = screen.getHeight() - 1;
 
 	// Clear the screen
-	stdout.writef(Terminal.clearAll());
+	stdout.write(Terminal.clearAll());
 	stdout.flush();
 
 	// Use poll() on stdin
@@ -887,7 +887,7 @@ public class TApplication {
 
 	    // Update the screen
 	    string output = drawAll();
-	    stdout.writef(output);
+	    stdout.write(output);
 	    stdout.flush();
 	}
     }
