@@ -95,11 +95,17 @@ public static immutable ubyte COLOR_WHITE   = 7;
  */
 public class CellAttributes {
 
-    /// Bold
+    //// Bold
     public bool bold;
 
-    // Blink
+    /// Blink
     public bool blink;
+
+    /// Reverse
+    public bool reverse;
+
+    /// Protected
+    public bool protect;
 
     /// Foreground color.  COLOR_WHITE, COLOR_RED, etc.
     public ubyte foreColor;
@@ -111,6 +117,8 @@ public class CellAttributes {
     public void reset() {
 	bold = false;
 	blink = false;
+	reverse = false;
+	protect = false;
 	foreColor = COLOR_WHITE;
 	backColor = COLOR_BLACK;
     }
@@ -128,6 +136,8 @@ public class CellAttributes {
 	}
 	return ((bold == that.bold) &&
 	    (blink == that.blink) &&
+	    (reverse == that.reverse) &&
+	    (protect == that.protect) &&
 	    (foreColor == that.foreColor) &&
 	    (backColor == that.backColor));
     }
@@ -139,6 +149,8 @@ public class CellAttributes {
 
 	this.bold = that.bold;
 	this.blink = that.blink;
+	this.reverse = that.reverse;
+	this.protect = that.protect;
 	this.foreColor = that.foreColor;
 	this.backColor = that.backColor;
     }
@@ -165,6 +177,8 @@ public class Cell : CellAttributes {
 	    (backColor == COLOR_BLACK) &&
 	    (bold == false) &&
 	    (blink == false) &&
+	    (reverse == false) &&
+	    (protect == false) &&
 	    (ch == ' ')) {
 	    return true;
 	}

@@ -1533,21 +1533,91 @@ private class ECMA48 {
      * ED - Erase in display
      */
     private void ed() {
-	// TODO
+	bool honorProtected = false;
+	bool decPrivateModeFlag = false;
+
+	foreach (ch; collectBuffer) {
+	    if (ch == '?') {
+		decPrivateModeFlag = true;
+	    }
+	}
+
+	if (((type == DeviceType.VT220) || (type == DeviceType.XTERM)) &&
+	    (decPrivateModeFlag == true)) {
+	    honorProtected = true;
+	}
+
+	int i = 0;
+	if (csiParams.length > 0) {
+	    i = to!int(csiParams[0]);
+	}
+
+	if (i == 0) {
+	    // Erase from here to end of screen
+	    if (currentState.cursorY < height - 1) {
+		eraseScreen(currentState.cursorY + 1, 0, height - 1, width - 1,
+		    honorProtected);
+	    }
+	    eraseLine(currentState.cursorX, width - 1, honorProtected);
+	} else if (i == 1) {
+	    // Erase from beginning of screen to here
+	    eraseScreen(0, 0, currentState.cursorY - 1, width - 1,
+		honorProtected);
+	    eraseLine(0, currentState.cursorX, honorProtected);
+	} else if (i == 2) {
+	    // Erase entire screen
+	    eraseScreen(0, 0, height - 1, width - 1, honorProtected);
+	}
     }
 
     /**
      * EL - Erase in line
      */
     private void el() {
-	// TODO
+	bool honorProtected = false;
+	bool decPrivateModeFlag = false;
+
+	foreach (ch; collectBuffer) {
+	    if (ch == '?') {
+		decPrivateModeFlag = true;
+	    }
+	}
+
+	if (((type == DeviceType.VT220) || (type == DeviceType.XTERM)) &&
+	    (decPrivateModeFlag == true)) {
+	    honorProtected = true;
+	}
+
+	int i = 0;
+	if (csiParams.length > 0) {
+	    i = to!int(csiParams[0]);
+	}
+
+	if (i == 0) {
+	    // Erase from here to end of line
+	    eraseLine(currentState.cursorX, width - 1, honorProtected);
+	} else if (i == 1) {
+	    // Erase from beginning of line to here
+	    eraseLine(0, currentState.cursorX, honorProtected);
+	} else if (i == 2) {
+	    // Erase entire line
+	    eraseLine(0, width - 1, honorProtected);
+	}
     }
 
     /**
      * ECH - Erase # of characters in current row
      */
     private void ech() {
-	// TODO
+	int i = 0;
+	if (csiParams.length > 0) {
+	    i = to!int(csiParams[0]);
+	}
+	if (i == 0) {
+	    i = 1;
+	}
+	// Erase from here to i characters
+	eraseLine(currentState.cursorX, currentState.cursorX + i - 1, false);
     }
 
     /**
@@ -1589,7 +1659,167 @@ private class ECMA48 {
      * SGR - Select graphics rendition
      */
     private void sgr() {
-	// TODO
+
+	if (csiParams.length == 0) {
+	    currentState.attr.reset();
+	    return;
+	}
+
+	foreach (p; csiParams) {
+	    int i = to!int(p);
+
+	    switch (i) {
+
+	    case 0:
+		// Normal
+		currentState.attr.reset();
+		break;
+
+	    case 1:
+		// Bold
+		currentState.attr.bold = true;
+		break;
+
+	    case 4:
+		// Underline
+		// TODO
+		// currentState.attr.underline = true;
+		break;
+
+	    case 5:
+		// Blink
+		currentState.attr.blink = true;
+		break;
+
+	    case 7:
+		// Reverse
+		currentState.attr.reverse = true;
+		break;
+
+	    default:
+		break;
+	    }
+
+	    if ((type == DeviceType.VT220) ||
+		(type == DeviceType.XTERM)) {
+
+		switch (i) {
+
+		case 22:
+		    // Normal intensity
+		    // TODO
+		    break;
+
+		case 24:
+		    // No underline
+		    // TODO
+		    break;
+
+		case 25:
+		    // No blink
+		    currentState.attr.blink = false;
+		    break;
+
+		case 27:
+		    // Un-reverse
+		    currentState.attr.reverse = false;
+		    break;
+
+		default:
+		    break;
+		}
+	    }
+
+	    // A true VT100/102/220 does not support color, however
+	    // everyone is used to their terminal emulator supporting
+	    // color so we will unconditionally support color for all
+	    // DeviceType's.
+
+	    switch(i) {
+
+	    case 30:
+		// Set black foreground
+		currentState.attr.foreColor = COLOR_BLACK;
+		break;
+	    case 31:
+		// Set red foreground
+		currentState.attr.foreColor = COLOR_RED;
+		break;
+	    case 32:
+		// Set green foreground
+		currentState.attr.foreColor = COLOR_GREEN;
+		break;
+	    case 33:
+		// Set yellow foreground
+		currentState.attr.foreColor = COLOR_YELLOW;
+		break;
+	    case 34:
+		// Set blue foreground
+		currentState.attr.foreColor = COLOR_BLUE;
+		break;
+	    case 35:
+		// Set magenta foreground
+		currentState.attr.foreColor = COLOR_MAGENTA;
+		break;
+	    case 36:
+		// Set cyan foreground
+		currentState.attr.foreColor = COLOR_CYAN;
+		break;
+	    case 37:
+		// Set white foreground
+		currentState.attr.foreColor = COLOR_WHITE;
+		break;
+	    case 38:
+		// Underscore on, default foreground color
+		// TODO
+		currentState.attr.foreColor = COLOR_WHITE;
+		break;
+	    case 39:
+		// Underscore off, default foreground color
+		// TODO
+		currentState.attr.foreColor = COLOR_WHITE;
+		break;
+	    case 40:
+		// Set black background
+		currentState.attr.backColor = COLOR_BLACK;
+		break;
+	    case 41:
+		// Set red background
+		currentState.attr.backColor = COLOR_RED;
+		break;
+	    case 42:
+		// Set green background
+		currentState.attr.backColor = COLOR_GREEN;
+		break;
+	    case 43:
+		// Set yellow background
+		currentState.attr.backColor = COLOR_YELLOW;
+		break;
+	    case 44:
+		// Set blue background
+		currentState.attr.backColor = COLOR_BLUE;
+		break;
+	    case 45:
+		// Set magenta background
+		currentState.attr.backColor = COLOR_MAGENTA;
+		break;
+	    case 46:
+		// Set cyan background
+		currentState.attr.backColor = COLOR_CYAN;
+		break;
+	    case 47:
+		// Set white background
+		currentState.attr.backColor = COLOR_WHITE;
+		break;
+	    case 49:
+		// Default background
+		currentState.attr.backColor = COLOR_BLACK;
+		break;
+
+	    default:
+		break;
+	    }
+	}
     }
 
     /**
@@ -1624,6 +1854,7 @@ private class ECMA48 {
      * DECSTR - Soft Terminal Reset
      */
     private void decstr() {
+	// TODO
     }
 
     /**
@@ -1657,7 +1888,44 @@ private class ECMA48 {
      *    honorProtected = if true, do not erase characters with the protected attribute set
      */
     private void eraseLine(int start, int end, bool honorProtected) {
-	// TODO
+	if (start > end) {
+	    return;
+	}
+	if (end > width - 1) {
+	    end = width - 1;
+	}
+	if (start < 0) {
+	    start = 0;
+	}
+
+	for (auto i = start; i <= end; i++) {
+	    DisplayLine line = display[currentState.cursorY];
+	    if ((!honorProtected) ||
+		((honorProtected) && (!line.chars[i].protect))) {
+
+		final switch (type) {
+		case DeviceType.VT100:
+		case DeviceType.VT102:
+		case DeviceType.VT220:
+		    /*
+		     * From the VT102 manual:
+		     *
+		     * Erasing a character also erases any character
+		     * attribute of the character.
+		     */
+		    line.chars[i].reset();
+		    break;
+		case DeviceType.XTERM:
+		    /*
+		     * Erase with the current color a.k.a. back-color
+		     * erase (bce).
+		     */
+		    line.chars[i].ch = ' ';
+		    line.chars[i].setTo(currentState.attr);
+		    break;
+		}
+	    }
+	}
     }
 
     /**
@@ -1673,7 +1941,28 @@ private class ECMA48 {
      */
     private void eraseScreen(int startRow, int startCol, int endRow, int endCol,
 	bool honorProtected) {
-	// TODO
+	int oldCursorY;
+
+	if ((startRow < 0) ||
+	    (startCol < 0) ||
+	    (endRow < 0) ||
+	    (endCol < 0) ||
+	    (endRow < startRow) ||
+	    (endCol < startCol)
+	) {
+	    return;
+	}
+
+	oldCursorY = currentState.cursorY;
+	for (auto i = startRow; i <= endRow; i++) {
+	    currentState.cursorY = i;
+	    eraseLine(startCol, endCol, honorProtected);
+
+	    // Erase display clears the double attributes
+	    display[i].doubleWidth = false;
+	    display[i].doubleHeight = 0;
+	}
+	currentState.cursorY = oldCursorY;
     }
 
     /**
