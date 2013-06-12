@@ -1693,6 +1693,8 @@ public class Terminal {
     version(Posix) {
 	import core.sys.posix.termios;
 	import core.sys.posix.unistd;
+	import core.stdc.errno;
+	import core.stdc.string;
 
 	// This definition is taken from the Linux man page
 	public static void cfmakeraw(termios * termios_p) {
@@ -1728,6 +1730,15 @@ public class Terminal {
 	    // This is EOF
 	    throw new FileException("EOF");
 	}
+	if (rc < 0) {
+	    if (errno == EIO) {
+		// This is also EOF
+		throw new FileException("EIO");
+	    }
+	    throw new FileException(to!string(strerror(errno)));
+	}
+	assert(rc > 0);
+
 	size_t len = 0;
 	if ((buffer[0] & 0xF0) == 0xF0) {
 	    // 3 more bytes coming
@@ -1739,7 +1750,8 @@ public class Terminal {
 	    // 1 more byte coming
 	    len = 1;
 	}
-	read(fileno, cast(void *)(buffer.ptr) + 1, len);
+	rc = read(fileno, cast(void *)(buffer.ptr) + 1, len);
+
 	size_t i;
 	return decode(buffer, i);
     }

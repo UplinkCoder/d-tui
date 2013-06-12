@@ -37,8 +37,6 @@
 
 import std.conv;
 import std.file;
-import std.process;
-import std.stdio;
 import std.string;
 import std.utf;
 import base;
@@ -80,6 +78,8 @@ private immutable size_t ECMA48_MAX_LINE_LENGTH = 256;
  * - All data meant for the 'printer' (CSI Pc ? i) is discarded.
  */
 private class ECMA48 {
+
+    private import std.stdio;
 
     /// This controls what is sent back from the "Device Attributes"
     /// function.
@@ -237,6 +237,11 @@ private class ECMA48 {
     /// us bigger/smaller.
     public uint height;
 
+    /// Several functions are supposed to send text directly to the other
+    /// side.  This function is called to deliver that text.
+    private void function(dstring) remoteFn;
+    private void delegate(dstring) remoteDg;
+
     /// Top margin of the scrolling region
     private int scrollRegionTop;
 
@@ -266,7 +271,7 @@ private class ECMA48 {
     char [] csiFlags;
 
     /// Parameter characters being collected
-    string [] csiParams;
+    uint [] csiParams;
 
     /// Non-csi collect buffer
     dchar [] collectBuffer;
@@ -363,7 +368,7 @@ private class ECMA48 {
     /**
      * Clear the CSI parameters and flags
      */
-    private void clearCsi() {
+    private void toGround() {
 	csiParams.length = 0;
 	csiFlags.length = 0;
 	collectBuffer.length = 0;
@@ -415,11 +420,31 @@ private class ECMA48 {
 	resetTabStops();
 
 	// Clear CSI stuff
-	clearCsi();
+	toGround();
     }
 
-    /// Public constructor
-    public this() {
+    /**
+     * Public constructor
+     *
+     * Params:
+     *    remoteFn = function to call to deliver text to the remote side
+     */
+    public this(void function(dstring) remoteFn) {
+	this.remoteFn = remoteFn;
+	reset();
+	for (auto i = 0; i < height; i++) {
+	    display ~= new DisplayLine();
+	}
+    }
+
+    /**
+     * Public constructor
+     *
+     * Params:
+     *    remoteDg = delegate to call to deliver text to the remote side
+     */
+    public this(void delegate(dstring) remoteDg) {
+	this.remoteDg = remoteDg;
 	reset();
 	for (auto i = 0; i < height; i++) {
 	    display ~= new DisplayLine();
@@ -1103,16 +1128,20 @@ private class ECMA48 {
      *    str = string to send
      */
     private void writeRemote(dstring str) {
-	// TODO
+	if (remoteFn !is null) {
+	    remoteFn(str);
+	} else if (remoteDg !is null) {
+	    remoteDg(str);
+	}
     }
 
     /**
-     * Save a byte into the collect buffer
+     * Save a character into the collect buffer
      *
      * Params:
-     *    ch = byte to save
+     *    ch = character to save
      */
-    private void collect(byte ch) {
+    private void collect(dchar ch) {
 	collectBuffer ~= ch;
     }
 
@@ -1125,12 +1154,15 @@ private class ECMA48 {
     private void param(byte ch) {
 	if (csiParams.length == 0) {
 	    csiParams.length = 1;
+	    csiParams[$ - 1] = 0;
 	}
 	if ((ch >= '0') && (ch <= '9')) {
-	    csiParams[$ - 1] ~= ch;
+	    csiParams[$ - 1] *= 10;
+	    csiParams[$ - 1] += (ch - '0');
 	}
 	if (ch == ';') {
 	    csiParams.length++;
+	    csiParams[$ - 1] = 0;
 	}
     }
 
@@ -1445,7 +1477,7 @@ private class ECMA48 {
 	if (csiParams.length == 0) {
 	    cursorDown(1, true);
 	} else {
-	    auto i = to!int(csiParams[0]);
+	    auto i = csiParams[0];
 	    if (i <= 0) {
 		cursorDown(1, true);
 	    } else {
@@ -1461,7 +1493,7 @@ private class ECMA48 {
 	if (csiParams.length == 0) {
 	    cursorRight(1, true);
 	} else {
-	    auto i = to!int(csiParams[0]);
+	    auto i = csiParams[0];
 	    if (i <= 0) {
 		cursorRight(1, true);
 	    } else {
@@ -1477,7 +1509,7 @@ private class ECMA48 {
 	if (csiParams.length == 0) {
 	    cursorLeft(1, true);
 	} else {
-	    auto i = to!int(csiParams[0]);
+	    auto i = csiParams[0];
 	    if (i <= 0) {
 		cursorLeft(1, true);
 	    } else {
@@ -1493,7 +1525,7 @@ private class ECMA48 {
 	if (csiParams.length == 0) {
 	    cursorUp(1, true);
 	} else {
-	    auto i = to!int(csiParams[0]);
+	    auto i = csiParams[0];
 	    if (i <= 0) {
 		cursorUp(1, true);
 	    } else {
@@ -1511,17 +1543,17 @@ private class ECMA48 {
 	if (csiParams.length == 0) {
 	    cursorPosition(0, 0);
 	} else if (csiParams.length == 1) {
-	    row = to!int(csiParams[0]);
+	    row = csiParams[0];
 	    if (row < 0) {
 		row = 0;
 	    }
 	    cursorPosition(row, 0);
 	} else {
-	    row = to!int(csiParams[0]);
+	    row = csiParams[0];
 	    if (row < 0) {
 		row = 0;
 	    }
-	    col = to!int(csiParams[1]);
+	    col = csiParams[1];
 	    if (col < 0) {
 		col = 0;
 	    }
@@ -1549,7 +1581,7 @@ private class ECMA48 {
 
 	int i = 0;
 	if (csiParams.length > 0) {
-	    i = to!int(csiParams[0]);
+	    i = csiParams[0];
 	}
 
 	if (i == 0) {
@@ -1590,7 +1622,7 @@ private class ECMA48 {
 
 	int i = 0;
 	if (csiParams.length > 0) {
-	    i = to!int(csiParams[0]);
+	    i = csiParams[0];
 	}
 
 	if (i == 0) {
@@ -1611,7 +1643,7 @@ private class ECMA48 {
     private void ech() {
 	int i = 0;
 	if (csiParams.length > 0) {
-	    i = to!int(csiParams[0]);
+	    i = csiParams[0];
 	}
 	if (i == 0) {
 	    i = 1;
@@ -1665,8 +1697,7 @@ private class ECMA48 {
 	    return;
 	}
 
-	foreach (p; csiParams) {
-	    int i = to!int(p);
+	foreach (i; csiParams) {
 
 	    switch (i) {
 
@@ -1826,7 +1857,8 @@ private class ECMA48 {
      * DA - Device attributes
      */
     private void da() {
-	// TODO
+	// Send string directly to remote side
+	writeRemote(deviceTypeResponse());
     }
 
     /**
@@ -1988,7 +2020,7 @@ private class ECMA48 {
 	    collectBuffer = collectBuffer[0 .. $ - 1];
 
 	    // Go to SCAN_GROUND state
-	    clearCsi();
+	    toGround();
 	    return;
 	}
     }
@@ -2000,6 +2032,10 @@ private class ECMA48 {
      *    ch = UTF-decoded character from the remote side
      */
     public void consume(dchar ch) {
+
+	// DEBUG
+	// stderr.writef("%c", ch);
+
 	// Special case for VT10x: 7-bit characters only
 	if ((type == DeviceType.VT100) || (type == DeviceType.VT102)) {
 	    ch = ch & 0x7F;
@@ -2010,7 +2046,7 @@ private class ECMA48 {
 	// 18, 1A                     --> execute, then switch to SCAN_GROUND
 	if ((ch == 0x18) || (ch == 0x1A)) {
 	    // CAN and SUB abort escape sequences
-	    clearCsi();
+	    toGround();
 	    return;
 	}
 
@@ -2093,7 +2129,7 @@ private class ECMA48 {
 
 	    // 20-2F            --> collect, then switch to ScanState.ESCAPE_INTERMEDIATE
 	    if ((ch >= 0x20) && (ch <= 0x2F)) {
-		collect(cast(byte)ch);
+		collect(ch);
 		scanState = ScanState.ESCAPE_INTERMEDIATE;
 		return;
 	    }
@@ -2262,7 +2298,7 @@ private class ECMA48 {
 		    }
 		    break;
 		}
-		clearCsi();
+		toGround();
 		return;
 	    }
 	    if ((ch >= 0x51) && (ch <= 0x57)) {
@@ -2276,7 +2312,7 @@ private class ECMA48 {
 		case 'W':
 		    break;
 		}
-		clearCsi();
+		toGround();
 		return;
 	    }
 	    if (ch == 0x59) {
@@ -2284,7 +2320,7 @@ private class ECMA48 {
 		if (vt52Mode == true) {
 		    scanState = ScanState.VT52_DIRECT_CURSOR_ADDRESS;
 		} else {
-		    clearCsi();
+		    toGround();
 		}
 		return;
 	    }
@@ -2299,18 +2335,18 @@ private class ECMA48 {
 		    // Send string directly to remote side
 		    writeRemote(deviceTypeResponse());
 		}
-		clearCsi();
+		toGround();
 		return;
 	    }
 	    if (ch == 0x5C) {
 		// '\'
-		clearCsi();
+		toGround();
 		return;
 	    }
 
 	    // VT52 cannot get to any of these other states
 	    if (vt52Mode == true) {
-		clearCsi();
+		toGround();
 		return;
 	    }
 
@@ -2388,7 +2424,7 @@ private class ECMA48 {
 		    }
 		    break;
 		}
-		clearCsi();
+		toGround();
 		return;
 	    }
 
@@ -2432,7 +2468,7 @@ private class ECMA48 {
 
 	    // 20-2F               --> collect
 	    if ((ch >= 0x20) && (ch <= 0x2F)) {
-		collect(cast(byte)ch);
+		collect(ch);
 		return;
 	    }
 
@@ -2903,7 +2939,7 @@ private class ECMA48 {
 		case '~':
 		    break;
 		}
-		clearCsi();
+		toGround();
 		return;
 	    }
 
@@ -2914,7 +2950,7 @@ private class ECMA48 {
 
 	    // 0x9C goes to ScanState.GROUND
 	    if (ch == 0x9C) {
-		clearCsi();
+		toGround();
 		return;
 	    }
 
@@ -2929,7 +2965,7 @@ private class ECMA48 {
 
 	    // 20-2F               --> collect, then switch to ScanState.CSI_INTERMEDIATE
 	    if ((ch >= 0x20) && (ch <= 0x2F)) {
-		collect(cast(byte)ch);
+		collect(ch);
 		scanState = ScanState.CSI_INTERMEDIATE;
 		return;
 	    }
@@ -2948,7 +2984,7 @@ private class ECMA48 {
 
 	    // 3C-3F               --> collect, then switch to ScanState.CSI_PARAM
 	    if ((ch >= 0x3C) && (ch <= 0x3F)) {
-		collect(cast(byte)ch);
+		collect(ch);
 		scanState = ScanState.CSI_PARAM;
 		return;
 	    }
@@ -3036,8 +3072,7 @@ private class ECMA48 {
 		    break;
 		case 'c':
 		    // DA - Device attributes
-		    // Send string directly to remote side
-		    writeRemote(deviceTypeResponse());
+		    da();
 		    break;
 		case 'd':
 		case 'e':
@@ -3099,7 +3134,7 @@ private class ECMA48 {
 		case '~':
 		    break;
 		}
-		clearCsi();
+		toGround();
 		return;
 	    }
 
@@ -3110,7 +3145,7 @@ private class ECMA48 {
 
 	    // 0x9C goes to ScanState.GROUND
 	    if (ch == 0x9C) {
-		clearCsi();
+		toGround();
 		return;
 	    }
 
@@ -3131,7 +3166,7 @@ private class ECMA48 {
 
 	    // 20-2F               --> collect, then switch to ScanState.CSI_INTERMEDIATE
 	    if ((ch >= 0x20) && (ch <= 0x2F)) {
-		collect(cast(byte)ch);
+		collect(ch);
 		scanState = ScanState.CSI_INTERMEDIATE;
 		return;
 	    }
@@ -3307,7 +3342,7 @@ private class ECMA48 {
 		case '~':
 		    break;
 		}
-		clearCsi();
+		toGround();
 		return;
 	    }
 
@@ -3327,7 +3362,7 @@ private class ECMA48 {
 
 	    // 20-2F               --> collect
 	    if ((ch >= 0x20) && (ch <= 0x2F)) {
-		collect(cast(byte)ch);
+		collect(ch);
 		return;
 	    }
 
@@ -3416,7 +3451,7 @@ private class ECMA48 {
 		case '~':
 		    break;
 		}
-		clearCsi();
+		toGround();
 		return;
 	    }
 
@@ -3436,13 +3471,13 @@ private class ECMA48 {
 
 	    // 20-2F               --> collect
 	    if ((ch >= 0x20) && (ch <= 0x2F)) {
-		collect(cast(byte)ch);
+		collect(ch);
 		return;
 	    }
 
 	    // 40-7E               --> ignore, then switch to ScanState.GROUND
 	    if ((ch >= 0x40) && (ch <= 0x7E)) {
-		clearCsi();
+		toGround();
 		return;
 	    }
 
@@ -3460,25 +3495,25 @@ private class ECMA48 {
 
 	    // 0x9C goes to ScanState.GROUND
 	    if (ch == 0x9C) {
-		clearCsi();
+		toGround();
 		return;
 	    }
 
 	    // 0x1B 0x5C goes to ScanState.GROUND
 	    if (ch == 0x1B) {
-		collect(cast(byte)ch);
+		collect(ch);
 		return;
 	    }
 	    if (ch == 0x5C) {
 		if ((collectBuffer.length > 0) && (collectBuffer[$ - 1] == 0x1B)) {
-		    clearCsi();
+		    toGround();
 		    return;
 		}
 	    }
 
 	    // 20-2F               --> collect, then switch to ScanState.DCS_INTERMEDIATE
 	    if ((ch >= 0x20) && (ch <= 0x2F)) {
-		collect(cast(byte)ch);
+		collect(ch);
 		scanState = ScanState.DCS_INTERMEDIATE;
 		return;
 	    }
@@ -3497,7 +3532,7 @@ private class ECMA48 {
 
 	    // 3C-3F               --> collect, then switch to ScanState.DCS_PARAM
 	    if ((ch >= 0x3C) && (ch <= 0x3F)) {
-		collect(cast(byte)ch);
+		collect(ch);
 		scanState = ScanState.DCS_PARAM;
 		return;
 	    }
@@ -3534,18 +3569,18 @@ private class ECMA48 {
 
 	    // 0x9C goes to ScanState.GROUND
 	    if (ch == 0x9C) {
-		clearCsi();
+		toGround();
 		return;
 	    }
 
 	    // 0x1B 0x5C goes to ScanState.GROUND
 	    if (ch == 0x1B) {
-		collect(cast(byte)ch);
+		collect(ch);
 		return;
 	    }
 	    if (ch == 0x5C) {
 		if ((collectBuffer.length > 0) && (collectBuffer[$ - 1] == 0x1B)) {
-		    clearCsi();
+		    toGround();
 		    return;
 		}
 	    }
@@ -3581,25 +3616,25 @@ private class ECMA48 {
 
 	    // 0x9C goes to ScanState.GROUND
 	    if (ch == 0x9C) {
-		clearCsi();
+		toGround();
 		return;
 	    }
 
 	    // 0x1B 0x5C goes to ScanState.GROUND
 	    if (ch == 0x1B) {
-		collect(cast(byte)ch);
+		collect(ch);
 		return;
 	    }
 	    if (ch == 0x5C) {
 		if ((collectBuffer.length > 0) && (collectBuffer[$ - 1] == 0x1B)) {
-		    clearCsi();
+		    toGround();
 		    return;
 		}
 	    }
 
 	    // 20-2F                   --> collect, then switch to ScanState.DCS_INTERMEDIATE
 	    if ((ch >= 0x20) && (ch <= 0x2F)) {
-		collect(cast(byte)ch);
+		collect(ch);
 		scanState = ScanState.DCS_INTERMEDIATE;
 		return;
 	    }
@@ -3649,18 +3684,18 @@ private class ECMA48 {
 	case ScanState.DCS_PASSTHROUGH:
 	    // 0x9C goes to ScanState.GROUND
 	    if (ch == 0x9C) {
-		clearCsi();
+		toGround();
 		return;
 	    }
 
 	    // 0x1B 0x5C goes to ScanState.GROUND
 	    if (ch == 0x1B) {
-		collect(cast(byte)ch);
+		collect(ch);
 		return;
 	    }
 	    if (ch == 0x5C) {
 		if ((collectBuffer.length > 0) && (collectBuffer[$ - 1] == 0x1B)) {
-		    clearCsi();
+		    toGround();
 		    return;
 		}
 	    }
@@ -3700,7 +3735,7 @@ private class ECMA48 {
 
 	    // 0x9C goes to ScanState.GROUND
 	    if (ch == 0x9C) {
-		clearCsi();
+		toGround();
 		return;
 	    }
 
@@ -3720,7 +3755,7 @@ private class ECMA48 {
 
 	    // 0x9C goes to ScanState.GROUND
 	    if (ch == 0x9C) {
-		clearCsi();
+		toGround();
 		return;
 	    }
 
@@ -3752,7 +3787,7 @@ private class ECMA48 {
 
 	    // 0x9C goes to ScanState.GROUND
 	    if (ch == 0x9C) {
-		clearCsi();
+		toGround();
 		return;
 	    }
 
@@ -3761,12 +3796,12 @@ private class ECMA48 {
 	case ScanState.VT52_DIRECT_CURSOR_ADDRESS:
 	    // This is a special case for the VT52 sequence "ESC Y l c"
 	    if (collectBuffer.length == 0) {
-		collect(cast(byte)ch);
+		collect(ch);
 	    } else if (collectBuffer.length == 1) {
 		// We've got the two characters, one in the buffer and the
 		// other in ch.
 		cursorPosition(collectBuffer[0] - '\040', ch - '\040');
-		clearCsi();
+		toGround();
 	    }
 	    return;
 	}
@@ -3779,19 +3814,63 @@ private class ECMA48 {
 
 }
 
+version (Posix) {
+    private import core.sys.posix.signal;
+    private import core.sys.posix.stdlib;
+    private import core.sys.posix.termios;
+    private import core.sys.posix.sys.ioctl;
+
+    extern (C) {
+	pid_t forkpty(int * amaster, char * name, termios * termp, winsize * winp);
+    }
+}
+
 /**
  * TTerminal implements a ECMA-48 / ANSI X3.64 style terminal.
  */
 public class TTerminal : TWindow {
 
+    private import std.stdio;
+
     /// The emulator
     private ECMA48 emulator;
 
-    /// The shell process
-    private ProcessPipes process;
+    /// The shell process stdin/stdout handle
+    private int shellFD = -1;
+
+    /// The shell process pid
+    private int shellPid = -1;
 
     /// If true, the process is still running
-    private bool processRunning;
+    private bool processRunning = false;
+
+    private import core.stdc.errno;
+    private import core.stdc.string;
+
+    private void makeShell() {
+
+	shellPid = forkpty(&shellFD, null, null, null);
+	if (shellPid == 0) {
+	    // Child, exec bash
+	    string [] args = ["/bin/bash", "--login"];
+
+	    // Convert program name and arguments to C-style strings.
+	    auto argz = new const(char)*[args.length+1];
+	    argz[0] = toStringz(args[0]);
+	    foreach (i; 1 .. args.length) {
+		argz[i] = toStringz(args[i]);
+	    }
+	    argz[$ - 1] = null;
+
+	    core.sys.posix.unistd.execvp(argz[0], argz.ptr);
+
+	    // Should never get here
+	    stderr.writefln("exec() failed: %d (%s)", errno, to!string(strerror(errno)));
+	    stderr.flush();
+	    exit(-1);
+	}
+	processRunning = true;
+    }
 
     /**
      * Public constructor.
@@ -3806,12 +3885,19 @@ public class TTerminal : TWindow {
 	Flag flags = Flag.CENTERED) {
 
 	super(application, "Terminal", x, y, 80 + 2, 24 + 2, flags & ~Flag.RESIZABLE);
-	emulator = new ECMA48();
+	emulator = new ECMA48(delegate(dstring str) {
+		if (processRunning) {
+		    // stderr.writefln("\n[WRITE: %s]\n", toUTF8(str));
+		    ubyte [] utf8Buffer;
+		    foreach (ch; str) {
+			encodeUTF8(ch, utf8Buffer);
+		    }
+		    core.sys.posix.unistd.write(shellFD, utf8Buffer.ptr, utf8Buffer.length);
+		    core.sys.posix.unistd.fsync(shellFD);
+		}
+	    });
 
-	process = pipeProcess(["setsid", "/bin/bash", "-i"],
-	    Redirect.stdin | Redirect.stderrToStdout | Redirect.stdout);
-
-	processRunning = true;
+	makeShell();
     }
 
     /// Draw the display buffer
@@ -3832,14 +3918,14 @@ public class TTerminal : TWindow {
      */
     override public void onClose() {
 	if (processRunning) {
-	    kill(process.pid);
+	    kill(shellPid, SIGTERM);
 	    processRunning = false;
 	}
     }
 
     version(Posix) {
 	// Used in doIdle() to poll process
-	import core.sys.posix.poll;
+	private import core.sys.posix.poll;
     }
 
     /**
@@ -3853,7 +3939,9 @@ public class TTerminal : TWindow {
 	int i = 0;
 	int poll_rc = -1;
 	do {
-	    pfd.fd = process.stdout.fileno();
+	    assert(shellFD > 0);
+
+	    pfd.fd = shellFD;
 	    pfd.events = POLLIN;
 	    pfd.revents = 0;
 	    poll_rc = poll(&pfd, 1, 0);
@@ -3862,7 +3950,7 @@ public class TTerminal : TWindow {
 
 		// We have data, read it
 		try {
-		    dchar ch = Terminal.getCharFileno(process.stdout.fileno());
+		    dchar ch = Terminal.getCharFileno(shellFD);
 		    // Special case: if we see LF, then send CRLF to the
 		    // emulation.  This is because we don't have a true TTY
 		    // to do that for us.
@@ -3874,7 +3962,9 @@ public class TTerminal : TWindow {
 		    // We got EOF, close the file
 		    title = title ~ " (Offline)";
 		    processRunning = false;
-		    wait(process.pid);
+		    int status;
+		    waitpid(shellPid, &status, WNOHANG);
+		    // stderr.writefln("\n\n-- Process Exit: %s --\n\n", e);
 		    return;
 		}
 	    }
@@ -3891,8 +3981,12 @@ public class TTerminal : TWindow {
     override protected void onKeypress(TKeypressEvent event) {
 	if (processRunning) {
 	    dstring response = emulator.keypress(event.key);
-	    process.stdin.write(response);
-	    process.stdin.flush();
+	    ubyte [] utf8Buffer;
+	    foreach (ch; response) {
+		encodeUTF8(ch, utf8Buffer);
+	    }
+	    core.sys.posix.unistd.write(shellFD, utf8Buffer.ptr, utf8Buffer.length);
+	    core.sys.posix.unistd.fsync(shellFD);
 	}
     }
 

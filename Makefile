@@ -40,13 +40,13 @@ INC = -I@srcdir@
 DDOCDIR = ./ddoc
 # DFLAGS = -w -wi -g $(INC) -release
 DFLAGS = -w -wi -g $(INC) -debug -de -Dd$(DDOCDIR)
-LDLIBS =
+LDLIBS = -L-lutil
 LDFLAGS = -lib $(LDLIBS)
 
 all:	tui demo1
 
 demo1:	tui demo1.d
-	$(DC) $(DFLAGS) -ofdemo1 demo1.d libtui.a
+	$(DC) $(DFLAGS) $(LDLIBS) -ofdemo1 demo1.d libtui.a
 
 clean:
 	rm libtui.a core *.o demo1
