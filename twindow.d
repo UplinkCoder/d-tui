@@ -175,7 +175,11 @@ public class TWindow : TWidget {
 
 	// Center window if specified
 	if ((this.flags & Flag.CENTERED) != 0) {
-	    this.x = (screen.getWidth() - width) / 2;
+	    if (width < screen.getWidth()) {
+		this.x = (screen.getWidth() - width) / 2;
+	    } else {
+		this.x = 0;
+	    }
 	    this.y = (application.desktopBottom - application.desktopTop);
 	    this.y -= height;
 	    this.y /= 2;
