@@ -1714,6 +1714,33 @@ public class Terminal {
     }
 
     /**
+     * Read one unsigned byte from stdin and upcast to dchar.
+     *
+     * Params:
+     *    fileno = file number to read from
+     *
+     * Returns:
+     *    one 8-bit byte upcast to a Unicode code point
+     */
+    static public dchar getByteFileno(int fileno) {
+	char[1] buffer;
+
+	auto rc = read(fileno, buffer.ptr, 1);
+	if (rc == 0) {
+	    // This is EOF
+	    throw new FileException("EOF");
+	}
+	if (rc < 0) {
+	    if (errno == EIO) {
+		// This is also EOF
+		throw new FileException("EIO");
+	    }
+	    throw new FileException(to!string(strerror(errno)));
+	}
+	return buffer[0];
+    }
+
+    /**
      * Read one Unicode code point from stdin.
      *
      * Params:

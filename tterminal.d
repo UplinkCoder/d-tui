@@ -38,6 +38,8 @@
  *     add xterm sequences
  *     change title
  *     handle resizable window
+ *     split state machine into ECMA48 and VT52
+ *     csiGetParam(default value, min value, max value)
  *
  */
 
@@ -430,6 +432,55 @@ private class ECMA48 {
 	}
     }
 
+    /**
+     * Return the proper TERM for this device type
+     *
+     * Returns:
+     *    "TERM=vt100", "TERM=xterm", etc.
+     */
+    public string deviceTypeTerm() {
+	final switch (type) {
+	case DeviceType.VT100:
+	    return "TERM=vt100";
+
+	case DeviceType.VT102:
+	    return "TERM=vt102";
+
+	case DeviceType.VT220:
+	    return "TERM=vt220";
+
+	case DeviceType.XTERM:
+	    return "TERM=xterm";
+	}
+    }
+
+    /**
+     * Return the proper LANG for this device type.  Only XTERM devices know
+     * about UTF-8, the others are defined by their standard to be either
+     * 7-bit or 8-bit characters only.
+     *
+     * Params:
+     *    baseLang = a base language without UTF-8 flag such as "C" or "en_US"
+     *
+     * Returns:
+     *    "LANG=en_US", "LANG=en_US.UTF-8", etc.
+     */
+    public string deviceTypeLang(string baseLang) {
+	final switch (type) {
+	case DeviceType.VT100:
+	    return "LANG=" ~ baseLang;
+
+	case DeviceType.VT102:
+	    return "LANG=" ~ baseLang;
+
+	case DeviceType.VT220:
+	    return "LANG=" ~ baseLang;
+
+	case DeviceType.XTERM:
+	    return "LANG=" ~ baseLang ~ ".UTF-8";
+	}
+    }
+
     /// The type of emulator to be
     DeviceType type = DeviceType.VT102;
     
@@ -571,52 +622,58 @@ private class ECMA48 {
     private bool wrapLineFlag;
 
     /// VT220 single shift flag
-    Singleshift singleshift = Singleshift.NONE;
+    private Singleshift singleshift = Singleshift.NONE;
 
     /// true = insert characters, false = overwrite
-    bool insertMode = false;
+    private bool insertMode = false;
 
     /// VT52 mode as selected by DECANM.  True means VT52, false means ANSI. Default is ANSI.
-    bool vt52Mode = false;
+    private bool vt52Mode = false;
+
+    /// Visible cursor (DECTCEM)
+    public bool visibleCursor = true;
 
     /// Array of flags that have come in, e.g. '?' (DEC private mode), '=', '>', ...
-    char [] csiFlags;
+    private char [] csiFlags;
 
     /// Parameter characters being collected
-    int [] csiParams;
+    private int [] csiParams;
 
     /// Non-csi collect buffer
-    dchar [] collectBuffer;
+    private dchar [] collectBuffer;
 
     /// When true, use the G1 character set
-    bool shiftOut = false;
+    private bool shiftOut = false;
 
     /// Horizontal tab stops
-    int [] tabStops;
+    private int [] tabStops;
 
     /// S8C1T.  True means 8bit controls, false means 7bit controls.
-    bool s8c1t = false;
+    private bool s8c1t = false;
 
     /// Printer mode.  True means send all output to printer, which discards it.
-    bool printerControllerMode = false;
+    private bool printerControllerMode = false;
 
     /// LMN line mode.  If true, linefeed() puts the cursor on the first
     /// column of the next line.  If false, linefeed() puts the cursor one
     /// line down on the current line.  The default is false.
-    bool newLineMode = false;
+    private bool newLineMode = false;
 
     /// Whether arrow keys send ANSI, VT100, or VT52 sequences
-    ArrowKeyMode arrowKeyMode;
+    private ArrowKeyMode arrowKeyMode;
 
     /// Whether number pad keys send VT100 or VT52, application or
     /// numeric sequences.
-    KeypadMode keypadMode;
+    private KeypadMode keypadMode;
 
     /// When true, the terminal is in 132-column mode (DECCOLM)
-    bool columns132 = false;
+    private bool columns132 = false;
 
     /// true = reverse video.  Set by DECSCNM.
-    bool reverseVideo = false;
+    private bool reverseVideo = false;
+
+    /// false = echo characters locally.
+    private bool fullDuplex = true;
 
     /**
      * DECSC/DECRC save/restore a subset of the total state.  This class
@@ -650,6 +707,9 @@ private class ECMA48 {
 	public LockshiftMode glLockshift = LockshiftMode.NONE;
 	public LockshiftMode grLockshift = LockshiftMode.NONE;
 
+	/// Line wrap
+	public bool lineWrap = true;
+
 	/// Reset to defaults
 	public void reset() {
 	    originMode		= false;
@@ -663,6 +723,7 @@ private class ECMA48 {
 	    attr		= new CellAttributes();
 	    glLockshift		= LockshiftMode.NONE;
 	    grLockshift		= LockshiftMode.NONE;
+	    lineWrap		= true;
 	}
 
 	/// Constructor
@@ -722,6 +783,8 @@ private class ECMA48 {
 	columns132		= false;
 	newLineMode		= false;
 	reverseVideo		= false;
+	fullDuplex		= true;
+	visibleCursor		= true;
 
 	// VT220
 	singleshift		= Singleshift.NONE;
@@ -739,9 +802,11 @@ private class ECMA48 {
      * Public constructor
      *
      * Params:
+     *    type = one of the DeviceType constants to select VT100, VT102, VT220, or XTERM
      *    remoteFn = function to call to deliver text to the remote side
      */
-    public this(void function(dstring) remoteFn) {
+    public this(DeviceType type, void function(dstring) remoteFn) {
+	this.type = type;
 	this.remoteFn = remoteFn;
 	reset();
 	for (auto i = 0; i < height; i++) {
@@ -753,9 +818,11 @@ private class ECMA48 {
      * Public constructor
      *
      * Params:
+     *    type = one of the DeviceType constants to select VT100, VT102, VT220, or XTERM
      *    remoteDg = delegate to call to deliver text to the remote side
      */
-    public this(void delegate(dstring) remoteDg) {
+    public this(DeviceType type, void delegate(dstring) remoteDg) {
+	this.type = type;
 	this.remoteDg = remoteDg;
 	reset();
 	for (auto i = 0; i < height; i++) {
@@ -794,6 +861,15 @@ private class ECMA48 {
     private void carriageReturn() {
 	currentState.cursorX = 0;
 	wrapLineFlag = false;
+    }
+
+    /**
+     * Reverse the color of the visible display
+     */
+    private void invertDisplayColors() {
+	foreach (line; display) {
+	    line.reverseColor = !line.reverseColor;
+	}
     }
 
     /**
@@ -860,30 +936,32 @@ private class ECMA48 {
 	// Check the unusually-complicated line wrapping conditions...
 	if (currentState.cursorX == rightMargin) {
 
-	    /*
-	     * This case happens when: the cursor was already on the right
-	     * margin (either through printing or by an explicit placement
-	     * command), and a character was printed.
-	     * 
-	     * The line wraps only when a new character arrives AND the
-	     * cursor is already on the right margin AND has placed a
-	     * character in its cell.  Easier to see than to explain.
-	     */
-	    if (wrapLineFlag == false) {
+	    if (currentState.lineWrap == true) {
 		/*
-		 * This block marks the case that we are in the margin and
-		 * the first character has been received and printed.
+		 * This case happens when: the cursor was already on the
+		 * right margin (either through printing or by an explicit
+		 * placement command), and a character was printed.
+		 * 
+		 * The line wraps only when a new character arrives AND the
+		 * cursor is already on the right margin AND has placed a
+		 * character in its cell.  Easier to see than to explain.
 		 */
-		wrapLineFlag = true;
-	    } else {
-		/*
-		 * This block marks the case that we are in the margin and
-		 * the second character has been received and printed.
-		 */
-		wrapLineFlag = false;
-		wrapCurrentLine();
+		if (wrapLineFlag == false) {
+		    /*
+		     * This block marks the case that we are in the margin
+		     * and the first character has been received and printed.
+		     */
+		    wrapLineFlag = true;
+		} else {
+		    /*
+		     * This block marks the case that we are in the margin
+		     * and the second character has been received and
+		     * printed.
+		     */
+		    wrapLineFlag = false;
+		    wrapCurrentLine();
+		}
 	    }
-
 	} else if (currentState.cursorX <= rightMargin) {
 	    /*
 	     * This is the normal case: a character came in and was printed
@@ -928,6 +1006,19 @@ private class ECMA48 {
      *    string to transmit to the remote side
      */
     public dstring keypress(TKeypress keystroke) {
+
+	if ((fullDuplex == false) && (!keystroke.isKey)) {
+	    /*
+	     * If this is a control character, process it like it came from
+	     * the remote side.
+	     */
+	    if (keystroke.ch < 0x20) {
+		handleControlChar(keystroke.ch);
+	    } else {
+		// Local echo for everything else
+		printCharacter(keystroke.ch);
+	    }
+	}
 
 	// Handle control characters
 	if ((keystroke.ctrl) && (!keystroke.isKey)) {
@@ -1369,10 +1460,14 @@ private class ECMA48 {
      *    character to display on the screen
      */
     private dchar mapCharacter(dchar ch) {
-	if (ch > 0xFF) {
+	if (ch >= 0x100) {
+	    stderr.writefln("\nUnicode: %c\n", ch);
+	    stderr.flush();
+	    
 	    // Unicode character, just return it
 	    return ch;
 	}
+
 	CharacterSet charsetGl = currentState.g0Charset;
 	CharacterSet charsetGr = currentState.grCharset;
 
@@ -1694,7 +1789,264 @@ private class ECMA48 {
      * false for reset ('l').
      */
     private void setToggle(bool value) {
-	// TODO
+	bool decPrivateModeFlag = false;
+	foreach (ch; collectBuffer) {
+	    if (ch == '?') {
+		decPrivateModeFlag = true;
+	    }
+	}
+
+	foreach (i; csiParams) {
+
+	    switch (i) {
+
+	    case 1:
+		if (decPrivateModeFlag == true) {
+		    // DECCKM
+		    if (value == true) {
+			// Use application arrow keys
+			arrowKeyMode = ArrowKeyMode.VT100;
+		    } else {
+			// Use ANSI arrow keys
+			arrowKeyMode = ArrowKeyMode.ANSI;
+		    }
+		}
+		break;
+	    case 2:
+		if (decPrivateModeFlag == true) {
+		    if (value == false) {
+
+			// DECANM
+			vt52Mode = true;
+			arrowKeyMode = ArrowKeyMode.VT52;
+
+			/*
+			 * From the VT102 docs: "You use ANSI mode to select
+			 * most terminal features; the terminal uses the same
+			 * features when it switches to VT52 mode. You
+			 * cannot, however, change most of these features in
+			 * VT52 mode."
+			 *
+			 * In other words, do not reset any other attributes
+			 * when switching between VT52 submode and ANSI.
+			 *
+			 * HOWEVER, the real vt100 does switch the character
+			 * set according to Usenet.
+			 */
+			currentState.g0Charset = CharacterSet.US;
+			currentState.g1Charset = CharacterSet.DRAWING;
+			shiftOut = false;
+
+			if ((type == DeviceType.VT220) || (type == DeviceType.XTERM)) {
+			    // VT52 mode is explicitly 7-bit
+			    s8c1t = false;
+			    singleshift = Singleshift.NONE;
+			}
+		    }
+		} else {
+		    // KAM
+		    if (value == true) {
+			// Turn off keyboard
+			// Not supported
+		    } else {
+			// Turn on keyboard
+			// Not supported
+		    }
+		}
+		break;
+	    case 3:
+		if (decPrivateModeFlag == true) {
+		    // DECCOLM
+		    if (value == true) {
+			// 132 columns
+			columns132 = true;
+			rightMargin = 131;
+		    } else {
+			// 80 columns
+			columns132 = false;
+			rightMargin = 79;
+		    }
+		    // Entire screen is cleared, and scrolling region is reset
+		    eraseScreen(0, 0, height - 1, width - 1, false);
+		    scrollRegionTop = 0;
+		    scrollRegionBottom = height - 1;
+		    // Also home the cursor
+		    cursorPosition(0, 0);
+		}
+		break;
+	    case 4:
+		if (decPrivateModeFlag == true) {
+		    // DECSCLM
+		    if (value == true) {
+			// Smooth scroll
+			// Not supported
+		    } else {
+			// Jump scroll
+			// Not supported
+		    }
+		} else {
+		    // IRM
+		    if (value == true) {
+			insertMode = true;
+		    } else {
+			insertMode = false;
+		    }
+		}
+		break;
+	    case 5:
+		if (decPrivateModeFlag == true) {
+		    // DECSCNM
+		    if (value == true) {
+			/*
+			 * Set selects reverse screen, a white screen
+			 * background with black characters.
+			 */
+			if (reverseVideo != true) {
+			    /*
+			     * If in normal video, switch it back
+			     */
+			    invertDisplayColors();
+			}
+			reverseVideo = true;
+		    } else {
+			/*
+			 * Reset selects normal screen, a black screen
+			 * background with white characters.
+			 */
+			if (reverseVideo == true) {
+			    /*
+			     * If in reverse video already, switch it back
+			     */
+			    invertDisplayColors();
+			}
+			reverseVideo = false;
+		    }
+		}
+		break;
+	    case 6:
+		if (decPrivateModeFlag == true) {
+		    // DECOM
+		    if (value == true) {
+			// Origin is relative to scroll region
+			// Home cursor.  Cursor can NEVER leave scrolling region.
+			currentState.originMode = true;
+			cursorPosition(0, 0);
+		    } else {
+			// Origin is absolute to entire screen
+			// Home cursor.  Cursor can leave the scrolling region via cup() and hvp().
+			currentState.originMode = false;
+			cursorPosition(0, 0);
+		    }
+		}
+		break;
+	    case 7:
+		if (decPrivateModeFlag == true) {
+		    // DECAWM
+		    if (value == true) {
+			// Turn linewrap on
+			currentState.lineWrap = true;
+		    } else {
+			// Turn linewrap off
+			currentState.lineWrap = false;
+		    }
+		}
+		break;
+	    case 8:
+		if (decPrivateModeFlag == true) {
+		    // DECARM
+		    if (value == true) {
+			// Keyboard auto-repeat on
+			// Not supported
+		    } else {
+			// Keyboard auto-repeat off
+			// Not supported
+		    }
+		}
+		break;
+	    case 12:
+		if (decPrivateModeFlag == false) {
+		    // SRM
+		    if (value == true) {
+			// Local echo off
+			fullDuplex = true;
+		    } else {
+			// Local echo on
+			fullDuplex = false;
+		    }
+		}
+		break;
+	    case 18:
+		if (decPrivateModeFlag == true) {
+		    // DECPFF
+		    // Not supported
+		}
+		break;
+	    case 19:
+		if (decPrivateModeFlag == true) {
+		    // DECPEX
+		    // Not supported
+		}
+		break;
+	    case 20:
+		if (decPrivateModeFlag == false) {
+		    // LNM
+		    if (value == true) {
+			/*
+			 * Set causes a received linefeed, form feed, or
+			 * vertical tab to move cursor to first column of
+			 * next line. RETURN transmits both a carriage return
+			 * and linefeed. This selection is also called new
+			 * line option.
+			 */
+			newLineMode = true;
+		    } else {
+			/*
+			 * Reset causes a received linefeed, form feed, or
+			 * vertical tab to move cursor to next line in
+			 * current column. RETURN transmits a carriage
+			 * return.
+			 */
+			newLineMode = false;
+		    }
+		}
+		break;
+
+	    case 25:
+		if ((type == DeviceType.VT220) || (type == DeviceType.XTERM)) {
+		    if (decPrivateModeFlag == true) {
+			// DECTCEM
+			if (value == true) {
+			    // Visible cursor
+			    visibleCursor = true;
+			} else {
+			    // Invisible cursor
+			    visibleCursor = false;
+			}
+		    }
+		}
+		break;
+
+	    case 42:
+		if ((type == DeviceType.VT220) || (type == DeviceType.XTERM)) {
+		    if (decPrivateModeFlag == true) {
+			// DECNRCM
+			if (value == true) {
+			    // Select national mode NRC
+			    // Not supported
+			} else {
+			    // Select multi-national mode
+			    // Not supported
+			}
+		    }
+		}
+
+		break;
+
+	    default:
+		break;
+
+	    }
+	}
     }
 
     /**
@@ -2088,17 +2440,17 @@ private class ECMA48 {
 	if (csiParams.length == 0) {
 	    cursorPosition(0, 0);
 	} else if (csiParams.length == 1) {
-	    row = csiParams[0];
+	    row = csiParams[0] - 1;
 	    if (row < 0) {
 		row = 0;
 	    }
 	    cursorPosition(row, 0);
 	} else {
-	    row = csiParams[0];
+	    row = csiParams[0] - 1;
 	    if (row < 0) {
 		row = 0;
 	    }
-	    col = csiParams[1];
+	    col = csiParams[1] - 1;
 	    if (col < 0) {
 		col = 0;
 	    }
@@ -4353,7 +4705,7 @@ private class ECMA48 {
 
 	// This was a Unicode character, it should be printed
 	assert(scanState == ScanState.GROUND);
-	printCharacter(ch);
+	printCharacter(mapCharacter(ch));
 	return;
     }
 
@@ -4380,6 +4732,7 @@ private class ECMA48 {
 }
 
 version (Posix) {
+    // Posix systems get a shell through forkpty()
     private import core.sys.posix.signal;
     private import core.sys.posix.stdlib;
     private import core.sys.posix.termios;
@@ -4391,7 +4744,7 @@ version (Posix) {
 }
 
 /**
- * TTerminal implements a ECMA-48 / ANSI X3.64 style terminal.
+ * TTerminal exposes a ECMA-48 / ANSI X3.64 style terminal in a window.
  */
 public class TTerminal : TWindow {
 
@@ -4409,24 +4762,37 @@ public class TTerminal : TWindow {
     /// If true, the process is still running
     private bool processRunning = false;
 
+    /// If true, we expect to see UTF-8 in the streams to/from the shell process
+    private bool utf8 = false;
+
     private import core.stdc.errno;
     private import core.stdc.string;
 
     private void makeShell() {
 
 	shellPid = forkpty(&shellFD, null, null, null);
+
 	if (shellPid == 0) {
-	    // Child, exec bash
+	    // This is the child, exec bash
 	    string [] args = ["/bin/bash", "--login"];
 
 	    // Convert program name and arguments to C-style strings.
-	    auto argz = new const(char)*[args.length+1];
+	    auto argz = new const(char)*[args.length + 1];
 	    argz[0] = toStringz(args[0]);
 	    foreach (i; 1 .. args.length) {
 		argz[i] = toStringz(args[i]);
 	    }
 	    argz[$ - 1] = null;
 
+	    // Set TERM
+	    string termString = emulator.deviceTypeTerm();
+	    core.sys.posix.stdlib.putenv(cast(char *)toStringz(termString));
+
+	    // We set LANG, but lots of shells don't honor it
+	    string langString = emulator.deviceTypeLang("en_US");
+	    core.sys.posix.stdlib.putenv(cast(char *)toStringz(langString));
+
+	    // Execute the shell
 	    core.sys.posix.unistd.execvp(argz[0], argz.ptr);
 
 	    // Should never get here
@@ -4451,12 +4817,16 @@ public class TTerminal : TWindow {
 
 	super(application, "Terminal", x, y, 80 + 2, 24 + 2, flags & ~Flag.RESIZABLE);
 
-	emulator = new ECMA48(delegate(dstring str) {
+	emulator = new ECMA48(ECMA48.DeviceType.VT220,
+	    delegate(dstring str) {
 		if (processRunning) {
-		    // stderr.writefln("\n[WRITE: %s]\n", toUTF8(str));
 		    ubyte [] utf8Buffer;
 		    foreach (ch; str) {
-			encodeUTF8(ch, utf8Buffer);
+			if (utf8) {
+			    encodeUTF8(ch, utf8Buffer);
+			} else {
+			    utf8Buffer ~= ch & 0xFF;
+			}
 		    }
 		    core.sys.posix.unistd.write(shellFD, utf8Buffer.ptr, utf8Buffer.length);
 		    core.sys.posix.unistd.fsync(shellFD);
@@ -4522,10 +4892,14 @@ public class TTerminal : TWindow {
 
 		// We have data, read it
 		try {
-		    dchar ch = Terminal.getCharFileno(shellFD);
-		    emulator.consume(ch);
+		    if (utf8) {
+			emulator.consume(Terminal.getCharFileno(shellFD));
+		    } else {
+			emulator.consume(Terminal.getByteFileno(shellFD));
+		    }
 		    cursorX = emulator.getCursorX() + 1;
 		    cursorY = emulator.getCursorY() + 1;
+		    hasCursor = emulator.visibleCursor;
 		} catch (FileException e) {
 		    // We got EOF, close the file
 		    title = title ~ " (Offline)";
@@ -4551,7 +4925,11 @@ public class TTerminal : TWindow {
 	    dstring response = emulator.keypress(event.key);
 	    ubyte [] utf8Buffer;
 	    foreach (ch; response) {
-		encodeUTF8(ch, utf8Buffer);
+		if (utf8) {
+		    encodeUTF8(ch, utf8Buffer);
+		} else {
+		    utf8Buffer ~= ch & 0xFF;
+		}
 	    }
 	    core.sys.posix.unistd.write(shellFD, utf8Buffer.ptr, utf8Buffer.length);
 	    core.sys.posix.unistd.fsync(shellFD);
