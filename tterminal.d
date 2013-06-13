@@ -39,7 +39,6 @@
  *     change title
  *     handle resizable window
  *     split state machine into ECMA48 and VT52
- *     csiGetParam(default value, min value, max value)
  *
  */
 
@@ -367,22 +366,23 @@ private static immutable wchar vt52_special_graphics_chars[128] = [
 // Classes -------------------------------------------------------------------
 
 /**
- * This implements a complex ANSI ECMA-48/ISO 6429/ANSI X3.64 type consoles,
- * including a scrollback buffer.
+ * This implements a complex ANSI ECMA-48/ISO 6429/ANSI X3.64 type
+ * consoles, including a scrollback buffer.
  *
- * It currently implements VT100, VT102, VT220, and XTERM with the following
- * caveats:
+ * It currently implements VT100, VT102, VT220, and XTERM with the
+ * following caveats:
  * 
- * - Smooth scrolling, printing, keyboard locking, and tests from VT100 are
- *   not supported.
+ * - Smooth scrolling, printing, keyboard locking, keyboard leds, and
+ *   tests from VT100 are not supported.
  *
- * - User-defined keys (DECUDK), downloadable fonts (DECDLD), and VT100/ANSI
- *   compatibility mode (DECSCL) from VT220 are not supported.  (Also,
- *   because DECSCL is not supported, it will fail the last part of the
- *   vttest "Test of VT52 mode" if DeviceType is set to VT220.)
+ * - User-defined keys (DECUDK), downloadable fonts (DECDLD), and
+ *   VT100/ANSI compatibility mode (DECSCL) from VT220 are not
+ *   supported.  (Also, because DECSCL is not supported, it will fail
+ *   the last part of the vttest "Test of VT52 mode" if DeviceType is
+ *   set to VT220.)
  *
- * - Numeric/application keys from the number pad are not supported because
- *   they are not exposed from the D-TUI TKeypress API.
+ * - Numeric/application keys from the number pad are not supported
+ *   because they are not exposed from the D-TUI TKeypress API.
  *
  * - VT52 HOLD SCREEN mode is not supported.
  *
@@ -512,6 +512,7 @@ private class ECMA48 {
 	    chars.length = ECMA48_MAX_LINE_LENGTH;
 	    for (auto i = 0; i < chars.length; i++) {
 		chars[i] = new Cell();
+		chars[i].setTo(currentState.attr);
 	    }
 	}
     };
@@ -726,6 +727,28 @@ private class ECMA48 {
 	    lineWrap		= true;
 	}
 
+	/**
+	 * Copy attributes from another instance
+	 *
+	 * Params:
+	 *    that = the other instance to match
+	 */
+	public void setTo(SaveableState that) {
+	    this.originMode		= that.originMode;
+	    this.cursorX		= that.cursorX;
+	    this.cursorY		= that.cursorY;
+	    this.g0Charset		= that.g0Charset;
+	    this.g1Charset		= that.g1Charset;
+	    this.g2Charset		= that.g2Charset;
+	    this.g3Charset		= that.g3Charset;
+	    this.grCharset		= that.grCharset;
+	    this.attr			= new CellAttributes();
+	    this.attr.setTo(that.attr);
+	    this.glLockshift		= that.glLockshift;
+	    this.grLockshift		= that.grLockshift;
+	    this.lineWrap		= that.lineWrap;
+	}
+
 	/// Constructor
 	public this() {
 	    reset();
@@ -881,7 +904,6 @@ private class ECMA48 {
 	if (currentState.cursorY < scrollRegionBottom) {
 	    // Increment screen y
 	    currentState.cursorY++;
-
 	} else {
 
 	    // Screen y does not increment
@@ -922,13 +944,8 @@ private class ECMA48 {
     private void printCharacter(dchar ch) {
 	size_t rightMargin = this.rightMargin;
 
-	// BEL
-	if (ch == 0x07) {
-	    // screen_beep();
-	    return;
-	}
-
-	// Check if we have double-width, and if so chop at 40/66 instead of 80/132
+	// Check if we have double-width, and if so chop at 40/66
+	// instead of 80/132
 	if (display[currentState.cursorY].doubleWidth == true) {
 	    rightMargin = ((rightMargin + 1) / 2) - 1;
 	}
@@ -1461,9 +1478,6 @@ private class ECMA48 {
      */
     private dchar mapCharacter(dchar ch) {
 	if (ch >= 0x100) {
-	    stderr.writefln("\nUnicode: %c\n", ch);
-	    stderr.flush();
-	    
 	    // Unicode character, just return it
 	    return ch;
 	}
@@ -1591,7 +1605,31 @@ private class ECMA48 {
      *    n = number of lines to scroll
      */
     private void scrollingRegionScrollUp(int regionTop, int regionBottom, int n) {
-	// TODO
+	if (regionTop >= regionBottom) {
+	    return;
+	}
+
+	// Sanity check: see if there will be any characters left
+	// after the scroll
+	if (regionBottom + 1 - regionTop <= n) {
+	    // There won't be anything left in the region, so just
+	    // call eraseScreen() and return.
+	    eraseScreen(regionTop, 0, regionBottom, width - 1, false);
+	    return;
+	}
+
+	auto remaining = regionBottom + 1 - regionTop - n;
+	auto displayTop = display[0 .. regionTop];
+	auto displayBottom = display[regionBottom + 1 .. $];
+	auto displayMiddle = display[regionBottom + 1 - remaining .. regionBottom + 1];
+	display = displayTop ~ displayMiddle;
+	for (auto i = 0; i < n; i++) {
+	    display ~= new DisplayLine();
+	    display[$ - 1].reverseColor = reverseVideo;
+	}
+	display ~= displayBottom;
+
+	assert(display.length == height);
     }
 
     /**
@@ -1603,7 +1641,32 @@ private class ECMA48 {
      *    n = number of lines to scroll
      */
     private void scrollingRegionScrollDown(int regionTop, int regionBottom, int n) {
-	// TODO
+	if (regionTop >= regionBottom) {
+	    return;
+	}
+
+	// Sanity check: see if there will be any characters left
+	// after the scroll
+	if (regionBottom + 1 - regionTop <= n) {
+	    // There won't be anything left in the region, so just
+	    // call eraseScreen() and return.
+	    eraseScreen(regionTop, 0, regionBottom, width - 1, false);
+	    return;
+	}
+
+	auto remaining = regionBottom + 1 - regionTop - n;
+	auto displayTop = display[0 .. regionTop];
+	auto displayBottom = display[regionBottom + 1 .. $];
+	auto displayMiddle = display[regionTop .. regionTop + remaining];
+	display = displayTop;
+	for (auto i = 0; i < n; i++) {
+	    display ~= new DisplayLine();
+	    display[$ - 1].reverseColor = reverseVideo;
+	}
+	display ~= displayMiddle;
+	display ~= displayBottom;
+
+	assert(display.length == height);
     }
 
     /**
@@ -1624,17 +1687,13 @@ private class ECMA48 {
 	case 0x05:
 	    // ENQ
 
-	    /*
-	     * Transmit the answerback message.  Answerback is usually
-	     * programmed into user memory.  I believe there is a DCS command
-	     * to set it remotely, but we won't support that (security hole).
-	     */
-	    // TODO
+	    // Transmit the answerback message.
+	    // Not supported
 	    break;
 
 	case 0x07:
 	    // BEL
-	    // screen_beep();
+	    // Not supported
 	    break;
 
 	case 0x08:
@@ -1785,8 +1844,51 @@ private class ECMA48 {
     }
 
     /**
-     * Set or unset a toggle.  value is 'true' for set ('h'),
-     * false for reset ('l').
+     * Get a CSI parameter value, with a default
+     *
+     * Params:
+     *    position = parameter index.  0 is the first parameter.
+     *    defaultValue = value to use if csiParams[position] doesn't exist
+     *
+     * Return:
+     *    parameter value
+     */
+    private int getCsiParam(uint position, int defaultValue) {
+	if (csiParams.length < position + 1) {
+	    return defaultValue;
+	}
+	return csiParams[position];
+    }
+
+    /**
+     * Get a CSI parameter value, clamped to within min/max
+     *
+     * Params:
+     *    position = parameter index.  0 is the first parameter.
+     *    defaultValue = value to use if csiParams[position] doesn't exist
+     *    minValue = minimum value inclusive
+     *    maxValue = maximum value inclusive
+     *
+     * Return:
+     *    parameter value
+     */
+    private int getCsiParam(uint position, int defaultValue,
+	int minValue, int maxValue) {
+
+	assert(minValue <= maxValue);
+	int value = getCsiParam(position, defaultValue);
+	if (value < minValue) {
+	    value = minValue;
+	}
+	if (value > maxValue) {
+	    value = maxValue;
+	}
+	return value;
+    }
+
+    /**
+     * Set or unset a toggle.  value is 'true' for set ('h'), false
+     * for reset ('l').
      */
     private void setToggle(bool value) {
 	bool decPrivateModeFlag = false;
@@ -1927,13 +2029,14 @@ private class ECMA48 {
 		if (decPrivateModeFlag == true) {
 		    // DECOM
 		    if (value == true) {
-			// Origin is relative to scroll region
-			// Home cursor.  Cursor can NEVER leave scrolling region.
+			// Origin is relative to scroll region cursor.
+			// Cursor can NEVER leave scrolling region.
 			currentState.originMode = true;
 			cursorPosition(0, 0);
 		    } else {
-			// Origin is absolute to entire screen
-			// Home cursor.  Cursor can leave the scrolling region via cup() and hvp().
+			// Origin is absolute to entire screen.
+			// Cursor can leave the scrolling region via
+			// cup() and hvp().
 			currentState.originMode = false;
 			cursorPosition(0, 0);
 		    }
@@ -2053,14 +2156,14 @@ private class ECMA48 {
      * DECSC - Save cursor
      */
     private void decsc() {
-	// TODO
+	savedState.setTo(currentState);
     }
 
     /**
      * DECRC - Restore cursor
      */
     private void decrc() {
-	// TODO
+	currentState.setTo(savedState);
     }
 
     /**
@@ -2324,7 +2427,16 @@ private class ECMA48 {
      * HTS - Horizontal tabulation set
      */
     private void hts() {
-	// TODO
+	foreach (stop; tabStops) {
+	    if (stop == currentState.cursorX) {
+		// Already have a tab stop here
+		return;
+	    }
+	}
+
+	// Append a tab stop to the end of the array and resort them
+	tabStops ~= currentState.cursorX;
+	tabStops.sort;
     }
 
     /**
@@ -2364,98 +2476,58 @@ private class ECMA48 {
      * DECSCL - Compatibility level
      */
     private void decscl() {
-	// TODO
+	auto i = getCsiParam(0, 0);
+	auto j = getCsiParam(1, 0);
+
+	if (i == 61) {
+	    // Reset fonts
+	    currentState.g0Charset = CharacterSet.US;
+	    currentState.g1Charset = CharacterSet.DRAWING;
+	    s8c1t = false;
+	} else if (i == 62) {
+
+	    if ((j == 0) || (j == 2)) {
+		s8c1t = true;
+	    } else if (j == 1) {
+		s8c1t = false;
+	    }
+	}
     }
 
     /**
      * CUD - Cursor down
      */
     private void cud() {
-	if (csiParams.length == 0) {
-	    cursorDown(1, true);
-	} else {
-	    auto i = csiParams[0];
-	    if (i <= 0) {
-		cursorDown(1, true);
-	    } else {
-		cursorDown(i, true);
-	    }
-	}
+	cursorDown(getCsiParam(0, 1, 1, height), true);
     }
 
     /**
      * CUF - Cursor forward
      */
     private void cuf() {
-	if (csiParams.length == 0) {
-	    cursorRight(1, true);
-	} else {
-	    auto i = csiParams[0];
-	    if (i <= 0) {
-		cursorRight(1, true);
-	    } else {
-		cursorRight(i, true);
-	    }
-	}
+	cursorRight(getCsiParam(0, 1, 1, width), true);
     }
 
     /**
      * CUB - Cursor backward
      */
     private void cub() {
-	if (csiParams.length == 0) {
-	    cursorLeft(1, true);
-	} else {
-	    auto i = csiParams[0];
-	    if (i <= 0) {
-		cursorLeft(1, true);
-	    } else {
-		cursorLeft(i, true);
-	    }
-	}
+	cursorLeft(getCsiParam(0, 1, 1, currentState.cursorX + 1), true);
     }
 
     /**
      * CUU - Cursor up
      */
     private void cuu() {
-	if (csiParams.length == 0) {
-	    cursorUp(1, true);
-	} else {
-	    auto i = csiParams[0];
-	    if (i <= 0) {
-		cursorUp(1, true);
-	    } else {
-		cursorUp(i, true);
-	    }
-	}
+	cursorUp(getCsiParam(0, 1, 1, currentState.cursorY + 1), true);
     }
 
     /**
      * CUP - Cursor position
      */
     private void cup() {
-	int row;
-	int col;
-	if (csiParams.length == 0) {
-	    cursorPosition(0, 0);
-	} else if (csiParams.length == 1) {
-	    row = csiParams[0] - 1;
-	    if (row < 0) {
-		row = 0;
-	    }
-	    cursorPosition(row, 0);
-	} else {
-	    row = csiParams[0] - 1;
-	    if (row < 0) {
-		row = 0;
-	    }
-	    col = csiParams[1] - 1;
-	    if (col < 0) {
-		col = 0;
-	    }
-	    cursorPosition(row, col);
-	}
+	cursorPosition(getCsiParam(0, 1, 1, height) - 1,
+	    getCsiParam(1, 1, 1, width) - 1);
     }
 
     /**
@@ -2476,10 +2548,7 @@ private class ECMA48 {
 	    honorProtected = true;
 	}
 
-	int i = 0;
-	if (csiParams.length > 0) {
-	    i = csiParams[0];
-	}
+	auto i = getCsiParam(0, 0);
 
 	if (i == 0) {
 	    // Erase from here to end of screen
@@ -2517,10 +2586,7 @@ private class ECMA48 {
 	    honorProtected = true;
 	}
 
-	int i = 0;
-	if (csiParams.length > 0) {
-	    i = csiParams[0];
-	}
+	auto i = getCsiParam(0, 0);
 
 	if (i == 0) {
 	    // Erase from here to end of line
@@ -2538,13 +2604,8 @@ private class ECMA48 {
      * ECH - Erase # of characters in current row
      */
     private void ech() {
-	int i = 0;
-	if (csiParams.length > 0) {
-	    i = csiParams[0];
-	}
-	if (i == 0) {
-	    i = 1;
-	}
+	auto i = getCsiParam(0, 1, 1, width);
+
 	// Erase from here to i characters
 	eraseLine(currentState.cursorX, currentState.cursorX + i - 1, false);
     }
@@ -2553,28 +2614,62 @@ private class ECMA48 {
      * IL - Insert line
      */
     private void il() {
-	// TODO
+	auto i = getCsiParam(0, 1);
+
+	if ((currentState.cursorY >= scrollRegionTop) &&
+	    (currentState.cursorY <= scrollRegionBottom)) {
+
+	    // I can get the same effect with a scroll-down
+	    scrollingRegionScrollDown(currentState.cursorY, scrollRegionBottom, i);
+	}
     }
 
     /**
      * DCH - Delete char
      */
     private void dch() {
-	// TODO
+	auto n = getCsiParam(0, 1);
+
+	DisplayLine line = display[currentState.cursorY];
+	line.chars = line.chars[0 .. currentState.cursorX] ~
+	line.chars[currentState.cursorX + n .. $];
+	Cell [] newCells;
+	for (auto i = 0; i < n; i++) {
+	    newCells ~= new Cell();
+	}
+	line.chars ~= newCells;
+	assert(line.chars.length == ECMA48_MAX_LINE_LENGTH);
     }
 
     /**
      * ICH - Insert blank char at cursor
      */
     private void ich() {
-	// TODO
+	auto n = getCsiParam(0, 1);
+	DisplayLine line = display[currentState.cursorY];
+	Cell [] newCells;
+	for (auto i = 0; i < n; i++) {
+	    newCells ~= new Cell();
+	}
+	line.chars = line.chars[0 .. currentState.cursorX] ~
+	newCells ~
+	line.chars[currentState.cursorX .. $];
+	line.chars.length -= n;
+	assert(line.chars.length == ECMA48_MAX_LINE_LENGTH);
     }
 
     /**
      * DL - Delete line
      */
     private void dl() {
-	// TODO
+	auto i = getCsiParam(0, 1);
+
+	if ((currentState.cursorY >= scrollRegionTop) &&
+	    (currentState.cursorY <= scrollRegionBottom)) {
+
+	    // I can get the same effect with a scroll-down
+	    scrollingRegionScrollUp(currentState.cursorY, scrollRegionBottom, i);
+	}
     }
 
     /**
@@ -2762,7 +2857,17 @@ private class ECMA48 {
      * DECSTBM - Set top and bottom margins
      */
     private void decstbm() {
-	// TODO
+	int top = getCsiParam(0, 1, 1, height) - 1;
+	int bottom = getCsiParam(1, height, 1, height) - 1;
+
+	if (top > bottom) {
+	    top = bottom;
+	}
+	scrollRegionTop = top;
+	scrollRegionBottom = bottom;
+
+	// Home cursor
+	cursorPosition(0, 0);
     }
 
     /**
@@ -2776,20 +2881,22 @@ private class ECMA48 {
      * DECSCA - Select Character Attributes
      */
     private void decsca() {
-	// TODO
+	auto i = getCsiParam(0, 0);
+
+	if ((i == 0) || (i == 2)) {
+	    // Protect mode OFF
+	    currentState.attr.protect = false;
+	}
+	if (i == 1) {
+	    // Protect mode ON
+	    currentState.attr.protect = true;
+	}
     }
 
     /**
      * DECSTR - Soft Terminal Reset
      */
     private void decstr() {
-	// TODO
-    }
-
-    /**
-     * DECLL - Load keyboard leds
-     */
-    private void decll() {
 	// TODO
     }
 
@@ -2804,7 +2911,20 @@ private class ECMA48 {
      * TBC - Tabulation clear
      */
     private void tbc() {
-	// TODO
+	auto i = getCsiParam(0, 0);
+	if (i == 0) {
+	    int [] newStops;
+	    foreach (stop; tabStops) {
+		if (stop == currentState.cursorX) {
+		    continue;
+		}
+		newStops ~= stop;
+	    }
+	    tabStops = newStops;
+	}
+	if (i == 3) {
+	    tabStops.length = 0;
+	}
     }
 
     /**
@@ -2931,7 +3051,7 @@ private class ECMA48 {
     public void consume(dchar ch) {
 
 	// DEBUG
-	stderr.writef("%c", ch);
+	// stderr.writef("%c", ch);
 
 	// Special case for VT10x: 7-bit characters only
 	if ((type == DeviceType.VT100) || (type == DeviceType.VT102)) {
@@ -2998,7 +3118,6 @@ private class ECMA48 {
 	    // 80-8F, 91-9A, 9C --> execute
 	    if ((ch <= 0x1F) || ((ch >= 0x80) && (ch <= 0x9F))) {
 		handleControlChar(ch);
-		return;
 	    }
 
 	    // 20-7F            --> print
@@ -3007,15 +3126,16 @@ private class ECMA48 {
 	    ) {
 
 		// VT220 printer --> trash bin
-		if ((type == DeviceType.VT220) && (printerControllerMode == true)) {
+		if (((type == DeviceType.VT220) ||
+			(type == DeviceType.XTERM)) &&
+		    (printerControllerMode == true)) {
 		    return;
 		}
 
 		// Print this character
 		printCharacter(mapCharacter(ch));
-		return;
 	    }
-	    break;
+	    return;
 
 	case ScanState.ESCAPE:
 	    // 00-17, 19, 1C-1F --> execute
@@ -3272,14 +3392,18 @@ private class ECMA48 {
 		case 'm':
 		    break;
 		case 'n':
-		    if (type == DeviceType.VT220) {
+		    if ((type == DeviceType.VT220) ||
+			(type == DeviceType.XTERM)) {
+
 			// VT220 lockshift G2 into GL
 			currentState.glLockshift = LockshiftMode.G2_GL;
 			shiftOut = false;
 		    }
 		    break;
 		case 'o':
-		    if (type == DeviceType.VT220) {
+		    if ((type == DeviceType.VT220) ||
+			(type == DeviceType.XTERM)) {
+
 			// VT220 lockshift G3 into GL
 			currentState.glLockshift = LockshiftMode.G3_GL;
 			shiftOut = false;
@@ -3299,14 +3423,18 @@ private class ECMA48 {
 		case '{':
 		    break;
 		case '|':
-		    if (type == DeviceType.VT220) {
+		    if ((type == DeviceType.VT220) ||
+			(type == DeviceType.XTERM)) {
+
 			// VT220 lockshift G3 into GR
 			currentState.grLockshift = LockshiftMode.G3_GR;
 			shiftOut = false;
 		    }
 		    break;
 		case '}':
-		    if (type == DeviceType.VT220) {
+		    if ((type == DeviceType.VT220) ||
+			(type == DeviceType.XTERM)) {
+
 			// VT220 lockshift G2 into GR
 			currentState.grLockshift = LockshiftMode.G2_GR;
 			shiftOut = false;
@@ -3314,7 +3442,9 @@ private class ECMA48 {
 		    break;
 
 		case '~':
-		    if (type == DeviceType.VT220) {
+		    if ((type == DeviceType.VT220) ||
+			(type == DeviceType.XTERM)) {
+
 			// VT220 lockshift G1 into GR
 			currentState.grLockshift = LockshiftMode.G1_GR;
 			shiftOut = false;
@@ -3322,51 +3452,41 @@ private class ECMA48 {
 		    break;
 		}
 		toGround();
-		return;
 	    }
 
 	    // 7F               --> ignore
-	    if (ch == 0x7F) {
-		return;
-	    }
 
 	    // 0x5B goes to ScanState.CSI_ENTRY
 	    if (ch == 0x5B) {
 		scanState = ScanState.CSI_ENTRY;
-		return;
 	    }
 
 	    // 0x5D goes to ScanState.OSC_STRING
 	    if (ch == 0x5D) {
 		scanState = ScanState.OSC_STRING;
-		return;
 	    }
 
 	    // 0x50 goes to ScanState.DCS_ENTRY
 	    if (ch == 0x50) {
 		scanState = ScanState.DCS_ENTRY;
-		return;
 	    }
 
 	    // 0x58, 0x5E, and 0x5F go to ScanState.SOSPMAPC_STRING
 	    if ((ch == 0x58) || (ch == 0x5E) || (ch == 0x5F)) {
 		scanState = ScanState.SOSPMAPC_STRING;
-		return;
 	    }
 
-	    break;
+	    return;
 
 	case ScanState.ESCAPE_INTERMEDIATE:
 	    // 00-17, 19, 1C-1F    --> execute
 	    if (ch <= 0x1F) {
 		handleControlChar(ch);
-		return;
 	    }
 
 	    // 20-2F               --> collect
 	    if ((ch >= 0x20) && (ch <= 0x2F)) {
 		collect(ch);
-		return;
 	    }
 
 	    // 30-7E               --> dispatch, then switch to ScanState.GROUND
@@ -3381,7 +3501,9 @@ private class ECMA48 {
 			// G1 --> Special graphics
 			currentState.g1Charset = CharacterSet.DRAWING;
 		    }
-		    if (type == DeviceType.VT220) {
+		    if ((type == DeviceType.VT220) ||
+			(type == DeviceType.XTERM)) {
+
 			if ((collectBuffer.length == 1) && (collectBuffer[0] == '*')) {
 			    // G2 --> Special graphics
 			    currentState.g2Charset = CharacterSet.DRAWING;
@@ -3423,7 +3545,9 @@ private class ECMA48 {
 			// DECDHL - Double-height line (bottom half)
 			dechdl(false);
 		    }
-		    if (type == DeviceType.VT220) {
+		    if ((type == DeviceType.VT220) ||
+			(type == DeviceType.XTERM)) {
+
 			if ((collectBuffer.length == 1) && (collectBuffer[0] == '(')) {
 			    // G0 --> DUTCH
 			    currentState.g0Charset = CharacterSet.NRC_DUTCH;
@@ -3447,7 +3571,9 @@ private class ECMA48 {
 			// DECSWL - Single-width line
 			decswl();
 		    }
-		    if (type == DeviceType.VT220) {
+		    if ((type == DeviceType.VT220) ||
+			(type == DeviceType.XTERM)) {
+
 			if ((collectBuffer.length == 1) && (collectBuffer[0] == '(')) {
 			    // G0 --> FINNISH
 			    currentState.g0Charset = CharacterSet.NRC_FINNISH;
@@ -3471,7 +3597,9 @@ private class ECMA48 {
 			// DECDWL - Double-width line
 			decdwl();
 		    }
-		    if (type == DeviceType.VT220) {
+		    if ((type == DeviceType.VT220) ||
+			(type == DeviceType.XTERM)) {
+
 			if ((collectBuffer.length == 1) && (collectBuffer[0] == '(')) {
 			    // G0 --> NORWEGIAN
 			    currentState.g0Charset = CharacterSet.NRC_NORWEGIAN;
@@ -3491,7 +3619,9 @@ private class ECMA48 {
 		    }
 		    break;
 		case '7':
-		    if (type == DeviceType.VT220) {
+		    if ((type == DeviceType.VT220) ||
+			(type == DeviceType.XTERM)) {
+
 			if ((collectBuffer.length == 1) && (collectBuffer[0] == '(')) {
 			    // G0 --> SWEDISH
 			    currentState.g0Charset = CharacterSet.NRC_SWEDISH;
@@ -3521,7 +3651,9 @@ private class ECMA48 {
 		case ';':
 		    break;
 		case '<':
-		    if (type == DeviceType.VT220) {
+		    if ((type == DeviceType.VT220) ||
+			(type == DeviceType.XTERM)) {
+
 			if ((collectBuffer.length == 1) && (collectBuffer[0] == '(')) {
 			    // G0 --> DEC_SUPPLEMENTAL
 			    currentState.g0Charset = CharacterSet.DEC_SUPPLEMENTAL;
@@ -3541,7 +3673,9 @@ private class ECMA48 {
 		    }
 		    break;
 		case '=':
-		    if (type == DeviceType.VT220) {
+		    if ((type == DeviceType.VT220) ||
+			(type == DeviceType.XTERM)) {
+
 			if ((collectBuffer.length == 1) && (collectBuffer[0] == '(')) {
 			    // G0 --> SWISS
 			    currentState.g0Charset = CharacterSet.NRC_SWISS;
@@ -3573,7 +3707,9 @@ private class ECMA48 {
 			// G1 --> United Kingdom set
 			currentState.g1Charset = CharacterSet.UK;
 		    }
-		    if (type == DeviceType.VT220) {
+		    if ((type == DeviceType.VT220) ||
+			(type == DeviceType.XTERM)) {
+
 			if ((collectBuffer.length == 1) && (collectBuffer[0] == '*')) {
 			    // G2 --> United Kingdom set
 			    currentState.g2Charset = CharacterSet.UK;
@@ -3593,7 +3729,9 @@ private class ECMA48 {
 			// G1 --> ASCII set
 			currentState.g1Charset = CharacterSet.US;
 		    }
-		    if (type == DeviceType.VT220) {
+		    if ((type == DeviceType.VT220) ||
+			(type == DeviceType.XTERM)) {
+
 			if ((collectBuffer.length == 1) && (collectBuffer[0] == '*')) {
 			    // G2 --> ASCII
 			    currentState.g2Charset = CharacterSet.US;
@@ -3605,7 +3743,9 @@ private class ECMA48 {
 		    }
 		    break;
 		case 'C':
-		    if (type == DeviceType.VT220) {
+		    if ((type == DeviceType.VT220) ||
+			(type == DeviceType.XTERM)) {
+
 			if ((collectBuffer.length == 1) && (collectBuffer[0] == '(')) {
 			    // G0 --> FINNISH
 			    currentState.g0Charset = CharacterSet.NRC_FINNISH;
@@ -3627,7 +3767,9 @@ private class ECMA48 {
 		case 'D':
 		    break;
 		case 'E':
-		    if (type == DeviceType.VT220) {
+		    if ((type == DeviceType.VT220) ||
+			(type == DeviceType.XTERM)) {
+
 			if ((collectBuffer.length == 1) && (collectBuffer[0] == '(')) {
 			    // G0 --> NORWEGIAN
 			    currentState.g0Charset = CharacterSet.NRC_NORWEGIAN;
@@ -3647,7 +3789,9 @@ private class ECMA48 {
 		    }
 		    break;
 		case 'F':
-		    if (type == DeviceType.VT220) {
+		    if ((type == DeviceType.VT220) ||
+			(type == DeviceType.XTERM)) {
+
 			if ((collectBuffer.length == 1) && (collectBuffer[0] == ' ')) {
 			    // S7C1T
 			    s8c1t = false;
@@ -3655,7 +3799,9 @@ private class ECMA48 {
 		    }
 		    break;
 		case 'G':
-		    if (type == DeviceType.VT220) {
+		    if ((type == DeviceType.VT220) ||
+			(type == DeviceType.XTERM)) {
+
 			if ((collectBuffer.length == 1) && (collectBuffer[0] == ' ')) {
 			    // S8C1T
 			    s8c1t = true;
@@ -3663,7 +3809,9 @@ private class ECMA48 {
 		    }
 		    break;
 		case 'H':
-		    if (type == DeviceType.VT220) {
+		    if ((type == DeviceType.VT220) ||
+			(type == DeviceType.XTERM)) {
+
 			if ((collectBuffer.length == 1) && (collectBuffer[0] == '(')) {
 			    // G0 --> SWEDISH
 			    currentState.g0Charset = CharacterSet.NRC_SWEDISH;
@@ -3686,7 +3834,9 @@ private class ECMA48 {
 		case 'J':
 		    break;
 		case 'K':
-		    if (type == DeviceType.VT220) {
+		    if ((type == DeviceType.VT220) ||
+			(type == DeviceType.XTERM)) {
+
 			if ((collectBuffer.length == 1) && (collectBuffer[0] == '(')) {
 			    // G0 --> GERMAN
 			    currentState.g0Charset = CharacterSet.NRC_GERMAN;
@@ -3712,7 +3862,9 @@ private class ECMA48 {
 		case 'P':
 		    break;
 		case 'Q':
-		    if (type == DeviceType.VT220) {
+		    if ((type == DeviceType.VT220) ||
+			(type == DeviceType.XTERM)) {
+
 			if ((collectBuffer.length == 1) && (collectBuffer[0] == '(')) {
 			    // G0 --> FRENCH_CA
 			    currentState.g0Charset = CharacterSet.NRC_FRENCH_CA;
@@ -3732,7 +3884,9 @@ private class ECMA48 {
 		    }
 		    break;
 		case 'R':
-		    if (type == DeviceType.VT220) {
+		    if ((type == DeviceType.VT220) ||
+			(type == DeviceType.XTERM)) {
+
 			if ((collectBuffer.length == 1) && (collectBuffer[0] == '(')) {
 			    // G0 --> FRENCH
 			    currentState.g0Charset = CharacterSet.NRC_FRENCH;
@@ -3759,7 +3913,9 @@ private class ECMA48 {
 		case 'X':
 		    break;
 		case 'Y':
-		    if (type == DeviceType.VT220) {
+		    if ((type == DeviceType.VT220) ||
+			(type == DeviceType.XTERM)) {
+
 			if ((collectBuffer.length == 1) && (collectBuffer[0] == '(')) {
 			    // G0 --> ITALIAN
 			    currentState.g0Charset = CharacterSet.NRC_ITALIAN;
@@ -3779,7 +3935,9 @@ private class ECMA48 {
 		    }
 		    break;
 		case 'Z':
-		    if (type == DeviceType.VT220) {
+		    if ((type == DeviceType.VT220) ||
+			(type == DeviceType.XTERM)) {
+
 			if ((collectBuffer.length == 1) && (collectBuffer[0] == '(')) {
 			    // G0 --> SPANISH
 			    currentState.g0Charset = CharacterSet.NRC_SPANISH;
@@ -3837,57 +3995,47 @@ private class ECMA48 {
 		    break;
 		}
 		toGround();
-		return;
 	    }
 
 	    // 7F                  --> ignore
-	    if (ch <= 0x7F) {
-		return;
-	    }
 
 	    // 0x9C goes to ScanState.GROUND
 	    if (ch == 0x9C) {
 		toGround();
-		return;
 	    }
 
-	    break;
+	    return;
 
 	case ScanState.CSI_ENTRY:
 	    // 00-17, 19, 1C-1F    --> execute
 	    if (ch <= 0x1F) {
 		handleControlChar(ch);
-		return;
 	    }
 
 	    // 20-2F               --> collect, then switch to ScanState.CSI_INTERMEDIATE
 	    if ((ch >= 0x20) && (ch <= 0x2F)) {
 		collect(ch);
 		scanState = ScanState.CSI_INTERMEDIATE;
-		return;
 	    }
 
 	    // 30-39, 3B           --> param, then switch to ScanState.CSI_PARAM
 	    if ((ch >= '0') && (ch <= '9')) {
 		param(cast(byte)ch);
 		scanState = ScanState.CSI_PARAM;
-		return;
 	    }
 	    if (ch == ';') {
 		param(cast(byte)ch);
 		scanState = ScanState.CSI_PARAM;
-		return;
 	    }
 
 	    // 3C-3F               --> collect, then switch to ScanState.CSI_PARAM
 	    if ((ch >= 0x3C) && (ch <= 0x3F)) {
 		collect(ch);
 		scanState = ScanState.CSI_PARAM;
-		return;
 	    }
 
 	    // 40-7E               --> dispatch, then switch to ScanState.GROUND
-	    if ((ch >= 0x30) && (ch <= 0x7E)) {
+	    if ((ch >= 0x40) && (ch <= 0x7E)) {
 		final switch (ch) {
 		case '@':
 		    // ICH - Insert character
@@ -3951,7 +4099,9 @@ private class ECMA48 {
 		case 'W':
 		    break;
 		case 'X':
-		    if (type == DeviceType.VT220) {
+		    if ((type == DeviceType.VT220) ||
+			(type == DeviceType.XTERM)) {
+
 			// ECH - Erase character
 			ech();
 		    }
@@ -3985,7 +4135,9 @@ private class ECMA48 {
 		case 'h':
 		    break;
 		case 'i':
-		    if (type == DeviceType.VT220) {
+		    if ((type == DeviceType.VT220) ||
+			(type == DeviceType.XTERM)) {
+
 			// Printer functions
 			printerFunctions();
 		    }
@@ -4007,7 +4159,7 @@ private class ECMA48 {
 		    break;
 		case 'q':
 		    // DECLL - Load leds
-		    decll();
+		    // Not supported
 		    break;
 		case 'r':
 		    // DECSTBM - Set top and bottom margins
@@ -4032,65 +4184,52 @@ private class ECMA48 {
 		    break;
 		}
 		toGround();
-		return;
 	    }
 
 	    // 7F                  --> ignore
-	    if (ch <= 0x7F) {
-		return;
-	    }
 
 	    // 0x9C goes to ScanState.GROUND
 	    if (ch == 0x9C) {
 		toGround();
-		return;
 	    }
 
 	    // 0x3A goes to ScanState.CSI_IGNORE
 	    if (ch == 0x3A) {
 		scanState = ScanState.CSI_IGNORE;
-		return;
 	    }
-
-	    break;
+	    return;
 
 	case ScanState.CSI_PARAM:
 	    // 00-17, 19, 1C-1F    --> execute
 	    if (ch <= 0x1F) {
 		handleControlChar(ch);
-		return;
 	    }
 
 	    // 20-2F               --> collect, then switch to ScanState.CSI_INTERMEDIATE
 	    if ((ch >= 0x20) && (ch <= 0x2F)) {
 		collect(ch);
 		scanState = ScanState.CSI_INTERMEDIATE;
-		return;
 	    }
 
 	    // 30-39, 3B           --> param
 	    if ((ch >= '0') && (ch <= '9')) {
 		param(cast(byte)ch);
-		return;
 	    }
 	    if (ch == ';') {
 		param(cast(byte)ch);
-		return;
 	    }
 
 	    // 0x3A goes to ScanState.CSI_IGNORE
 	    if (ch == 0x3A) {
 		scanState = ScanState.CSI_IGNORE;
-		return;
 	    }
 	    // 0x3C-3F goes to ScanState.CSI_IGNORE
 	    if ((ch >= 0x3C) && (ch <= 0x3F)) {
 		scanState = ScanState.CSI_IGNORE;
-		return;
 	    }
 
 	    // 40-7E               --> dispatch, then switch to ScanState.GROUND
-	    if ((ch >= 0x30) && (ch <= 0x7E)) {
+	    if ((ch >= 0x40) && (ch <= 0x7E)) {
 		final switch (ch) {
 		case '@':
 		    // ICH - Insert character
@@ -4154,7 +4293,9 @@ private class ECMA48 {
 		case 'W':
 		    break;
 		case 'X':
-		    if (type == DeviceType.VT220) {
+		    if ((type == DeviceType.VT220) ||
+			(type == DeviceType.XTERM)) {
+
 			// ECH - Erase character
 			ech();
 		    }
@@ -4190,7 +4331,9 @@ private class ECMA48 {
 		    setToggle(true);
 		    break;
 		case 'i':
-		    if (type == DeviceType.VT220) {
+		    if ((type == DeviceType.VT220) ||
+			(type == DeviceType.XTERM)) {
+
 			// Printer functions
 			printerFunctions();
 		    }
@@ -4215,7 +4358,7 @@ private class ECMA48 {
 		    break;
 		case 'q':
 		    // DECLL - Load leds
-		    decll();
+		    // Not supported
 		    break;
 		case 'r':
 		    // DECSTBM - Set top and bottom margins
@@ -4240,37 +4383,29 @@ private class ECMA48 {
 		    break;
 		}
 		toGround();
-		return;
 	    }
 
 	    // 7F                  --> ignore
-	    if (ch <= 0x7F) {
-		return;
-	    }
-
-	    break;
+	    return;
 
 	case ScanState.CSI_INTERMEDIATE:
 	    // 00-17, 19, 1C-1F    --> execute
 	    if (ch <= 0x1F) {
 		handleControlChar(ch);
-		return;
 	    }
 
 	    // 20-2F               --> collect
 	    if ((ch >= 0x20) && (ch <= 0x2F)) {
 		collect(ch);
-		return;
 	    }
 
 	    // 0x30-3F goes to ScanState.CSI_IGNORE
 	    if ((ch >= 0x30) && (ch <= 0x3F)) {
 		scanState = ScanState.CSI_IGNORE;
-		return;
 	    }
 
 	    // 40-7E               --> dispatch, then switch to ScanState.GROUND
-	    if ((ch >= 0x30) && (ch <= 0x7E)) {
+	    if ((ch >= 0x40) && (ch <= 0x7E)) {
 		final switch (ch) {
 		case '@':
 		case 'A':
@@ -4322,13 +4457,17 @@ private class ECMA48 {
 		case 'o':
 		    break;
 		case 'p':
-		    if ((type == DeviceType.VT220) && (collectBuffer[$ - 1] == '\"')) {
+		    if (((type == DeviceType.VT220) ||
+			    (type == DeviceType.XTERM)) &&
+			(collectBuffer[$ - 1] == '\"')) {
 			// DECSCL - compatibility level
 			decscl();
 		    }
 		    break;
 		case 'q':
-		    if ((type == DeviceType.VT220) && (collectBuffer[$ - 1] == '\"')) {
+		    if (((type == DeviceType.VT220) ||
+			    (type == DeviceType.XTERM)) &&
+			(collectBuffer[$ - 1] == '\"')) {
 			// DESCSCA
 			decsca();
 		    }
@@ -4349,62 +4488,45 @@ private class ECMA48 {
 		    break;
 		}
 		toGround();
-		return;
 	    }
 
 	    // 7F                  --> ignore
-	    if (ch <= 0x7F) {
-		return;
-	    }
-
-	    break;
+	    return;
 
 	case ScanState.CSI_IGNORE:
 	    // 00-17, 19, 1C-1F    --> execute
 	    if (ch <= 0x1F) {
 		handleControlChar(ch);
-		return;
 	    }
 
 	    // 20-2F               --> collect
 	    if ((ch >= 0x20) && (ch <= 0x2F)) {
 		collect(ch);
-		return;
 	    }
 
 	    // 40-7E               --> ignore, then switch to ScanState.GROUND
 	    if ((ch >= 0x40) && (ch <= 0x7E)) {
 		toGround();
-		return;
 	    }
 
 	    // 20-3F, 7F           --> ignore
-	    if ((ch >= 0x20) && (ch <= 0x3F)) {
-		return;
-	    }
-	    if (ch <= 0x7F) {
-		return;
-	    }
 
-	    break;
+	    return;
 
 	case ScanState.DCS_ENTRY:
 
 	    // 0x9C goes to ScanState.GROUND
 	    if (ch == 0x9C) {
 		toGround();
-		return;
 	    }
 
 	    // 0x1B 0x5C goes to ScanState.GROUND
 	    if (ch == 0x1B) {
 		collect(ch);
-		return;
 	    }
 	    if (ch == 0x5C) {
 		if ((collectBuffer.length > 0) && (collectBuffer[$ - 1] == 0x1B)) {
 		    toGround();
-		    return;
 		}
 	    }
 
@@ -4412,120 +4534,81 @@ private class ECMA48 {
 	    if ((ch >= 0x20) && (ch <= 0x2F)) {
 		collect(ch);
 		scanState = ScanState.DCS_INTERMEDIATE;
-		return;
 	    }
 
 	    // 30-39, 3B           --> param, then switch to ScanState.DCS_PARAM
 	    if ((ch >= '0') && (ch <= '9')) {
 		param(cast(byte)ch);
 		scanState = ScanState.DCS_PARAM;
-		return;
 	    }
 	    if (ch == ';') {
 		param(cast(byte)ch);
 		scanState = ScanState.DCS_PARAM;
-		return;
 	    }
 
 	    // 3C-3F               --> collect, then switch to ScanState.DCS_PARAM
 	    if ((ch >= 0x3C) && (ch <= 0x3F)) {
 		collect(ch);
 		scanState = ScanState.DCS_PARAM;
-		return;
 	    }
 
 	    // 00-17, 19, 1C-1F, 7F    --> ignore
-	    if (ch <= 0x17) {
-		return;
-	    }
-	    if (ch == 0x19) {
-		return;
-	    }
-	    if ((ch >= 0x1C) && (ch <= 0x1F)) {
-		return;
-	    }
-	    if (ch == 0x7F) {
-		return;
-	    }
 
 	    // 0x3A goes to ScanState.DCS_IGNORE
 	    if (ch == 0x3F) {
 		scanState = ScanState.DCS_IGNORE;
-		return;
 	    }
 
 	    // 0x40-7E goes to ScanState.DCS_PASSTHROUGH
 	    if ((ch >= 0x40) && (ch <= 0x7E)) {
 		scanState = ScanState.DCS_PASSTHROUGH;
-		return;
 	    }
-
-	    break;
+	    return;
 
 	case ScanState.DCS_INTERMEDIATE:
 
 	    // 0x9C goes to ScanState.GROUND
 	    if (ch == 0x9C) {
 		toGround();
-		return;
 	    }
 
 	    // 0x1B 0x5C goes to ScanState.GROUND
 	    if (ch == 0x1B) {
 		collect(ch);
-		return;
 	    }
 	    if (ch == 0x5C) {
 		if ((collectBuffer.length > 0) && (collectBuffer[$ - 1] == 0x1B)) {
 		    toGround();
-		    return;
 		}
 	    }
 
 	    // 0x30-3F goes to ScanState.DCS_IGNORE
 	    if ((ch >= 0x30) && (ch <= 0x3F)) {
 		scanState = ScanState.DCS_IGNORE;
-		return;
 	    }
 
 	    // 0x40-7E goes to ScanState.DCS_PASSTHROUGH
 	    if ((ch >= 0x40) && (ch <= 0x7E)) {
 		scanState = ScanState.DCS_PASSTHROUGH;
-		return;
 	    }
 
 	    // 00-17, 19, 1C-1F, 7F    --> ignore
-	    if (ch <= 0x17) {
-		return;
-	    }
-	    if (ch == 0x19) {
-		return;
-	    }
-	    if ((ch >= 0x1C) && (ch <= 0x1F)) {
-		return;
-	    }
-	    if (ch == 0x7F) {
-		return;
-	    }
-	    break;
+	    return;
 
 	case ScanState.DCS_PARAM:
 
 	    // 0x9C goes to ScanState.GROUND
 	    if (ch == 0x9C) {
 		toGround();
-		return;
 	    }
 
 	    // 0x1B 0x5C goes to ScanState.GROUND
 	    if (ch == 0x1B) {
 		collect(ch);
-		return;
 	    }
 	    if (ch == 0x5C) {
 		if ((collectBuffer.length > 0) && (collectBuffer[$ - 1] == 0x1B)) {
 		    toGround();
-		    return;
 		}
 	    }
 
@@ -4533,71 +4616,50 @@ private class ECMA48 {
 	    if ((ch >= 0x20) && (ch <= 0x2F)) {
 		collect(ch);
 		scanState = ScanState.DCS_INTERMEDIATE;
-		return;
 	    }
 
 	    // 30-39, 3B               --> param
 	    if ((ch >= '0') && (ch <= '9')) {
 		param(cast(byte)ch);
-		return;
 	    }
 	    if (ch == ';') {
 		param(cast(byte)ch);
-		return;
 	    }
 
 	    // 00-17, 19, 1C-1F, 7F    --> ignore
-	    if (ch <= 0x17) {
-		return;
-	    }
-	    if (ch == 0x19) {
-		return;
-	    }
-	    if ((ch >= 0x1C) && (ch <= 0x1F)) {
-		return;
-	    }
-	    if (ch == 0x7F) {
-		return;
-	    }
 
 	    // 0x3A, 3C-3F goes to ScanState.DCS_IGNORE
 	    if (ch == 0x3F) {
 		scanState = ScanState.DCS_IGNORE;
-		return;
 	    }
 	    if ((ch >= 0x3C) && (ch <= 0x3F)) {
 		scanState = ScanState.DCS_IGNORE;
-		return;
 	    }
 
 	    // 0x40-7E goes to ScanState.DCS_PASSTHROUGH
 	    if ((ch >= 0x40) && (ch <= 0x7E)) {
 		scanState = ScanState.DCS_PASSTHROUGH;
-		return;
 	    }
-
-	    break;
+	    return;
 
 	case ScanState.DCS_PASSTHROUGH:
 	    // 0x9C goes to ScanState.GROUND
 	    if (ch == 0x9C) {
 		toGround();
-		return;
 	    }
 
 	    // 0x1B 0x5C goes to ScanState.GROUND
 	    if (ch == 0x1B) {
 		collect(ch);
-		return;
 	    }
 	    if (ch == 0x5C) {
 		if ((collectBuffer.length > 0) && (collectBuffer[$ - 1] == 0x1B)) {
 		    toGround();
-		    return;
 		}
 	    }
 
 	    // 00-17, 19, 1C-1F, 20-7E   --> put
+	    // TODO
 	    if (ch <= 0x17) {
 		return;
 	    }
@@ -4612,83 +4674,48 @@ private class ECMA48 {
 	    }
 
 	    // 7F                        --> ignore
-	    if (ch == 0x7F) {
-		return;
-	    }
 
-	    break;
+	    return;
 
 	case ScanState.DCS_IGNORE:
 	    // 00-17, 19, 1C-1F, 20-7F --> ignore
-	    if (ch <= 0x17) {
-		return;
-	    }
-	    if (ch == 0x19) {
-		return;
-	    }
-	    if ((ch >= 0x1C) && (ch <= 0x7F)) {
-		return;
-	    }
 
 	    // 0x9C goes to ScanState.GROUND
 	    if (ch == 0x9C) {
 		toGround();
-		return;
 	    }
 
-	    break;
+	    return;
 
 	case ScanState.SOSPMAPC_STRING:
 	    // 00-17, 19, 1C-1F, 20-7F --> ignore
-	    if (ch <= 0x17) {
-		return;
-	    }
-	    if (ch == 0x19) {
-		return;
-	    }
-	    if ((ch >= 0x1C) && (ch <= 0x7F)) {
-		return;
-	    }
 
 	    // 0x9C goes to ScanState.GROUND
 	    if (ch == 0x9C) {
 		toGround();
-		return;
 	    }
 
-	    break;
+	    return;
 
 	case ScanState.OSC_STRING:
 	    // Special case for Xterm: OSC can pass control characters
 	    if ((ch == 0x9C) || (ch <= 0x07)) {
 		oscPut(ch);
-		return;
 	    }
 
 	    // 00-17, 19, 1C-1F        --> ignore
-	    if (ch <= 0x17) {
-		return;
-	    }
-	    if (ch == 0x19) {
-		return;
-	    }
-	    if ((ch >= 0x1C) && (ch <= 0x1F)) {
-		return;
-	    }
 
 	    // 20-7F                   --> osc_put
 	    if ((ch >= 0x20) && (ch <= 0x7F)) {
 		oscPut(ch);
-		return;
 	    }
 
 	    // 0x9C goes to ScanState.GROUND
 	    if (ch == 0x9C) {
 		toGround();
-		return;
 	    }
 
-	    break;
+	    return;
 
 	case ScanState.VT52_DIRECT_CURSOR_ADDRESS:
 	    // This is a special case for the VT52 sequence "ESC Y l c"
@@ -4703,10 +4730,6 @@ private class ECMA48 {
 	    return;
 	}
 
-	// This was a Unicode character, it should be printed
-	assert(scanState == ScanState.GROUND);
-	printCharacter(mapCharacter(ch));
-	return;
     }
 
     /**
@@ -4763,7 +4786,7 @@ public class TTerminal : TWindow {
     private bool processRunning = false;
 
     /// If true, we expect to see UTF-8 in the streams to/from the shell process
-    private bool utf8 = false;
+    private bool utf8 = true;
 
     private import core.stdc.errno;
     private import core.stdc.string;
@@ -4796,7 +4819,8 @@ public class TTerminal : TWindow {
 	    core.sys.posix.unistd.execvp(argz[0], argz.ptr);
 
 	    // Should never get here
-	    stderr.writefln("exec() failed: %d (%s)", errno, to!string(strerror(errno)));
+	    stderr.writefln("exec() failed: %d (%s)", errno,
+		to!string(strerror(errno)));
 	    stderr.flush();
 	    exit(-1);
 	}
@@ -4817,7 +4841,7 @@ public class TTerminal : TWindow {
 
 	super(application, "Terminal", x, y, 80 + 2, 24 + 2, flags & ~Flag.RESIZABLE);
 
-	emulator = new ECMA48(ECMA48.DeviceType.VT220,
+	emulator = new ECMA48(ECMA48.DeviceType.XTERM,
 	    delegate(dstring str) {
 		if (processRunning) {
 		    ubyte [] utf8Buffer;
@@ -4849,7 +4873,17 @@ public class TTerminal : TWindow {
 	int row = 1;
 	foreach (line; emulator.display) {
 	    for (auto i = 0; i < emulator.width; i++) {
-		screen.putCharXY(i + 1, row, line.chars[i]);
+		Cell ch = line.chars[i];
+		bool reverse = line.reverseColor ^ ch.reverse;
+		if (reverse) {
+		    Cell newCell = new Cell();
+		    newCell.setTo(ch);
+		    newCell.backColor = ch.foreColor;
+		    newCell.foreColor = ch.backColor;
+		    screen.putCharXY(i + 1, row, newCell);
+		} else {
+		    screen.putCharXY(i + 1, row, ch);
+		}
 	    }
 	    row++;
 	}
@@ -4906,7 +4940,6 @@ public class TTerminal : TWindow {
 		    processRunning = false;
 		    int status;
 		    waitpid(shellPid, &status, WNOHANG);
-		    // stderr.writefln("\n\n-- Process Exit: %s --\n\n", e);
 		    return;
 		}
 	    }
