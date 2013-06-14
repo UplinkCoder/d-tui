@@ -523,22 +523,6 @@ public class TApplication {
 		continue;
 	    }
 
-	    if (auto keypress = cast(TKeypressEvent)event) {
-		// Ctrl-W - close window
-		if ((keypress.key == kbCtrlW) && (activeMenu is null)) {
-
-		    // Resort windows and nix the first one (it is active)
-		    if (windows.length > 0) {
-			windows.sort;
-			closeWindow(windows[0]);
-		    }
-
-		    // Refresh
-		    repaint = true;
-		    continue;
-		}
-	    }
-
 	    // Peek at the mouse position
 	    if (auto mouse = cast(TMouseEvent)event) {
 		if ((mouseX != mouse.x) || (mouseY != mouse.y)) {
@@ -890,6 +874,10 @@ public class TApplication {
 	    string output = drawAll();
 	    stdout.write(output);
 	    stdout.flush();
+
+	    // DEBUG
+	    // stderr.write(output);
+	    // stderr.flush();
 	}
     }
 

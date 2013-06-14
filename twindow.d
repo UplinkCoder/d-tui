@@ -520,6 +520,24 @@ public class TWindow : TWidget {
 	super.onMouseMotion(event);
     }
 
+    /**
+     * Handle keystrokes.
+     *
+     * Params:
+     *    keypress = keystroke event
+     */
+    override protected void onKeypress(TKeypressEvent keypress) {
+	// Ctrl-W - close window
+	if (keypress.key == kbCtrlW) {
+	    // Close window
+	    application.closeWindow(this);
+	    return;
+	}
+
+	// I didn't take it, pass it on to my children
+	super.onKeypress(keypress);
+    }
+
 }
 
 // Functions -----------------------------------------------------------------

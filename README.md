@@ -66,6 +66,8 @@ calling this version 1.0:
 - [ ] Demo
   - [ ] Add editor window
 - [ ] TTerminal
+  - [ ] Horizontal scrollbar
+  - [ ] Vertical scrollbar
 - [ ] TText
   - [ ] Horizontal scrollbar
   - [ ] Vertical scrollbar

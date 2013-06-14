@@ -35,9 +35,8 @@
  * TODO:
  *
  *     pass vttest
- *     add xterm sequences
- *     change title
  *     handle resizable window
+ *     xterm mouse reporting
  *     split state machine into ECMA48 and VT52
  *
  */
@@ -617,6 +616,9 @@ private class ECMA48 {
     /// Right margin
     private int rightMargin;
 
+    /// Last character printed
+    private dchar repCh;
+
     /**
      * VT100-style line wrapping: a character is placed in column 80 (or
      * 132), but the line does NOT wrap until another character is written to
@@ -635,6 +637,9 @@ private class ECMA48 {
 
     /// Visible cursor (DECTCEM)
     public bool visibleCursor = true;
+
+    /// Screen title
+    public dstring screenTitle = "";
 
     /// Array of flags that have come in, e.g. '?' (DEC private mode), '=', '>', ...
     private char [] csiFlags;
@@ -2551,6 +2556,40 @@ private class ECMA48 {
     }
 
     /**
+     * CNL - Cursor down and to column 1
+     */
+    private void cnl() {
+	cursorDown(getCsiParam(0, 1, 1, height), true);
+	// To column 0
+	cursorLeft(currentState.cursorX, true);
+    }
+
+    /**
+     * CPL - Cursor up and to column 1
+     */
+    private void cpl() {
+	cursorUp(getCsiParam(0, 1, 1, currentState.cursorY + 1), true);
+	// To column 0
+	cursorLeft(currentState.cursorX, true);
+    }
+
+    /**
+     * CHA - Cursor to column # in current row
+     */
+    private void cha() {
+	cursorPosition(currentState.cursorY,
+	    getCsiParam(0, 1, 1, width) - 1);
+    }
+
+    /**
+     * VPA - Cursor to row #, same column
+     */
+    private void vpa() {
+	cursorPosition(getCsiParam(0, 1, 1, height) - 1,
+	    currentState.cursorX);
+    }
+
+    /**
      * ED - Erase in display
      */
     private void ed() {
@@ -2699,6 +2738,66 @@ private class ECMA48 {
 	cup();
     }
 
+    /**
+     * REP - Repeat character
+     */
+    private void rep() {
+	auto n = getCsiParam(0, 1);
+	for (auto i = 0; i < n; i++) {
+	    printCharacter(repCh);
+	}
+    }
+
+    /**
+     * SU - Scroll up
+     */
+    private void su() {
+	scrollingRegionScrollUp(scrollRegionTop, scrollRegionBottom,
+	    getCsiParam(0, 1, 1, height));
+    }
+
+    /**
+     * SD - Scroll down
+     */
+    private void sd() {
+	scrollingRegionScrollDown(scrollRegionTop, scrollRegionBottom,
+	    getCsiParam(0, 1, 1, height));
+    }
+
+    /**
+     * CBT - Go back X tab stops
+     */
+    private void cbt() {
+	auto tabsToMove = getCsiParam(0, 1);
+	int tabI;
+
+	for (auto i = 0; i < tabsToMove; i++) {
+	    auto j = currentState.cursorX;
+	    for (tabI = 0; tabI < tabStops.length; tabI++) {
+		if (tabStops[tabI] >= currentState.cursorX) {
+		    break;
+		}
+	    }
+	    tabI--;
+	    if (tabI <= 0) {
+		j = 0;
+	    } else {
+		j = tabStops[tabI];
+	    }
+	    cursorPosition(currentState.cursorY, j);
+	}
+    }
+
+    /**
+     * CHT - Advance X tab stops
+     */
+    private void cht() {
+	auto n = getCsiParam(0, 1);
+	for (auto i = 0; i < n; i++) {
+	    advanceToNextTabStop();
+	}
+    }
+
     /*
      * SGR - Select graphics rendition
      */
@@ -2740,6 +2839,20 @@ private class ECMA48 {
 
 	    default:
 		break;
+	    }
+
+	    if (type == DeviceType.XTERM) {
+
+		switch (i) {
+
+		case 8:
+		    // Invisible
+		    // TODO
+		    break;
+
+		default:
+		    break;
+		}
 	    }
 
 	    if ((type == DeviceType.VT220) ||
@@ -3284,8 +3397,16 @@ private class ECMA48 {
 
 	// Xterm cases...
 	if (xtermChar == 0x07) {
-	    // Screen title
-	    collectBuffer = collectBuffer[0 .. $ - 1];
+	    dstring arg = to!dstring(collectBuffer[0 .. $ - 1]);
+	    dstring [] p = split(arg, ";");
+	    if (p.length > 0) {
+		if ((p[0] == "0") || (p[0] == "2")) {
+		    if (p.length > 1) {
+			// Screen title
+			screenTitle = p[1];
+		    }
+		}
+	    }
 
 	    // Go to SCAN_GROUND state
 	    toGround();
@@ -3383,8 +3504,11 @@ private class ECMA48 {
 		    return;
 		}
 
+		// Hang onto this character
+		repCh = mapCharacter(ch);
+
 		// Print this character
-		printCharacter(mapCharacter(ch));
+		printCharacter(repCh);
 	    }
 	    return;
 
@@ -4309,14 +4433,32 @@ private class ECMA48 {
 		    cub();
 		    break;
 		case 'E':
+		    // CNL - Cursor down and to column 1
+		    if (type == DeviceType.XTERM) {
+			cnl();
+		    }
+		    break;
 		case 'F':
+		    // CPL - Cursor up and to column 1
+		    if (type == DeviceType.XTERM) {
+			cpl();
+		    }
+		    break;
 		case 'G':
+		    // CHA - Cursor to column # in current row
+		    if (type == DeviceType.XTERM) {
+			cha();
+		    }
 		    break;
 		case 'H':
 		    // CUP - Cursor position
 		    cup();
 		    break;
 		case 'I':
+		    // CHT - Cursor forward X tab stops (default 1)
+		    if (type == DeviceType.XTERM) {
+			cht();
+		    }
 		    break;
 		case 'J':
 		    // ED - Erase in display
@@ -4343,8 +4485,19 @@ private class ECMA48 {
 		    break;
 		case 'Q':
 		case 'R':
+		    break;
 		case 'S':
+		    // Scroll up X lines (default 1)
+		    if (type == DeviceType.XTERM) {
+			su();
+		    }
+		    break;
 		case 'T':
+		    // Scroll down X lines (default 1)
+		    if (type == DeviceType.XTERM) {
+			sd();
+		    }
+		    break;
 		case 'U':
 		case 'V':
 		case 'W':
@@ -4358,22 +4511,52 @@ private class ECMA48 {
 		    }
 		    break;
 		case 'Y':
+		    break;
 		case 'Z':
+		    // CBT - Cursor backward X tab stops (default 1)
+		    if (type == DeviceType.XTERM) {
+			cbt();
+		    }
+		    break;
 		case '[':
 		case '\\':
 		case ']':
 		case '^':
 		case '_':
+		    break;
 		case '`':
+		    // HPA - Cursor to column # in current row.  Same as CHA
+		    if (type == DeviceType.XTERM) {
+			cha();
+		    }
+		    break;
 		case 'a':
+		    // HPR - Cursor right.  Same as CUF
+		    if (type == DeviceType.XTERM) {
+			cuf();
+		    }
+		    break;
 		case 'b':
+		    // REP - Repeat last char X times
+		    if (type == DeviceType.XTERM) {
+			rep();
+		    }
 		    break;
 		case 'c':
 		    // DA - Device attributes
 		    da();
 		    break;
 		case 'd':
+		    // VPA - Cursor to row, current column.
+		    if (type == DeviceType.XTERM) {
+			vpa();
+		    }
+		    break;
 		case 'e':
+		    // VPR - Cursor down.  Same as CUD
+		    if (type == DeviceType.XTERM) {
+			cud();
+		    }
 		    break;
 		case 'f':
 		    // HVP - Horizontal and vertical position
@@ -4384,6 +4567,8 @@ private class ECMA48 {
 		    tbc();
 		    break;
 		case 'h':
+		    // Sets an ANSI or DEC private toggle
+		    setToggle(true);
 		    break;
 		case 'i':
 		    if ((type == DeviceType.VT220) ||
@@ -4395,7 +4580,10 @@ private class ECMA48 {
 		    break;
 		case 'j':
 		case 'k':
+		    break;
 		case 'l':
+		    // Sets an ANSI or DEC private toggle
+		    setToggle(false);
 		    break;
 		case 'm':
 		    // SGR - Select graphics rendition
@@ -4417,8 +4605,20 @@ private class ECMA48 {
 		    decstbm();
 		    break;
 		case 's':
+		    // Save cursor (ANSI.SYS)
+		    if (type == DeviceType.XTERM) {
+			savedState.cursorX = currentState.cursorX;
+			savedState.cursorY = currentState.cursorY;
+		    }
+		    break;
 		case 't':
+		    break;
 		case 'u':
+		    // Restore cursor (ANSI.SYS)
+		    if (type == DeviceType.XTERM) {
+			cursorPosition(savedState.cursorY, savedState.cursorX);
+		    }
+		    break;
 		case 'v':
 		case 'w':
 		    break;
@@ -4503,14 +4703,32 @@ private class ECMA48 {
 		    cub();
 		    break;
 		case 'E':
+		    // CNL - Cursor down and to column 1
+		    if (type == DeviceType.XTERM) {
+			cnl();
+		    }
+		    break;
 		case 'F':
+		    // CPL - Cursor up and to column 1
+		    if (type == DeviceType.XTERM) {
+			cpl();
+		    }
+		    break;
 		case 'G':
+		    // CHA - Cursor to column # in current row
+		    if (type == DeviceType.XTERM) {
+			cha();
+		    }
 		    break;
 		case 'H':
 		    // CUP - Cursor position
 		    cup();
 		    break;
 		case 'I':
+		    // CHT - Cursor forward X tab stops (default 1)
+		    if (type == DeviceType.XTERM) {
+			cht();
+		    }
 		    break;
 		case 'J':
 		    // ED - Erase in display
@@ -4537,8 +4755,19 @@ private class ECMA48 {
 		    break;
 		case 'Q':
 		case 'R':
+		    break;
 		case 'S':
+		    // Scroll up X lines (default 1)
+		    if (type == DeviceType.XTERM) {
+			su();
+		    }
+		    break;
 		case 'T':
+		    // Scroll down X lines (default 1)
+		    if (type == DeviceType.XTERM) {
+			sd();
+		    }
+		    break;
 		case 'U':
 		case 'V':
 		case 'W':
@@ -4552,22 +4781,52 @@ private class ECMA48 {
 		    }
 		    break;
 		case 'Y':
+		    break;
 		case 'Z':
+		    // CBT - Cursor backward X tab stops (default 1)
+		    if (type == DeviceType.XTERM) {
+			cbt();
+		    }
+		    break;
 		case '[':
 		case '\\':
 		case ']':
 		case '^':
 		case '_':
+		    break;
 		case '`':
+		    // HPA - Cursor to column # in current row.  Same as CHA
+		    if (type == DeviceType.XTERM) {
+			cha();
+		    }
+		    break;
 		case 'a':
+		    // HPR - Cursor right.  Same as CUF
+		    if (type == DeviceType.XTERM) {
+			cuf();
+		    }
+		    break;
 		case 'b':
+		    // REP - Repeat last char X times
+		    if (type == DeviceType.XTERM) {
+			rep();
+		    }
 		    break;
 		case 'c':
 		    // DA - Device attributes
 		    da();
 		    break;
 		case 'd':
+		    // VPA - Cursor to row, current column.
+		    if (type == DeviceType.XTERM) {
+			vpa();
+		    }
+		    break;
 		case 'e':
+		    // VPR - Cursor down.  Same as CUD
+		    if (type == DeviceType.XTERM) {
+			cud();
+		    }
 		    break;
 		case 'f':
 		    // HVP - Horizontal and vertical position
@@ -4714,12 +4973,17 @@ private class ECMA48 {
 			// DECSCL - compatibility level
 			decscl();
 		    }
+		    if ((type == DeviceType.XTERM) &&
+			(collectBuffer[$ - 1] == '!')) {
+			// DECSTR - Soft terminal reset
+			decstr();
+		    }
 		    break;
 		case 'q':
 		    if (((type == DeviceType.VT220) ||
 			    (type == DeviceType.XTERM)) &&
 			(collectBuffer[$ - 1] == '\"')) {
-			// DESCSCA
+			// DECSCA
 			decsca();
 		    }
 		    break;
@@ -5099,7 +5363,7 @@ public class TTerminal : TWindow {
 	super(application, "Terminal", x, y, 80 + 2, 24 + 2,
 	    flags & ~Flag.RESIZABLE);
 
-	emulator = new ECMA48(ECMA48.DeviceType.VT220,
+	emulator = new ECMA48(ECMA48.DeviceType.XTERM,
 	    delegate(dstring str) {
 		if (processRunning) {
 		    ubyte [] utf8Buffer;
@@ -5178,6 +5442,15 @@ public class TTerminal : TWindow {
 	cursorX = emulator.getCursorX() + 1;
 	cursorY = emulator.getCursorY() + 1;
 	hasCursor = emulator.visibleCursor;
+	if (cursorX > width - 2) {
+	    cursorX = width - 2;
+	}
+	if (cursorY > height - 2) {
+	    cursorY = height - 2;
+	}
+	if (emulator.screenTitle.length > 0) {
+	    title = emulator.screenTitle;
+	}
     }
 
     /**

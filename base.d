@@ -644,67 +644,49 @@ public class Screen {
      * Params:
      *    y = row coordinate.  0 is the top-most row.
      *    writer = appender to write escape sequences to
+     *    lastAttr = cell attributes from the last call to flushLine
      */ 
-    private void flushLine(int y, Appender!(string) writer) {
-	Cell lastCell = new Cell();
-	int lastCellX = -1;
-	bool first = true;
-
-	int textBegin = -1;
-	int textEnd = width - 1;
-
-	// Find the boundaries of the logical screen
-	for (auto x = 0; x < width; x++) {
+    private void flushLine(int y, Appender!(string) writer, CellAttributes lastAttr) {
+	int lastX = -1;
+	int textEnd = 0;
+	for (int x = 0; x < width; x++) {
 	    auto lCell = logical[x][y];
-	    if (lCell.isBlank()) {
-		if (textBegin == (x - 1)) {
-		    textBegin++;
-		}
-	    } else {
+	    if (!lCell.isBlank()) {
 		textEnd = x;
 	    }
 	}
-	// Push textEnd to the beginning of the blank area
+	// Push textEnd to first column beyond the text area
 	textEnd++;
 
 	// DEBUG
 	// reallyCleared = true;
 
-	for (auto x = 0; x < width; x++) {
+	for (int x = 0; x < width; x++) {
 	    auto lCell = logical[x][y];
 	    auto pCell = physical[x][y];
 
 	    if ((lCell != pCell) || (reallyCleared == true)) {
 
-		if (x <= textBegin) {
-		    // This cell should be blank, skip it
-		    assert(lCell.isBlank());
-		    continue;
+		if (debugToStderr) {
+		    stderr.writefln("\n--");
+		    stderr.writefln(" Y: %d X: %d", y, x);
+		    stderr.writefln("   lCell: %s", lCell);
+		    stderr.writefln("   pCell: %s", pCell);
+		    stderr.writefln("    ====    ");
 		}
-		if (x == textBegin + 1) {
-		    // Place the cell
-		    assert(lastCellX == -1);
-		    assert(lastCell.isBlank());
-		    writer.put(Terminal.gotoXY(x, y));
 
-		    if (x > 0) {
-
-			for (auto i = 0; i < x; i++) {
-			    assert(logical[i][y].isBlank());
-			}
-
-			// Clear everything up to here
-			writer.put(Terminal.clearPreceedingLine());
-		    }
+		if (lastAttr is null) {
+		    lastAttr = new CellAttributes();
+		    writer.put(Terminal.normal());
 		}
 
 		// Place the cell
-		if (lastCellX != (x - 1)) {
-		    // Advancing at least one cell
+		if ((lastX != (x - 1)) || (lastX == -1)) {
+		    // Advancing at least one cell, or the first gotoXY
 		    writer.put(Terminal.gotoXY(x, y));
-		} else {
-		    assert(lastCellX == (x - 1));
 		}
+
+		assert(lastAttr !is null);
 
 		if ((x == textEnd) && (textEnd < width - 1)) {
 		    assert(lCell.isBlank());
@@ -715,33 +697,35 @@ public class Screen {
 
 		    // Clear remaining line
 		    writer.put(Terminal.clearRemainingLine());
+		    lastAttr.reset();
 		    return;
 		}
 
-		if (debugToStderr) {
-		    stderr.writefln("lastCell: %s", lastCell);
-		    stderr.writefln("   lCell: %s", lCell);
-		    stderr.writefln("   pCell: %s", pCell);
-		}
-
-		if (first) {
-		    assert(lastCell.isBlank());
-
-		    // Begin with normal attributes
-		    writer.put(Terminal.normal());
-		    first = false;
-		}
-
 		// Now emit only the modified attributes
-		if ((lCell.foreColor != lastCell.foreColor) &&
-		    (lCell.backColor != lastCell.backColor) &&
-		    (lCell.bold != lastCell.bold) &&
-		    (lCell.reverse != lastCell.reverse) &&
-		    (lCell.underline != lastCell.underline) &&
-		    (lCell.blink != lastCell.blink)) {
+		if ((lCell.foreColor != lastAttr.foreColor) &&
+		    (lCell.backColor != lastAttr.backColor) &&
+		    (lCell.bold == lastAttr.bold) &&
+		    (lCell.reverse == lastAttr.reverse) &&
+		    (lCell.underline == lastAttr.underline) &&
+		    (lCell.blink == lastAttr.blink)) {
+
+		    // Both colors changed, attributes the same
+		    writer.put(Terminal.color(lCell.foreColor,
+			    lCell.backColor));
 
 		    if (debugToStderr) {
-			stderr.writefln("1 Set all attributes");
+			stderr.writefln("1 Change only fore/back colors");
+		    }
+
+		} else if ((lCell.foreColor != lastAttr.foreColor) &&
+		    (lCell.backColor != lastAttr.backColor) &&
+		    (lCell.bold != lastAttr.bold) &&
+		    (lCell.reverse != lastAttr.reverse) &&
+		    (lCell.underline != lastAttr.underline) &&
+		    (lCell.blink != lastAttr.blink)) {
+
+		    if (debugToStderr) {
+			stderr.writefln("2 Set all attributes");
 		    }
 		    
 		    // Everything is different
@@ -749,27 +733,13 @@ public class Screen {
 			    lCell.bold, lCell.reverse, lCell.blink,
 			    lCell.underline));
 
-		} else if ((lCell.foreColor != lastCell.foreColor) &&
-		    (lCell.backColor != lastCell.backColor) &&
-		    (lCell.bold == lastCell.bold) &&
-		    (lCell.reverse == lastCell.reverse) &&
-		    (lCell.underline == lastCell.underline) &&
-		    (lCell.blink == lastCell.blink)) {
 
-		    // Both colors changed, attributes the same
-		    writer.put(Terminal.color(lCell.foreColor,
-			    lCell.backColor));
-
-		    if (debugToStderr) {
-			stderr.writefln("2 Change both colors");
-		    }
-
-		} else if ((lCell.foreColor != lastCell.foreColor) &&
-		    (lCell.backColor == lastCell.backColor) &&
-		    (lCell.bold == lastCell.bold) &&
-		    (lCell.reverse == lastCell.reverse) &&
-		    (lCell.underline == lastCell.underline) &&
-		    (lCell.blink == lastCell.blink)) {
+		} else if ((lCell.foreColor != lastAttr.foreColor) &&
+		    (lCell.backColor == lastAttr.backColor) &&
+		    (lCell.bold == lastAttr.bold) &&
+		    (lCell.reverse == lastAttr.reverse) &&
+		    (lCell.underline == lastAttr.underline) &&
+		    (lCell.blink == lastAttr.blink)) {
 
 		    // Attributes same, foreColor different
 		    writer.put(Terminal.color(lCell.foreColor, true));
@@ -778,12 +748,12 @@ public class Screen {
 			stderr.writefln("3 Change foreColor");
 		    }
 
-		} else if ((lCell.foreColor == lastCell.foreColor) &&
-		    (lCell.backColor != lastCell.backColor) &&
-		    (lCell.bold == lastCell.bold) &&
-		    (lCell.reverse == lastCell.reverse) &&
-		    (lCell.underline == lastCell.underline) &&
-		    (lCell.blink == lastCell.blink)) {
+		} else if ((lCell.foreColor == lastAttr.foreColor) &&
+		    (lCell.backColor != lastAttr.backColor) &&
+		    (lCell.bold == lastAttr.bold) &&
+		    (lCell.reverse == lastAttr.reverse) &&
+		    (lCell.underline == lastAttr.underline) &&
+		    (lCell.blink == lastAttr.blink)) {
 
 		    // Attributes same, backColor different
 		    writer.put(Terminal.color(lCell.backColor, false));
@@ -792,12 +762,12 @@ public class Screen {
 			stderr.writefln("4 Change backColor");
 		    }
 
-		} else if ((lCell.foreColor == lastCell.foreColor) &&
-		    (lCell.backColor == lastCell.backColor) &&
-		    (lCell.bold == lastCell.bold) &&
-		    (lCell.reverse == lastCell.reverse) &&
-		    (lCell.underline == lastCell.underline) &&
-		    (lCell.blink == lastCell.blink)) {
+		} else if ((lCell.foreColor == lastAttr.foreColor) &&
+		    (lCell.backColor == lastAttr.backColor) &&
+		    (lCell.bold == lastAttr.bold) &&
+		    (lCell.reverse == lastAttr.reverse) &&
+		    (lCell.underline == lastAttr.underline) &&
+		    (lCell.blink == lastAttr.blink)) {
 
 		    // All attributes the same, just print the char
 		    // NOP
@@ -807,6 +777,7 @@ public class Screen {
 		    }
 
 		} else {
+
 		    // Just reset everything again
 		    writer.put(Terminal.color(lCell.foreColor, lCell.backColor,
 			    lCell.bold, lCell.reverse, lCell.blink,
@@ -815,15 +786,14 @@ public class Screen {
 		    if (debugToStderr) {
 			stderr.writefln("6 Change all attributes");
 		    }
-
 		}
 
 		// Emit the character
 		writer.put(dcharToString(lCell.ch));
 
 		// Save the last rendered cell
-		lastCellX = x;
-		lastCell.setTo(lCell);
+		lastX = x;
+		lastAttr.setTo(lCell);
 
 		// Physical is always updatesd
 		physical[x][y].setTo(lCell);
@@ -847,13 +817,16 @@ public class Screen {
 	    return "";
 	}
 
+	CellAttributes attr;
+
 	auto writer = appender!string();
 	if (reallyCleared == true) {
+	    attr = new CellAttributes();
 	    writer.put(Terminal.clearAll());
 	}
 
 	for (auto y = 0; y < height; y++) {
-	    flushLine(y, writer);
+	    flushLine(y, writer, attr);
 	}
 
 	dirty = false;
@@ -1713,6 +1686,9 @@ public class Terminal {
     /// true if mouse3 was down.  Used to report mouse3 on the release
     /// event.
     private bool mouse3;
+
+    /// Cache the cursor value so we only emit the sequence when we need to
+    private bool cursorOn = true;
 
     /// Set by the SIGWINCH handler to expose window resize events
     private TResizeEvent windowResize = null;
@@ -2787,9 +2763,9 @@ public class Terminal {
      */
     public static string normal(bool header = true) {
 	if (header) {
-	    return "\033[0;37;40m";
+	    return "\033[0m";
 	}
-	return "0;37;40;";
+	return "0;";
     }
 
     /**
@@ -2864,18 +2840,23 @@ public class Terminal {
      *    on = if true, turn on cursor
      *    
      * Returns:
-     *    the string to emit to an ANSI / ECMA-style terminal, e.g. "\033[4m"
+     *    the string to emit to an ANSI / ECMA-style terminal
      */
-    public static string cursor(bool on) {
-	if (on) {
+    public string cursor(bool on) {
+	if (on && (cursorOn == false)) {
+	    cursorOn = true;
 	    return "\033[?25h";
 	}
-	return "\033[?25l";
+	if (!on && (cursorOn == true)) {
+	    cursorOn = false;
+	    return "\033[?25l";
+	}
+	return "";
     }
 
     /**
-     * Clear the entire screen.  Because some terminals use
-     * back-color-erase, set the color to blank beforehand.
+     * Clear the entire screen.  Because some terminals use back-color-erase,
+     * set the color to white-on-black beforehand.
      * 
      * Returns:
      *    the string to emit to an ANSI / ECMA-style terminal
@@ -2885,9 +2866,8 @@ public class Terminal {
     }
 
     /**
-     * Clear the line up the cursor (inclusive).  Because some
-     * terminals use back-color-erase, set the color to blank
-     * beforehand.
+     * Clear the line up the cursor (inclusive).  Because some terminals use
+     * back-color-erase, set the color to white-on-black beforehand.
      * 
      * Returns:
      *    the string to emit to an ANSI / ECMA-style terminal
@@ -2897,9 +2877,9 @@ public class Terminal {
     }
 
     /**
-     * Clear the line from the cursor (inclusive) to the end of the
-     * screen.  Because some terminals use back-color-erase, set the
-     * color to blank beforehand.
+     * Clear the line from the cursor (inclusive) to the end of the screen.
+     * Because some terminals use back-color-erase, set the color to
+     * white-on-black beforehand.
      * 
      * Returns:
      *    the string to emit to an ANSI / ECMA-style terminal
@@ -2909,8 +2889,8 @@ public class Terminal {
     }
 
     /**
-     * Clear the line.  Because some terminals use back-color-erase,
-     * set the color to blank beforehand.
+     * Clear the line.  Because some terminals use back-color-erase, set the
+     * color to white-on-black beforehand.
      * 
      * Returns:
      *    the string to emit to an ANSI / ECMA-style terminal
