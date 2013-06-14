@@ -104,6 +104,9 @@ public class CellAttributes {
     /// Reverse
     public bool reverse;
 
+    /// Underline
+    public bool underline;
+
     /// Protected
     public bool protect;
 
@@ -119,6 +122,7 @@ public class CellAttributes {
 	blink = false;
 	reverse = false;
 	protect = false;
+	underline = false;
 	foreColor = COLOR_WHITE;
 	backColor = COLOR_BLACK;
     }
@@ -137,6 +141,7 @@ public class CellAttributes {
 	return ((bold == that.bold) &&
 	    (blink == that.blink) &&
 	    (reverse == that.reverse) &&
+	    (underline == that.underline) &&
 	    (protect == that.protect) &&
 	    (foreColor == that.foreColor) &&
 	    (backColor == that.backColor));
@@ -150,6 +155,7 @@ public class CellAttributes {
 	this.bold = that.bold;
 	this.blink = that.blink;
 	this.reverse = that.reverse;
+	this.underline = that.underline;
 	this.protect = that.protect;
 	this.foreColor = that.foreColor;
 	this.backColor = that.backColor;
@@ -178,6 +184,7 @@ public class Cell : CellAttributes {
 	    (bold == false) &&
 	    (blink == false) &&
 	    (reverse == false) &&
+	    (underline == false) &&
 	    (protect == false) &&
 	    (ch == ' ')) {
 	    return true;
@@ -322,6 +329,9 @@ public class Screen {
 	    logical[X][Y].backColor = attr.backColor;
 	    logical[X][Y].bold = attr.bold;
 	    logical[X][Y].blink = attr.blink;
+	    logical[X][Y].reverse = attr.reverse;
+	    logical[X][Y].underline = attr.underline;
+	    logical[X][Y].protect = attr.protect;
 	}
     }
 
@@ -378,6 +388,9 @@ public class Screen {
 	    logical[X][Y].backColor = attr.backColor;
 	    logical[X][Y].bold = attr.bold;
 	    logical[X][Y].blink = attr.blink;
+	    logical[X][Y].reverse = attr.reverse;
+	    logical[X][Y].underline = attr.underline;
+	    logical[X][Y].protect = attr.protect;
 	}
     }
 
@@ -705,6 +718,8 @@ public class Screen {
 		if ((lCell.foreColor != lastCell.foreColor) &&
 		    (lCell.backColor != lastCell.backColor) &&
 		    (lCell.bold != lastCell.bold) &&
+		    (lCell.reverse != lastCell.reverse) &&
+		    (lCell.underline != lastCell.underline) &&
 		    (lCell.blink != lastCell.blink)) {
 
 		    if (debugToStderr) {
@@ -713,11 +728,14 @@ public class Screen {
 		    
 		    // Everything is different
 		    writer.put(Terminal.color(lCell.foreColor, lCell.backColor,
-			    lCell.bold, false, lCell.blink));
+			    lCell.bold, lCell.reverse, lCell.blink,
+			    lCell.underline));
 
 		} else if ((lCell.foreColor != lastCell.foreColor) &&
 		    (lCell.backColor != lastCell.backColor) &&
 		    (lCell.bold == lastCell.bold) &&
+		    (lCell.reverse == lastCell.reverse) &&
+		    (lCell.underline == lastCell.underline) &&
 		    (lCell.blink == lastCell.blink)) {
 
 		    // Both colors changed, attributes the same
@@ -731,6 +749,8 @@ public class Screen {
 		} else if ((lCell.foreColor != lastCell.foreColor) &&
 		    (lCell.backColor == lastCell.backColor) &&
 		    (lCell.bold == lastCell.bold) &&
+		    (lCell.reverse == lastCell.reverse) &&
+		    (lCell.underline == lastCell.underline) &&
 		    (lCell.blink == lastCell.blink)) {
 
 		    // Attributes same, foreColor different
@@ -743,6 +763,8 @@ public class Screen {
 		} else if ((lCell.foreColor == lastCell.foreColor) &&
 		    (lCell.backColor != lastCell.backColor) &&
 		    (lCell.bold == lastCell.bold) &&
+		    (lCell.reverse == lastCell.reverse) &&
+		    (lCell.underline == lastCell.underline) &&
 		    (lCell.blink == lastCell.blink)) {
 
 		    // Attributes same, backColor different
@@ -755,6 +777,8 @@ public class Screen {
 		} else if ((lCell.foreColor == lastCell.foreColor) &&
 		    (lCell.backColor == lastCell.backColor) &&
 		    (lCell.bold == lastCell.bold) &&
+		    (lCell.reverse == lastCell.reverse) &&
+		    (lCell.underline == lastCell.underline) &&
 		    (lCell.blink == lastCell.blink)) {
 
 		    // All attributes the same, just print the char
@@ -767,7 +791,8 @@ public class Screen {
 		} else {
 		    // Just reset everything again
 		    writer.put(Terminal.color(lCell.foreColor, lCell.backColor,
-			    lCell.bold, false, lCell.blink));
+			    lCell.bold, lCell.reverse, lCell.blink,
+			    lCell.underline));
 
 		    if (debugToStderr) {
 			stderr.writefln("6 Change all attributes");
@@ -2672,28 +2697,44 @@ public class Terminal {
      * Returns:
      *    the string to emit to an ANSI / ECMA-style terminal, e.g. "\033[0;1;31;42m"
      */
-    public static string color(ubyte foreColor, ubyte backColor, bool bold, bool reverse, bool blink) {
+    public static string color(ubyte foreColor, ubyte backColor, bool bold, bool reverse, bool blink, bool underline) {
 	// Convert COLOR_* values to SGR numerics
 	backColor += 40;
 	foreColor += 30;
 
 	auto writer = appender!string();
-	if ( bold &&  reverse &&  blink ) {
+	if        (  bold &&  reverse &&  blink && !underline ) {
 	    writer.put("\033[0;1;7;5;");
-	} else if ( bold &&  reverse && !blink ) {
+	} else if (  bold &&  reverse && !blink && !underline ) {
 	    writer.put("\033[0;1;7;");
-	} else if ( !bold &&  reverse &&  blink ) {
+	} else if ( !bold &&  reverse &&  blink && !underline ) {
 	    writer.put("\033[0;7;5;");
-	} else if (  bold && !reverse &&  blink ) {
+	} else if (  bold && !reverse &&  blink && !underline ) {
 	    writer.put("\033[0;1;5;");
-	} else if (  bold && !reverse && !blink ) {
+	} else if (  bold && !reverse && !blink && !underline ) {
 	    writer.put("\033[0;1;");
-	} else if ( !bold &&  reverse && !blink ) {
+	} else if ( !bold &&  reverse && !blink && !underline ) {
 	    writer.put("\033[0;7;");
-	} else if ( !bold && !reverse &&  blink) {
+	} else if ( !bold && !reverse &&  blink && !underline) {
 	    writer.put("\033[0;5;");
+	} else if (  bold &&  reverse &&  blink &&  underline ) {
+	    writer.put("\033[0;1;7;5;4;");
+	} else if (  bold &&  reverse && !blink &&  underline ) {
+	    writer.put("\033[0;1;7;4;");
+	} else if ( !bold &&  reverse &&  blink &&  underline ) {
+	    writer.put("\033[0;7;5;4;");
+	} else if (  bold && !reverse &&  blink &&  underline ) {
+	    writer.put("\033[0;1;5;4;");
+	} else if (  bold && !reverse && !blink &&  underline ) {
+	    writer.put("\033[0;1;4;");
+	} else if ( !bold &&  reverse && !blink &&  underline ) {
+	    writer.put("\033[0;7;4;");
+	} else if ( !bold && !reverse &&  blink &&  underline) {
+	    writer.put("\033[0;5;4;");
+	} else if ( !bold && !reverse && !blink &&  underline) {
+	    writer.put("\033[0;4;");
 	} else {
-	    assert(!bold && !reverse && !blink);
+	    assert(!bold && !reverse && !blink && !underline);
 	    writer.put("\033[0;");
 	}
 	formattedWrite(writer, "%d;%dm", foreColor, backColor);

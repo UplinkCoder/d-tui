@@ -46,8 +46,10 @@
 
 // Imports -------------------------------------------------------------------
 
+import std.array;
 import std.conv;
 import std.file;
+import std.format;
 import std.string;
 import std.utf;
 import base;
@@ -482,7 +484,7 @@ private class ECMA48 {
     }
 
     /// The type of emulator to be
-    DeviceType type = DeviceType.VT102;
+    private DeviceType type = DeviceType.VT102;
     
     /// This represents a single line of the display buffer
     private class DisplayLine {
@@ -993,16 +995,18 @@ private class ECMA48 {
 	Cell newCell = new Cell(ch);
 	CellAttributes newCellAttributes = cast(CellAttributes)newCell;
 	newCellAttributes.setTo(currentState.attr);
-	// Insert mode special case
+	DisplayLine line = display[currentState.cursorY];
+ 	// Insert mode special case
 	if (insertMode == true) {
-	    display[currentState.cursorY].chars =
-		    display[currentState.cursorY].chars[0 .. currentState.cursorX] ~
+	    line.chars =
+		    line.chars[0 .. currentState.cursorX] ~
 		    newCell ~
-		    display[currentState.cursorY].chars[currentState.cursorX .. $ - 1];
+		    line.chars[currentState.cursorX .. $ - 1];
 	} else {
 	    // Replace an existing character
-	    display[currentState.cursorY].chars[currentState.cursorX] = newCell;
+	    line.chars[currentState.cursorX] = newCell;
 	}
+	assert(line.chars.length == ECMA48_MAX_LINE_LENGTH);
 
 	// Increment horizontal
 	if (wrapLineFlag == false) {
@@ -1035,6 +1039,11 @@ private class ECMA48 {
 		// Local echo for everything else
 		printCharacter(keystroke.ch);
 	    }
+	}
+
+	if ((newLineMode == true) && (keystroke == kbEnter)) {
+	    // NLM: send CRLF
+	    return "\015\012";
 	}
 
 	// Handle control characters
@@ -1375,6 +1384,10 @@ private class ECMA48 {
 	
 	if (keystroke == kbEnter) {
 	    return "\015";
+	}
+
+	if (keystroke == kbTab) {
+	    return "\011";
 	}
 
 	// Non-alt, non-ctrl characters
@@ -2443,21 +2456,28 @@ private class ECMA48 {
      * DECSWL - Single-width line
      */
     private void decswl() {
-	// TODO
+	display[currentState.cursorY].doubleWidth = false;
+	display[currentState.cursorY].doubleHeight = 0;
     }
 
     /**
      * DECDWL - Double-width line
      */
     private void decdwl() {
-	// TODO
+	display[currentState.cursorY].doubleWidth = true;
+	display[currentState.cursorY].doubleHeight = 0;
     }
 
     /**
      * DECHDL - Double-height + double-width line
      */
     private void dechdl(bool topHalf) {
-	// TODO
+	display[currentState.cursorY].doubleWidth = true;
+	if (topHalf == true) {
+	    display[currentState.cursorY].doubleHeight = 1;
+	} else {
+	    display[currentState.cursorY].doubleHeight = 2;
+	}
     }
 
     /**
@@ -2705,8 +2725,7 @@ private class ECMA48 {
 
 	    case 4:
 		// Underline
-		// TODO
-		// currentState.attr.underline = true;
+		currentState.attr.underline = true;
 		break;
 
 	    case 5:
@@ -2735,7 +2754,7 @@ private class ECMA48 {
 
 		case 24:
 		    // No underline
-		    // TODO
+		    currentState.attr.underline = false;
 		    break;
 
 		case 25:
@@ -2794,12 +2813,12 @@ private class ECMA48 {
 		break;
 	    case 38:
 		// Underscore on, default foreground color
-		// TODO
+		currentState.attr.underline = true;
 		currentState.attr.foreColor = COLOR_WHITE;
 		break;
 	    case 39:
 		// Underscore off, default foreground color
-		// TODO
+		currentState.attr.underline = false;
 		currentState.attr.foreColor = COLOR_WHITE;
 		break;
 	    case 40:
@@ -2849,8 +2868,72 @@ private class ECMA48 {
      * DA - Device attributes
      */
     private void da() {
-	// Send string directly to remote side
-	writeRemote(deviceTypeResponse());
+	int extendedFlag = 0;
+	int i = 0;
+
+	if (collectBuffer.length > 0) {
+	    if (collectBuffer[0] == '>') {
+		extendedFlag = 1;
+		if (collectBuffer.length >= 2) {
+		    i = to!int(collectBuffer[1 .. $]);
+		}
+	    } else if (collectBuffer[0] == '=') {
+		extendedFlag = 2;
+		if (collectBuffer.length >= 2) {
+		    i = to!int(collectBuffer[1 .. $]);
+		}
+	    } else {
+		// Unknown code, bail out
+		return;
+	    }
+	}
+
+	if ((i != 0) && (i != 1)) {
+	    return;
+	}
+
+	if ((extendedFlag == 0) && (i == 0)) {
+	    // Send string directly to remote side
+	    writeRemote(deviceTypeResponse());
+	    return;
+	}
+
+	if ((type == DeviceType.VT220) || (type == DeviceType.XTERM)) {
+
+	    if ((extendedFlag == 1) && (i == 0)) {
+		/*
+		 * Request "What type of terminal are you, what is
+		 * your firmware version, and what hardware options do
+		 * you have installed?"
+		 *
+		 * Respond: "I am a VT220 (identification code of 1),
+		 * my firmware version is _____ (Pv), and I have _____
+		 * Po options installed."
+		 *
+		 * (Same as xterm)
+		 *
+		 */
+
+		if (s8c1t == true) {
+		    writeRemote("\u009b>1;10;0c");
+		} else {
+		    writeRemote("\033[>1;10;0c");
+		}
+	    }
+	}
+
+	// VT420 and up
+	if ((extendedFlag == 2) && (i == 0)) {
+
+	    /*
+	     * Request "What is your unit ID?"
+	     *
+	     * Respond: "I was manufactured at site 00 and have a
+	     * unique ID number of 123."
+	     *
+	     */
+	    writeRemote("\033P!|00010203\033\\");
+	}
     }
 
     /**
@@ -2904,7 +2987,98 @@ private class ECMA48 {
      * DSR - Device status report
      */
     private void dsr() {
-	// TODO
+	bool decPrivateModeFlag = false;
+
+	foreach (ch; collectBuffer) {
+	    if (ch == '?') {
+		decPrivateModeFlag = true;
+	    }
+	}
+
+	auto i = getCsiParam(0, 0);
+
+	switch (i) {
+
+	case 5:
+	    // Request status report. Respond with "OK, no
+	    // malfunction."
+
+	    // Send string directly to remote side
+	    if (((type == DeviceType.VT220) || (type == DeviceType.XTERM)) &&
+		(s8c1t == true)) {
+		writeRemote("\u009b0n");
+	    } else {
+		writeRemote("\033[0n");
+	    }
+	    break;
+
+	case 6:
+	    // Request cursor position.  Respond with current
+	    // position.
+	    auto writer = appender!dstring;
+	    if (((type == DeviceType.VT220) || (type == DeviceType.XTERM)) &&
+		(s8c1t == true)) {
+		formattedWrite(writer, "\u009b%u;%uR",
+		    currentState.cursorY + 1, currentState.cursorX + 1);
+	    } else {
+		formattedWrite(writer, "\033[%u;%uR",
+		    currentState.cursorY + 1, currentState.cursorX + 1);
+	    }
+
+	    // Send string directly to remote side
+	    writeRemote(writer.data);
+	    break;
+
+	case 15:
+	    if (decPrivateModeFlag == true) {
+
+		// Request printer status report.  Respond with
+		// "Printer not connected."
+
+		if (((type == DeviceType.VT220) || (type == DeviceType.XTERM)) &&
+		    (s8c1t == true)) {
+		    writeRemote("\u009b?13n");
+		} else {
+		    writeRemote("\033[?13n");
+		}
+	    }
+	    break;
+
+	case 25:
+	    if (((type == DeviceType.VT220) || (type == DeviceType.XTERM)) &&
+		(decPrivateModeFlag == true)) {
+
+		// Request user-defined keys are locked or unlocked.
+		// Respond with "User-defined keys are locked."
+
+		if (s8c1t == true) {
+		    writeRemote("\u009b?21n");
+		} else {
+		    writeRemote("\033[?21n");
+		}
+	    }
+	    break;
+
+	case 26:
+	    if (((type == DeviceType.VT220) || (type == DeviceType.XTERM)) &&
+		(decPrivateModeFlag == true)) {
+
+		// Request keyboard language.  Respond with "Keyboard
+		// language is North American."
+
+		if (s8c1t == true) {
+		    writeRemote("\u009b?27;1n");
+		} else {
+		    writeRemote("\033[?27;1n");
+		}
+
+	    }
+	    break;
+
+	default:
+	    // Some other option, ignore
+	    break;
+	}
     }
 
     /**
@@ -3051,7 +3225,7 @@ private class ECMA48 {
     public void consume(dchar ch) {
 
 	// DEBUG
-	// stderr.writef("%c", ch);
+	stderr.writef("%c", ch);
 
 	// Special case for VT10x: 7-bit characters only
 	if ((type == DeviceType.VT100) || (type == DeviceType.VT102)) {
@@ -4525,7 +4699,8 @@ private class ECMA48 {
 		collect(ch);
 	    }
 	    if (ch == 0x5C) {
-		if ((collectBuffer.length > 0) && (collectBuffer[$ - 1] == 0x1B)) {
+		if ((collectBuffer.length > 0) &&
+		    (collectBuffer[$ - 1] == 0x1B)) {
 		    toGround();
 		}
 	    }
@@ -4577,7 +4752,8 @@ private class ECMA48 {
 		collect(ch);
 	    }
 	    if (ch == 0x5C) {
-		if ((collectBuffer.length > 0) && (collectBuffer[$ - 1] == 0x1B)) {
+		if ((collectBuffer.length > 0) &&
+		    (collectBuffer[$ - 1] == 0x1B)) {
 		    toGround();
 		}
 	    }
@@ -4607,7 +4783,8 @@ private class ECMA48 {
 		collect(ch);
 	    }
 	    if (ch == 0x5C) {
-		if ((collectBuffer.length > 0) && (collectBuffer[$ - 1] == 0x1B)) {
+		if ((collectBuffer.length > 0) &&
+		    (collectBuffer[$ - 1] == 0x1B)) {
 		    toGround();
 		}
 	    }
@@ -4653,7 +4830,8 @@ private class ECMA48 {
 		collect(ch);
 	    }
 	    if (ch == 0x5C) {
-		if ((collectBuffer.length > 0) && (collectBuffer[$ - 1] == 0x1B)) {
+		if ((collectBuffer.length > 0) &&
+		    (collectBuffer[$ - 1] == 0x1B)) {
 		    toGround();
 		}
 	    }
@@ -4762,7 +4940,8 @@ version (Posix) {
     private import core.sys.posix.sys.ioctl;
 
     extern (C) {
-	pid_t forkpty(int * amaster, char * name, termios * termp, winsize * winp);
+	pid_t forkpty(int * amaster, char * name, termios * termp,
+	    winsize * winp);
     }
 }
 
@@ -4785,7 +4964,8 @@ public class TTerminal : TWindow {
     /// If true, the process is still running
     private bool processRunning = false;
 
-    /// If true, we expect to see UTF-8 in the streams to/from the shell process
+    /// If true, we expect to see UTF-8 in the streams to/from the
+    /// shell process
     private bool utf8 = true;
 
     private import core.stdc.errno;
@@ -4839,9 +5019,10 @@ public class TTerminal : TWindow {
     public this(TApplication application, int x, int y,
 	Flag flags = Flag.CENTERED) {
 
-	super(application, "Terminal", x, y, 80 + 2, 24 + 2, flags & ~Flag.RESIZABLE);
+	super(application, "Terminal", x, y, 80 + 2, 24 + 2,
+	    flags & ~Flag.RESIZABLE);
 
-	emulator = new ECMA48(ECMA48.DeviceType.XTERM,
+	emulator = new ECMA48(ECMA48.DeviceType.VT220,
 	    delegate(dstring str) {
 		if (processRunning) {
 		    ubyte [] utf8Buffer;
@@ -4852,16 +5033,15 @@ public class TTerminal : TWindow {
 			    utf8Buffer ~= ch & 0xFF;
 			}
 		    }
-		    core.sys.posix.unistd.write(shellFD, utf8Buffer.ptr, utf8Buffer.length);
+		    core.sys.posix.unistd.write(shellFD, utf8Buffer.ptr,
+			utf8Buffer.length);
 		    core.sys.posix.unistd.fsync(shellFD);
 		}
 	    });
 
 	makeShell();
 
-	hasCursor = true;
-	cursorX = 1;
-	cursorY = 1;
+	readEmulatorState();
     }
 
     /// Draw the display buffer
@@ -4872,17 +5052,25 @@ public class TTerminal : TWindow {
 	// Now draw the emulator screen
 	int row = 1;
 	foreach (line; emulator.display) {
-	    for (auto i = 0; i < emulator.width; i++) {
+	    int widthMax = emulator.width;
+	    if (line.doubleWidth) {
+		widthMax /= 2;
+	    }
+	    for (auto i = 0; i < widthMax; i++) {
 		Cell ch = line.chars[i];
+		Cell newCell = new Cell();
+		newCell.setTo(ch);
 		bool reverse = line.reverseColor ^ ch.reverse;
+		newCell.reverse = false;
 		if (reverse) {
-		    Cell newCell = new Cell();
-		    newCell.setTo(ch);
 		    newCell.backColor = ch.foreColor;
 		    newCell.foreColor = ch.backColor;
-		    screen.putCharXY(i + 1, row, newCell);
+		}
+		if (line.doubleWidth) {
+		    screen.putCharXY((i * 2) + 1, row, newCell);
+		    screen.putCharXY((i * 2) + 2, row, ' ', newCell);
 		} else {
-		    screen.putCharXY(i + 1, row, ch);
+		    screen.putCharXY(i + 1, row, newCell);
 		}
 	    }
 	    row++;
@@ -4902,6 +5090,16 @@ public class TTerminal : TWindow {
     version(Posix) {
 	// Used in doIdle() to poll process
 	private import core.sys.posix.poll;
+    }
+
+    /**
+     * Copy out variables from the emulator that TTerminal has to
+     * expose on screen.
+     */
+    private void readEmulatorState() {
+	cursorX = emulator.getCursorX() + 1;
+	cursorY = emulator.getCursorY() + 1;
+	hasCursor = emulator.visibleCursor;
     }
 
     /**
@@ -4927,13 +5125,18 @@ public class TTerminal : TWindow {
 		// We have data, read it
 		try {
 		    if (utf8) {
-			emulator.consume(Terminal.getCharFileno(shellFD));
+			try {
+			    emulator.consume(Terminal.getCharFileno(shellFD));
+			} catch (UTFException e) {
+			    // The remote side is sending non-UTF, so
+			    // stop trying to decode UTF8 from here on
+			    // out.
+			    utf8 = false;
+			}
 		    } else {
 			emulator.consume(Terminal.getByteFileno(shellFD));
 		    }
-		    cursorX = emulator.getCursorX() + 1;
-		    cursorY = emulator.getCursorY() + 1;
-		    hasCursor = emulator.visibleCursor;
+		    readEmulatorState();
 		} catch (FileException e) {
 		    // We got EOF, close the file
 		    title = title ~ " (Offline)";
@@ -4964,8 +5167,10 @@ public class TTerminal : TWindow {
 		    utf8Buffer ~= ch & 0xFF;
 		}
 	    }
-	    core.sys.posix.unistd.write(shellFD, utf8Buffer.ptr, utf8Buffer.length);
+	    core.sys.posix.unistd.write(shellFD, utf8Buffer.ptr,
+		utf8Buffer.length);
 	    core.sys.posix.unistd.fsync(shellFD);
+	    readEmulatorState();
 	}
     }
 
