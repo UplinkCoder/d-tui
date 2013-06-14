@@ -2749,7 +2749,7 @@ private class ECMA48 {
 
 		case 22:
 		    // Normal intensity
-		    // TODO
+		    currentState.attr.bold = false;
 		    break;
 
 		case 24:
@@ -2957,7 +2957,31 @@ private class ECMA48 {
      * DECREQTPARM - Request terminal parameters
      */
     private void decreqtparm() {
-	// TODO
+	auto i = getCsiParam(0, 0);
+
+	if ((i != 0) && (i != 1)) {
+		return;
+	}
+
+	/*
+	 * Request terminal parameters.
+	 * 
+	 * Respond with:
+	 *
+	 *     Parity NONE, 8 bits, xmitspeed 38400, recvspeed 38400.
+	 *     (CLoCk MULtiplier = 1, STP option flags = 0)
+	 *
+	 * (Same as xterm)
+	 */
+	auto writer = appender!dstring;
+
+	if (((type == DeviceType.VT220) || (type == DeviceType.XTERM)) &&
+	    (s8c1t == true)) {
+	    formattedWrite(writer, "\u009b%u;1;1;128;128;1;0x", i + 2);
+	} else {
+	    formattedWrite(writer, "\033[%u;1;1;128;128;1;0x", i + 2);
+	}
+	writeRemote(writer.data);
     }
 
     /**
@@ -2980,7 +3004,11 @@ private class ECMA48 {
      * DECSTR - Soft Terminal Reset
      */
     private void decstr() {
-	// TODO
+	// Do exactly like RIS - Reset to initial state
+	reset();
+	// Do I clear screen too? I think so...
+	eraseScreen(0, 0, height - 1, width - 1, false);
+	cursorPosition(0, 0);
     }
 
     /**
@@ -3193,7 +3221,56 @@ private class ECMA48 {
      * anything.
      */
     private void printerFunctions() {
-	// TODO
+	bool decPrivateModeFlag = false;
+	foreach (ch; collectBuffer) {
+	    if (ch == '?') {
+		decPrivateModeFlag = true;
+	    }
+	}
+
+	auto i = getCsiParam(0, 0);
+
+	switch (i) {
+
+	case 0:
+	    if (decPrivateModeFlag == false) {
+		// Print screen
+	    }
+	    break;
+
+	case 1:
+	    if (decPrivateModeFlag == true) {
+		// Print cursor line
+	    }
+	    break;
+
+	case 4:
+	    if (decPrivateModeFlag == true) {
+		// Auto print mode OFF
+	    } else {
+		// Printer controller OFF
+
+		// Characters re-appear on the screen
+		printerControllerMode = false;
+	    }
+	    break;
+
+	case 5:
+	    if (decPrivateModeFlag == true) {
+		// Auto print mode
+
+	    } else {
+		// Printer controller
+
+		// Characters get sucked into oblivion
+		printerControllerMode = true;
+	    }
+	    break;
+
+	default:
+	    break;
+
+	}
     }
 
     /**
@@ -3225,7 +3302,7 @@ private class ECMA48 {
     public void consume(dchar ch) {
 
 	// DEBUG
-	stderr.writef("%c", ch);
+	// stderr.writef("%c", ch);
 
 	// Special case for VT10x: 7-bit characters only
 	if ((type == DeviceType.VT100) || (type == DeviceType.VT102)) {
@@ -5075,6 +5152,7 @@ public class TTerminal : TWindow {
 	    }
 	    row++;
 	}
+	assert(row + 1 == height);
     }
 
     /**

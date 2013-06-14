@@ -142,6 +142,7 @@ public class TApplication {
 	attr.foreColor = sgrToPCMap[attr.foreColor] ^ 0x7;
 	attr.backColor = sgrToPCMap[attr.backColor] ^ 0x7;
 	screen.putAttrXY(mouseX, mouseY, attr, false);
+	// screen.putCharXY(mouseX, mouseY, 'X', attr);
 	flush = true;
     }
 

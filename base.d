@@ -271,10 +271,10 @@ public class Screen {
     public int offsetY;
 
     /// Ignore anything drawn beyond clipX
-    public uint clipX;
+    public int clipX;
 
     /// Ignore anything drawn beyond clipY
-    public uint clipY;
+    public int clipY;
 
     /// The physical screen last sent out on flush()
     private Cell [][] physical;
@@ -295,7 +295,7 @@ public class Screen {
      * Return:
      *    attributes at (x, y)
      */ 
-    public CellAttributes getAttrXY(uint x, uint y) {
+    public CellAttributes getAttrXY(int x, int y) {
 	CellAttributes attr = new CellAttributes();
 	attr.setTo(logical[x][y]);
 	return attr;
@@ -310,7 +310,7 @@ public class Screen {
      *    attr = attributes to use (bold, foreColor, backColor)
      *    clip = if true, honor clipping/offset
      */ 
-    public void putAttrXY(uint x, uint y, CellAttributes attr, bool clip = true) {
+    public void putAttrXY(int x, int y, CellAttributes attr, bool clip = true) {
 
 	int X = x;
 	int Y = y;
@@ -358,7 +358,7 @@ public class Screen {
      *    y = row coordinate.  0 is the top-most row.
      *    ch = character + attributes to draw
      */ 
-    public void putCharXY(uint x, uint y, Cell ch) {
+    public void putCharXY(int x, int y, Cell ch) {
 	putCharXY(x, y, ch.ch, ch);
     }
 
@@ -371,7 +371,7 @@ public class Screen {
      *    ch = character to draw
      *    attr = attributes to use (bold, foreColor, backColor)
      */ 
-    public void putCharXY(uint x, uint y, dchar ch, CellAttributes attr) {
+    public void putCharXY(int x, int y, dchar ch, CellAttributes attr) {
 	if ((x >= clipX) || (y >= clipY)) {
 	    return;
 	}
@@ -383,6 +383,11 @@ public class Screen {
 	
 	if ((X >= 0) && (X < width) && (Y >= 0) && (Y < height)) {
 	    dirty = true;
+
+	    // Do not put control characters on the display
+	    assert(ch >= 0x20);
+	    assert(ch != 0x7F);
+
 	    logical[X][Y].ch = ch;
 	    logical[X][Y].foreColor = attr.foreColor;
 	    logical[X][Y].backColor = attr.backColor;
@@ -403,7 +408,7 @@ public class Screen {
      *    y = row coordinate.  0 is the top-most row.
      *    ch = character to draw
      */ 
-    public void putCharXY(uint x, uint y, dchar ch) {
+    public void putCharXY(int x, int y, dchar ch) {
 	if ((x >= clipX) || (y >= clipY)) {
 	    return;
 	}
@@ -428,7 +433,7 @@ public class Screen {
      *    str = string to draw
      *    attr = attributes to use (bold, foreColor, backColor)
      */
-    public void putStrXY(uint x, uint y, dstring str, CellAttributes attr) {
+    public void putStrXY(int x, int y, dstring str, CellAttributes attr) {
 	auto i = x;
 	foreach (ch; str) {
 	    putCharXY(i, y, ch, attr);
@@ -448,7 +453,7 @@ public class Screen {
      *    y = row coordinate.  0 is the top-most row.
      *    str = string to draw
      */
-    public void putStrXY(uint x, uint y, dstring str) {
+    public void putStrXY(int x, int y, dstring str) {
 	auto i = x;
 	foreach (ch; str) {
 	    putCharXY(i, y, ch);
@@ -469,7 +474,7 @@ public class Screen {
      *    ch = character to draw
      *    attr = attributes to use (bold, foreColor, backColor)
      */
-    public void vLineXY(uint x, uint y, uint n, dchar ch, CellAttributes attr) {
+    public void vLineXY(int x, int y, int n, dchar ch, CellAttributes attr) {
 	for (auto i = y; i < y + n; i++) {
 	    putCharXY(x, i, ch, attr);
 	}
@@ -485,7 +490,7 @@ public class Screen {
      *    ch = character to draw
      *    attr = attributes to use (bold, foreColor, backColor)
      */
-    public void hLineXY(uint x, uint y, uint n, dchar ch, CellAttributes attr) {
+    public void hLineXY(int x, int y, int n, dchar ch, CellAttributes attr) {
 	for (auto i = x; i < x + n; i++) {
 	    putCharXY(i, y, ch, attr);
 	}
@@ -640,9 +645,9 @@ public class Screen {
      *    y = row coordinate.  0 is the top-most row.
      *    writer = appender to write escape sequences to
      */ 
-    private void flushLine(uint y, Appender!(string) writer) {
+    private void flushLine(int y, Appender!(string) writer) {
 	Cell lastCell = new Cell();
-	uint lastCellX = -1;
+	int lastCellX = -1;
 	bool first = true;
 
 	int textBegin = -1;
@@ -662,6 +667,9 @@ public class Screen {
 	// Push textEnd to the beginning of the blank area
 	textEnd++;
 
+	// DEBUG
+	// reallyCleared = true;
+
 	for (auto x = 0; x < width; x++) {
 	    auto lCell = logical[x][y];
 	    auto pCell = physical[x][y];
@@ -680,16 +688,14 @@ public class Screen {
 		    writer.put(Terminal.gotoXY(x, y));
 
 		    if (x > 0) {
+
+			for (auto i = 0; i < x; i++) {
+			    assert(logical[i][y].isBlank());
+			}
+
 			// Clear everything up to here
 			writer.put(Terminal.clearPreceedingLine());
 		    }
-		}
-		if ((x == textEnd) && (textEnd < width - 1)) {
-		    assert(lCell.isBlank());
-
-		    // Clear remaining line
-		    writer.put(Terminal.clearRemainingLine());
-		    break;
 		}
 
 		// Place the cell
@@ -698,6 +704,18 @@ public class Screen {
 		    writer.put(Terminal.gotoXY(x, y));
 		} else {
 		    assert(lastCellX == (x - 1));
+		}
+
+		if ((x == textEnd) && (textEnd < width - 1)) {
+		    assert(lCell.isBlank());
+
+		    for (auto i = x; i < width; i++) {
+			assert(logical[i][y].isBlank());
+		    }
+
+		    // Clear remaining line
+		    writer.put(Terminal.clearRemainingLine());
+		    return;
 		}
 
 		if (debugToStderr) {
@@ -863,7 +881,7 @@ public class Screen {
      *                 3: double-line top/bottom edges and single-line left/right edges
      *    shadow = if true, draw a "shadow" on the box
      */
-    public void drawBox(uint left, uint top, uint right, uint bottom,
+    public void drawBox(int left, int top, int right, int bottom,
 	CellAttributes border, CellAttributes background, uint borderType = 1,
 	bool shadow = false) {
 
@@ -942,7 +960,7 @@ public class Screen {
      *    right = right column of box
      *    bottom = bottom row of the box
      */
-    public void drawBoxShadow(uint left, uint top, uint right, uint bottom) {
+    public void drawBoxShadow(int left, int top, int right, int bottom) {
 
 	auto boxTop = top;
 	auto boxLeft = left;
@@ -951,11 +969,11 @@ public class Screen {
 	CellAttributes shadowAttr = new CellAttributes();
 
 	// Shadows do not honor clipping but they DO honor offset.
-	uint oldClipX = clipX;
-	uint oldClipY = clipY;
-	clipX = width;
-	clipY = height;
-	
+	int oldClipX = clipX;
+	int oldClipY = clipY;
+	clipX = boxWidth + 2;
+	clipY = boxHeight + 1;
+
 	for (auto i = 0; i < boxHeight; i++) {
 	    putAttrXY(boxLeft + boxWidth, boxTop + 1 + i, shadowAttr);
 	    putAttrXY(boxLeft + boxWidth + 1, boxTop + 1 + i, shadowAttr);
