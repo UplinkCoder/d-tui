@@ -5311,6 +5311,7 @@ public class TTerminal : TWindow {
 
     private import core.stdc.errno;
     private import core.stdc.string;
+    private import core.sys.posix.sys.ioctl;
 
     private void makeShell() {
 
@@ -5335,6 +5336,25 @@ public class TTerminal : TWindow {
 	    // We set LANG, but lots of shells don't honor it
 	    string langString = emulator.deviceTypeLang("en_US");
 	    core.sys.posix.stdlib.putenv(cast(char *)toStringz(langString));
+
+	    // Set COLUMNS
+	    auto writer = appender!string();
+	    formattedWrite(writer, "COLUMNS=%d", emulator.width);
+	    core.sys.posix.stdlib.putenv(cast(char *)toStringz(writer.data));
+	    writer.clear();
+
+	    // Set LINES
+	    formattedWrite(writer, "LINES=%d", emulator.height);
+	    core.sys.posix.stdlib.putenv(cast(char *)toStringz(writer.data));
+	    writer.clear();
+
+	    // Set window size
+	    winsize terminalSize;
+	    if (ioctl(shellFD, TIOCGWINSZ, &terminalSize) >= 0) {
+		terminalSize.ws_col = cast(ushort)emulator.width;
+		terminalSize.ws_row = cast(ushort)emulator.height;
+		ioctl(shellFD, TIOCSWINSZ, &terminalSize);
+	    }
 
 	    // Execute the shell
 	    core.sys.posix.unistd.execvp(argz[0], argz.ptr);
@@ -5383,6 +5403,13 @@ public class TTerminal : TWindow {
 	makeShell();
 
 	readEmulatorState();
+
+	// Add a timer so that our onIdle() will get called frequently.
+	application.addTimer(100,
+	    function () {
+		return;
+	    }, true);
+
     }
 
     /// Draw the display buffer
