@@ -1,5 +1,5 @@
 /**
- * D Text User Interface library - TText class
+ * D Text User Interface library - TProgressBar class
  *
  * Version: $Id$
  *
@@ -35,7 +35,6 @@
 
 // Imports -------------------------------------------------------------------
 
-import std.string;
 import std.utf;
 import base;
 import codepage;
@@ -48,28 +47,30 @@ import twidget;
 // Classes -------------------------------------------------------------------
 
 /**
- * TText implements a simple text.
+ * TProgressBar implements a simple progress bar.
  */
-public class TText : TWidget {
+public class TProgressBar : TWidget {
 
-    /// Text converted to paragraphs
-    private dstring [] paragraphs;
+    /// Value that corresponds to 0% progress
+    public int minValue = 0;
 
-    /// Text color
-    private CellAttributes color;
+    /// Value that corresponds to 100% progress
+    public int maxValue = 100;
+
+    /// Current value of the progress
+    public int value = 0;
 
     /**
      * Public constructor
      *
      * Params:
      *    parent = parent widget
-     *    text = text on the screen
      *    x = column relative to parent
      *    y = row relative to parent
-     *    colorKey = ColorTheme key color to use for foreground text.  Default is "ttext"
+     *    width = width of progress bar
+     *    value = initial value of percent complete
      */
-    public this(TWidget parent, dstring text, uint x, uint y,
-	string colorKey = "ttext") {
+    public this(TWidget parent, uint x, uint y, uint width, int value = 0) {
 
 	// Do this before the twidget constructor
 	this.enabled = false;
@@ -79,47 +80,24 @@ public class TText : TWidget {
 
 	this.x = x;
 	this.y = y;
-
-	// Break up text into paragraphs
-	this.paragraphs = split(text, "\n\n");
-
-	// Set my size
-	onResize(new TResizeEvent(parent.width, parent.height));
-
-	// Setup my color
-	color = window.application.theme.getColor(colorKey);
+	this.height = 1;
+	this.width = width;
+	this.value = value;
     }
 
-    /// Draw a static text
+    /// Draw a static progress bar
     override public void draw() {
-	height = 0;
-	foreach (p; paragraphs) {
-	    dstring paragraph = wrap!(dstring)(p, this.width);
-	    dstring [] lines = splitLines!(dstring)(paragraph);
-	    for (auto i = 0; i < lines.length; i++) {
-		window.putStrXY(0, i + height, leftJustify!(dstring)(lines[i],
-			this.width), color);
+	CellAttributes completeColor = window.application.theme.getColor("tprogressbar.complete");
+	CellAttributes incompleteColor = window.application.theme.getColor("tprogressbar.incomplete");
+
+	float progress = (cast(float)value - minValue) / (cast(float)maxValue - minValue);
+	for (auto i = 0; i < width; i++) {
+	    float iProgress = cast(float)i / width;
+	    if (iProgress < progress) {
+		window.putCharXY(i, 0, GraphicsChars.HATCH, completeColor);
+	    } else {
+		window.putCharXY(i, 0, GraphicsChars.BOX, incompleteColor);
 	    }
-	    height += cast(uint)lines.length;
-	    window.hLineXY(0, height, this.width, ' ', color);
-	    height++;
-	}
-    }
-
-    /**
-     * Handle window resize.
-     *
-     * Params:
-     *    resize = resize event
-     */
-    override protected void onResize(TResizeEvent resize) {
-	this.width = parent.width - this.x - 3;
-
-	this.height = 0;
-	foreach (p; paragraphs) {
-	    dstring paragraph = wrap!(dstring)(p, this.width);
-	    dstring [] lines = splitLines!(dstring)(paragraph);
-	    this.height += cast(uint)lines.length + 1;
 	}
     }
 

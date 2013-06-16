@@ -34,7 +34,6 @@
 /*
  * TODO:
  *
- *     pass vttest
  *     handle resizable window
  *     xterm mouse reporting
  *     split state machine into ECMA48 and VT52
@@ -614,7 +613,7 @@ private class ECMA48 {
     private int scrollRegionBottom;
 
     /// Right margin
-    private int rightMargin;
+    public uint rightMargin;
 
     /// Last character printed
     private dchar repCh;
@@ -783,7 +782,7 @@ private class ECMA48 {
      */
     private void resetTabStops() {
 	tabStops.length = 0;
-	for (int i = 0; (i * 8) < width; i++) {
+	for (int i = 0; (i * 8) <= rightMargin; i++) {
 	    tabStops.length++;
 	    tabStops[i] = i * 8;
 	}
@@ -800,7 +799,7 @@ private class ECMA48 {
 	height			= 24;
 	scrollRegionTop		= 0;
 	scrollRegionBottom	= height - 1;
-	rightMargin		= 79;
+	rightMargin		= width - 1;
 	newLineMode		= false;
 	arrowKeyMode		= ArrowKeyMode.ANSI;
 	keypadMode		= KeypadMode.Numeric;
@@ -949,7 +948,7 @@ private class ECMA48 {
      *     ch = character to display
      */
     private void printCharacter(dchar ch) {
-	size_t rightMargin = this.rightMargin;
+	auto rightMargin = this.rightMargin;
 
 	// Check if we have double-width, and if so chop at 40/66
 	// instead of 80/132
@@ -1180,27 +1179,81 @@ private class ECMA48 {
 	}
 	
 	if (keystroke == kbF5) {
-	    return "\033Ot";
+	    final switch (type) {
+	    case DeviceType.VT100:
+		return "\033Ot";
+	    case DeviceType.VT102:
+		return "\033Ot";
+	    case DeviceType.VT220:
+		return "\033[15~";
+	    case DeviceType.XTERM:
+		return "\033[15~";
+	    }
 	}
 	
 	if (keystroke == kbF6) {
-	    return "\033Ou";
+	    final switch (type) {
+	    case DeviceType.VT100:
+		return "\033Ou";
+	    case DeviceType.VT102:
+		return "\033Ou";
+	    case DeviceType.VT220:
+		return "\033[17~";
+	    case DeviceType.XTERM:
+		return "\033[17~";
+	    }
 	}
 	
 	if (keystroke == kbF7) {
-	    return "\033Ov";
+	    final switch (type) {
+	    case DeviceType.VT100:
+		return "\033Ov";
+	    case DeviceType.VT102:
+		return "\033Ov";
+	    case DeviceType.VT220:
+		return "\033[18~";
+	    case DeviceType.XTERM:
+		return "\033[18~";
+	    }
 	}
 	
 	if (keystroke == kbF8) {
-	    return "\033Ol";
+	    final switch (type) {
+	    case DeviceType.VT100:
+		return "\033Ol";
+	    case DeviceType.VT102:
+		return "\033Ol";
+	    case DeviceType.VT220:
+		return "\033[19~";
+	    case DeviceType.XTERM:
+		return "\033[19~";
+	    }
 	}
 	
 	if (keystroke == kbF9) {
-	    return "\033Ow";
+	    final switch (type) {
+	    case DeviceType.VT100:
+		return "\033Ow";
+	    case DeviceType.VT102:
+		return "\033Ow";
+	    case DeviceType.VT220:
+		return "\033[20~";
+	    case DeviceType.XTERM:
+		return "\033[20~";
+	    }
 	}
 	
 	if (keystroke == kbF10) {
-	    return "\033Ox";
+	    final switch (type) {
+	    case DeviceType.VT100:
+		return "\033Ox";
+	    case DeviceType.VT102:
+		return "\033Ox";
+	    case DeviceType.VT220:
+		return "\033[21~";
+	    case DeviceType.XTERM:
+		return "\033[21~";
+	    }
 	}
 	
 	if (keystroke == kbF11) {
@@ -1356,14 +1409,17 @@ private class ECMA48 {
 	}
 	
 	if (keystroke == kbPgUp) {
+	    // Page Up
 	    return "\033[5~";
 	}
 	
 	if (keystroke == kbPgDn) {
+	    // Page Down
 	    return "\033[6~";
 	}
 	
 	if (keystroke == kbIns) {
+	    // Ins
 	    return "\033[2~";
 	}
 	
@@ -1373,14 +1429,14 @@ private class ECMA48 {
 	    // This is what xterm sends for CTRL-INS
 	    // return "\033[2;5~";
 	}
-	
+
 	if (keystroke == kbShiftDel) {
 	    // This is what xterm sends for SHIFT-DEL
 	    return "\033[3;2~";
 	    // This is what xterm sends for CTRL-DEL
 	    // return "\033[3;5~";
 	}
-	
+
 	if (keystroke == kbDel) {
 	    // Delete sends real delete for VTxxx
 	    return "\177";
@@ -1389,6 +1445,14 @@ private class ECMA48 {
 	
 	if (keystroke == kbEnter) {
 	    return "\015";
+	}
+
+	if (keystroke == kbEsc) {
+	    return "\033";
+	}
+
+	if (keystroke == kbAltEsc) {
+	    return "\033\033";
 	}
 
 	if (keystroke == kbTab) {
@@ -1799,7 +1863,7 @@ private class ECMA48 {
     private void advanceToNextTabStop() {
 	if (tabStops.length == 0) {
 	    // Go to the rightmost column
-	    cursorRight(width - 1 - currentState.cursorX, false);
+	    cursorRight(rightMargin - currentState.cursorX, false);
 	    return;
 	}
 	foreach (stop; tabStops) {
@@ -1813,7 +1877,7 @@ private class ECMA48 {
 	 * cursor position.  Place the cursor of the right-most edge of the
 	 * screen.
 	 */
-	cursorRight(width - 1 - currentState.cursorX, false);
+	cursorRight(rightMargin - currentState.cursorX, false);
     }
 
     /**
@@ -1986,6 +2050,7 @@ private class ECMA48 {
 			columns132 = false;
 			rightMargin = 79;
 		    }
+		    width = rightMargin + 1;
 		    // Entire screen is cleared, and scrolling region is reset
 		    eraseScreen(0, 0, height - 1, width - 1, false);
 		    scrollRegionTop = 0;
@@ -2357,7 +2422,7 @@ private class ECMA48 {
      *    honorScrollRegion = if true, then do nothing if the cursor is outside the scrolling region
      */
     private void cursorRight(int n, bool honorScrollRegion) {
-	int rightMargin;
+	auto rightMargin = this.rightMargin;
 
 	/*
 	 * Special case: if a user moves the cursor from the right margin,
@@ -2367,11 +2432,6 @@ private class ECMA48 {
 	    wrapLineFlag = false;
 	}
 
-	if (this.rightMargin > 0) {
-	    rightMargin = this.rightMargin;
-	} else {
-	    rightMargin = width - 1;
-	}
 	if (display[currentState.cursorY].doubleWidth == true) {
 	    rightMargin = ((rightMargin + 1) / 2) - 1;
 	}
@@ -2401,31 +2461,21 @@ private class ECMA48 {
      *    col = column to move to
      */
     private void cursorPosition(int row, int col) {
-	int rightMargin;
+	auto rightMargin = this.rightMargin;
 
 	assert(col >= 0);
 	assert(row >= 0);
 
-	if (this.rightMargin > 0) {
-	    rightMargin = this.rightMargin;
-	} else {
-	    rightMargin = width - 1;
-	}
 	if (display[currentState.cursorY].doubleWidth == true) {
 	    rightMargin = ((rightMargin + 1) / 2) - 1;
 	}
 
 	// Set column number
 	currentState.cursorX = col;
-	if (currentState.cursorX > width - 1) {
-	    currentState.cursorX = width - 1;
-	}
 
 	// Sanity check, bring column back to margin.
-	if (this.rightMargin > 0) {
-	    if (currentState.cursorX > rightMargin) {
-		currentState.cursorX = rightMargin;
-	    }
+	if (currentState.cursorX > rightMargin) {
+	    currentState.cursorX = rightMargin;
 	}
 
 	// Set row number
@@ -2530,7 +2580,7 @@ private class ECMA48 {
      * CUF - Cursor forward
      */
     private void cuf() {
-	cursorRight(getCsiParam(0, 1, 1, width), true);
+	cursorRight(getCsiParam(0, 1, 1, rightMargin + 1), true);
     }
 
     /**
@@ -2552,7 +2602,7 @@ private class ECMA48 {
      */
     private void cup() {
 	cursorPosition(getCsiParam(0, 1, 1, height) - 1,
-	    getCsiParam(1, 1, 1, width) - 1);
+	    getCsiParam(1, 1, 1, rightMargin + 1) - 1);
     }
 
     /**
@@ -2578,7 +2628,7 @@ private class ECMA48 {
      */
     private void cha() {
 	cursorPosition(currentState.cursorY,
-	    getCsiParam(0, 1, 1, width) - 1);
+	    getCsiParam(0, 1, 1, rightMargin + 1) - 1);
     }
 
     /**
@@ -5375,13 +5425,12 @@ public class TTerminal : TWindow {
      *    application = TApplication that manages this window
      *    x = column relative to parent
      *    y = row relative to parent
-     *    flags = mask of CENTERED, or MODAL (RESIZABLE is stripped)
+     *    flags = mask of CENTERED, MODAL, or RESIZABLE
      */
     public this(TApplication application, int x, int y,
-	Flag flags = Flag.CENTERED) {
+	Flag flags = Flag.CENTERED | Flag.RESIZABLE) {
 
-	super(application, "Terminal", x, y, 80 + 2, 24 + 2,
-	    flags & ~Flag.RESIZABLE);
+	super(application, "Terminal", x, y, 80 + 2, 24 + 2, flags);
 
 	emulator = new ECMA48(ECMA48.DeviceType.XTERM,
 	    delegate(dstring str) {
@@ -5424,6 +5473,9 @@ public class TTerminal : TWindow {
 	    if (line.doubleWidth) {
 		widthMax /= 2;
 	    }
+	    if (widthMax > width - 2) {
+		widthMax = width - 2;
+	    }
 	    for (auto i = 0; i < widthMax; i++) {
 		Cell ch = line.chars[i];
 		Cell newCell = new Cell();
@@ -5442,8 +5494,11 @@ public class TTerminal : TWindow {
 		}
 	    }
 	    row++;
+	    if (row == height - 1) {
+		// Don't overwrite the box edge
+		break;
+	    }
 	}
-	assert(row + 1 == height);
     }
 
     /**
@@ -5470,10 +5525,10 @@ public class TTerminal : TWindow {
 	cursorY = emulator.getCursorY() + 1;
 	hasCursor = emulator.visibleCursor;
 	if (cursorX > width - 2) {
-	    cursorX = width - 2;
+	    hasCursor = false;
 	}
 	if (cursorY > height - 2) {
-	    cursorY = height - 2;
+	    hasCursor = false;
 	}
 	if (emulator.screenTitle.length > 0) {
 	    title = emulator.screenTitle;
@@ -5549,7 +5604,11 @@ public class TTerminal : TWindow {
 		utf8Buffer.length);
 	    core.sys.posix.unistd.fsync(shellFD);
 	    readEmulatorState();
+	    return;
 	}
+
+	// Process is closed, honor "normal" TUI keystrokes
+	super.onKeypress(event);
     }
 
 }

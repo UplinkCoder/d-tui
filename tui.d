@@ -44,6 +44,7 @@ public import tfield;
 public import tlabel;
 public import tmenu;
 public import tmessagebox;
+public import tprogress;
 public import tradio;
 public import tterminal;
 public import ttext;

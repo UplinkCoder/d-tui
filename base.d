@@ -1467,7 +1467,9 @@ public struct TCommand {
 	/// File open dialog
 	OPEN,
 	/// Exit application
-	EXIT, };
+	EXIT,
+	/// Spawn OS shell window
+	SHELL, };
     
     /// Type of command, one of EXIT, etc.
     public Type type;
@@ -1487,6 +1489,7 @@ public struct TCommand {
 public immutable TCommand cmExit = TCommand(TCommand.Type.EXIT);
 public immutable TCommand cmQuit = TCommand(TCommand.Type.EXIT);
 public immutable TCommand cmOpen = TCommand(TCommand.Type.OPEN);
+public immutable TCommand cmShell = TCommand(TCommand.Type.SHELL);
 
 /**
  * This is the parent class of all events received from the Terminal.
@@ -2763,9 +2766,9 @@ public class Terminal {
      */
     public static string normal(bool header = true) {
 	if (header) {
-	    return "\033[0m";
+	    return "\033[0;37;40m";
 	}
-	return "0;";
+	return "0;37;40";
     }
 
     /**
@@ -3159,6 +3162,18 @@ public class ColorTheme {
 	color.backColor = COLOR_GREEN;
 	color.bold = false;
 	colors["tmenu.accelerator.highlighted"] = color;
+
+	// TProgressBar
+	color = new CellAttributes();
+	color.foreColor = COLOR_YELLOW;
+	color.backColor = COLOR_BLACK;
+	color.bold = true;
+	colors["tprogressbar.complete"] = color;
+	color = new CellAttributes();
+	color.foreColor = COLOR_YELLOW;
+	color.backColor = COLOR_BLUE;
+	color.bold = true;
+	colors["tprogressbar.incomplete"] = color;
 
     }
 

@@ -45,6 +45,7 @@ import twindow;
 import tmessagebox;
 import tmenu;
 import ttimer;
+import tterminal;
 
 // Defines -------------------------------------------------------------------
 
@@ -693,6 +694,11 @@ public class TApplication {
 	    repaint = true;
 	    return true;
 	}
+	if (cmd.cmd == cmShell) {
+	    openTerminal(0, 0, TWindow.Flag.RESIZABLE);
+	    repaint = true;
+	    return true;
+	}
 	return false;
     }
 
@@ -706,7 +712,7 @@ public class TApplication {
      *    if true, this event was consumed
      */
     protected bool onKeypress(TKeypressEvent keypress) {
-	// Default: handle Alt-TAB, F6, and menu shortcuts
+	// Default: handle Alt-TAB and menu shortcuts
 
 	// Alt-TAB
 	if (keypress.key == kbAltTab) {
@@ -714,13 +720,7 @@ public class TApplication {
 	    return true;
 	}
 
-	// F6 - behave like Alt-TAB
-	if (keypress.key == kbF6) {
-	    switchWindow();
-	    return true;
-	}
-
-	// Process Alt-F menu shortcut key
+	// Process Alt-F, Alt-E, etc. menu shortcut keys
 	if (!keypress.key.isKey &&
 	    keypress.key.alt &&
 	    !keypress.key.ctrl &&
@@ -914,10 +914,27 @@ public class TApplication {
      * Returns:
      *    the new window
      */
-    final public TWindow addWindow(dstring title, uint x, uint y, uint width, uint height,
-	TWindow.Flag flags = TWindow.Flag.RESIZABLE) {
+    final public TWindow addWindow(dstring title, uint x, uint y, uint width,
+	uint height, TWindow.Flag flags = TWindow.Flag.RESIZABLE) {
 
 	return new TWindow(this, title, x, y, width, height, flags);
+    }
+
+    /**
+     * Convenience function to open a terminal window.
+     *
+     * Params:
+     *    x = column relative to parent
+     *    y = row relative to parent
+     *    flags = mask of CENTERED, MODAL, or RESIZABLE
+     *
+     * Returns:
+     *    the new window
+     */
+    final public TTerminal openTerminal(uint x, uint y,
+	TWindow.Flag flags = TWindow.Flag.RESIZABLE | TWindow.Flag.CENTERED) {
+
+	return new TTerminal(this, x, y, flags);
     }
 
     /**

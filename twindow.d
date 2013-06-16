@@ -534,6 +534,12 @@ public class TWindow : TWidget {
 	    return;
 	}
 
+	// F6 - behave like Alt-TAB
+	if (keypress.key == kbF6) {
+	    application.switchWindow();
+	    return;
+	}
+
 	// I didn't take it, pass it on to my children
 	super.onKeypress(keypress);
     }

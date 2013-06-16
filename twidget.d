@@ -44,6 +44,7 @@ import tbutton;
 import tlabel;
 import tfield;
 import tcheckbox;
+import tprogress;
 import tradio;
 import ttext;
 
@@ -710,6 +711,21 @@ public class TWidget {
 
 	return new TText(this, text, x, y, colorKey);
     }    
+
+    /**
+     * Convenience function to add a progress bar to this
+     * container/window.
+     *
+     * Params:
+     *    parent = parent widget
+     *    x = column relative to parent
+     *    y = row relative to parent
+     *    width = width of progress bar
+     *    value = initial value of percent complete
+     */
+    public TProgressBar addProgressBar(uint x, uint y, uint width, int value = 0) {
+	return new TProgressBar(this, x, y, width, value = 0);
+    }
 
 }
 

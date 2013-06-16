@@ -321,11 +321,39 @@ public class TMenu : TWindow {
 	height++;
 	if (menuItem.width + 2 > width) {
 	    width = menuItem.width + 2;
-	    foreach (i; children) {
-		i.width = width - 2;
-	    }
+	}
+	foreach (i; children) {
+	    i.width = width - 2;
 	}
 	application.addAccelerator(cmd, toLower(key));
+	application.recomputeMenuX();
+	activate(0);
+	return menuItem;
+    }
+
+    /**
+     * Convenience function to add a menu item.
+     *
+     * Params:
+     *    label = menu item label
+     *    cmd = command to dispatch when this item is selected
+     *
+     * Returns:
+     *    the new menu item
+     */
+    public TMenuItem addItem(dstring label, TCommand cmd) {
+	uint y = cast(uint)children.length + 1;
+	
+	assert(y < height);
+	TMenuItem menuItem = new TMenuItem(this, 1, y, label);
+	menuItem.setCommand(cmd);
+	height++;
+	if (menuItem.width + 2 > width) {
+	    width = menuItem.width + 2;
+	}
+	foreach (i; children) {
+	    i.width = width - 2;
+	}
 	application.recomputeMenuX();
 	activate(0);
 	return menuItem;
@@ -355,6 +383,7 @@ public class TMenuItem : TWidget {
     private TCommand cmd;
     private TKeypress key;
     private bool hasCommand = false;
+    private bool hasKey = false;
 
     /// The shortcut and title
     public AcceleratorString accelerator;
@@ -369,12 +398,25 @@ public class TMenuItem : TWidget {
     public void setCommand(TCommand cmd, TKeypress key) {
 	hasCommand = true;
 	this.cmd = cmd;
+	hasKey = true;
 	this.key = key;
 
 	uint newWidth = cast(uint)(label.length + 4 + key.toString().length + 2);
 	if (newWidth > width) {
 	    width = newWidth;
 	}
+    }
+
+    /**
+     * Set a command for this menu to execute
+     *
+     * Params:
+     *    cmd = command to execute on Enter
+     */
+    public void setCommand(TCommand cmd) {
+	hasCommand = true;
+	this.cmd = cmd;
+	hasKey = false;
     }
 
     /**
@@ -436,7 +478,7 @@ public class TMenuItem : TWidget {
 
 	window.hLineXY(1, 0, width - 2, ' ', menuColor);
 	window.putStrXY(2, 0, accelerator.rawTitle, menuColor);
-	if (hasCommand) {
+	if (hasKey) {
 	    dstring keyLabel = key.toString();
 	    window.putStrXY(cast(uint)(width - keyLabel.length - 2), 0, keyLabel, menuColor);
 	}

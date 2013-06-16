@@ -71,7 +71,7 @@ calling this version 1.0:
 - [ ] TText
   - [ ] Horizontal scrollbar
   - [ ] Vertical scrollbar
-- [ ] TProgressBar
+- [ ] TTreeView
 - [ ] TMenu / TMenuItem
   - [ ] TSubMenu
   - [ ] TMenuItem: enabled, disabled, checked, unchecked
@@ -99,3 +99,4 @@ Wishlist features:
   - [ ] TTextArea
   - [ ] TField
   - [ ] TText
+  - [ ] TTerminal
