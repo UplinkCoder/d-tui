@@ -3165,14 +3165,14 @@ public class ColorTheme {
 
 	// TProgressBar
 	color = new CellAttributes();
-	color.foreColor = COLOR_YELLOW;
-	color.backColor = COLOR_BLACK;
+	color.foreColor = COLOR_BLUE;
+	color.backColor = COLOR_BLUE;
 	color.bold = true;
 	colors["tprogressbar.complete"] = color;
 	color = new CellAttributes();
-	color.foreColor = COLOR_YELLOW;
+	color.foreColor = COLOR_WHITE;
 	color.backColor = COLOR_BLUE;
-	color.bold = true;
+	color.bold = false;
 	colors["tprogressbar.incomplete"] = color;
 
     }

@@ -65,6 +65,7 @@ calling this version 1.0:
 
 - [ ] Demo
   - [ ] Add editor window
+- [ ] TEditor : TWindow
 - [ ] TTerminal
   - [ ] Horizontal scrollbar
   - [ ] Vertical scrollbar
@@ -83,7 +84,6 @@ calling this version 1.0:
 - [ ] TApplicationSocket - socket that knows about environment variables and
         rows X cols
       - [ ] this(TApplication application)
-- [ ] TEditor : TWindow
 
 Wishlist features:
 

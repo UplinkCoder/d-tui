@@ -91,14 +91,27 @@ public class TProgressBar : TWidget {
 	CellAttributes incompleteColor = window.application.theme.getColor("tprogressbar.incomplete");
 
 	float progress = (cast(float)value - minValue) / (cast(float)maxValue - minValue);
-	for (auto i = 0; i < width; i++) {
-	    float iProgress = cast(float)i / width;
-	    if (iProgress < progress) {
-		window.putCharXY(i, 0, GraphicsChars.HATCH, completeColor);
+	int progressInt = cast(int)(progress * 100);
+	int progressUnit = 100 / (width - 2);
+
+	window.putCharXY(0, 0, cp437_chars[0xC3], incompleteColor);
+	for (auto i = 0; i < width - 2; i++) {
+	    float iProgress = cast(float)i / (width - 2);
+	    int iProgressInt = cast(int)(iProgress * 100);
+	    if (iProgressInt <= progressInt - progressUnit) {
+		window.putCharXY(i + 1, 0, GraphicsChars.BOX, completeColor);
 	    } else {
-		window.putCharXY(i, 0, GraphicsChars.BOX, incompleteColor);
+		window.putCharXY(i + 1, 0, GraphicsChars.SINGLE_BAR,
+		    incompleteColor);
 	    }
 	}
+	if (value >= maxValue) {
+	    window.putCharXY(width - 2, 0, GraphicsChars.BOX, completeColor);
+	} else {
+	    window.putCharXY(width - 2, 0, GraphicsChars.SINGLE_BAR,
+		incompleteColor);
+	}
+	window.putCharXY(width - 1, 0, cp437_chars[0xB4], incompleteColor);
     }
 
 }

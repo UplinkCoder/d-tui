@@ -335,18 +335,20 @@ private class DemoMainWindow : TWindow {
 	}
 	row += 2;
 
-	TProgressBar bar = addProgressBar(1, row, 20);
+	TProgressBar bar = addProgressBar(1, row, 22);
 	row++;
 	TLabel timerLabel = addLabel("Timer", 1, row);
-	timer = parent.addTimer(250,
+	timer = parent.addTimer(100,
 	    {
 		static int i = 0;
 		auto writer = appender!dstring();
 		formattedWrite(writer, "Timer: %d", i);
 		timerLabel.text = writer.data;
 		timerLabel.width = cast(uint)timerLabel.text.length;
-		i++;
-		bar.value = i % bar.maxValue;
+		if (i < 100) {
+		    i++;
+		}
+		bar.value = i;
 		parent.repaint = true;
 	    }, true);
 
