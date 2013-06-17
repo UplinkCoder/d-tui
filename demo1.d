@@ -141,9 +141,24 @@ EOS",
 	    w.onResize(event);
 	}
     }
+}
 
+private class DemoTreeViewWindow : TWindow {
 
+    /// Constructor
+    this(TApplication parent) {
+	super(parent, "Tree View", 0, 0, 24, 20, TWindow.Flag.RESIZABLE);
 
+	// Load the treeview with "stuff"
+	TTreeView view = addTreeView(1, 1, 20, 16);
+	TTreeItem root = new TTreeItem("/");
+	view.treeRoot = root;
+	root.addChild("bin");
+	root.addChild("etc");
+	TTreeItem home = root.addChild("home");
+	home.addChild("user1");
+	root.addChild("usr");
+    }
 }
 
 private class DemoMsgBoxWindow : TWindow {
@@ -357,6 +372,16 @@ private class DemoMainWindow : TWindow {
 	row += 2;
 
 	if (!isModal) {
+	    addLabel("Tree views", 1, row);
+	    addButton("TreeView", 35, row,
+		{
+		    new DemoTreeViewWindow(application);
+		}
+	    );
+	}
+	row += 2;
+
+	if (!isModal) {
 	    addLabel("Terminal", 1, row);
 	    addButton("Terminal", 35, row,
 		{
@@ -382,12 +407,6 @@ private class DemoMainWindow : TWindow {
 		bar.value = i;
 		parent.repaint = true;
 	    }, true);
-
-	addButton("Close Window", (width - 14) / 2, height - 5,
-	    {
-		application.closeWindow(this);
-	    }
-	);
     }
 
 }

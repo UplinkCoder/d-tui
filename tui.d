@@ -49,5 +49,6 @@ public import tradio;
 public import tterminal;
 public import ttext;
 public import ttimer;
+public import ttreeview;
 public import twidget;
 public import twindow;

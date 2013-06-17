@@ -47,6 +47,7 @@ import tcheckbox;
 import tprogress;
 import tradio;
 import ttext;
+import ttreeview;
 
 // Defines -------------------------------------------------------------------
 
@@ -715,8 +716,7 @@ public class TWidget {
     }    
 
     /**
-     * Convenience function to add a progress bar to this
-     * container/window.
+     * Convenience function to add a progress bar to this container/window.
      *
      * Params:
      *    parent = parent widget
@@ -727,6 +727,20 @@ public class TWidget {
      */
     public TProgressBar addProgressBar(uint x, uint y, uint width, int value = 0) {
 	return new TProgressBar(this, x, y, width, value = 0);
+    }
+
+    /**
+     * Convenience function to add a tree view to this container/window.
+     *
+     * Params:
+     *    parent = parent widget
+     *    x = column relative to parent
+     *    y = row relative to parent
+     *    width = width of tree view
+     *    height = height of tree view
+     */
+    public TTreeView addTreeView(uint x, uint y, uint width, uint height) {
+	return new TTreeView(this, x, y, width, height);
     }
 
 }

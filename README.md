@@ -70,7 +70,6 @@ calling this version 1.0:
   - [ ] Horizontal scrollbar
   - [ ] Vertical scrollbar
 - [ ] TTreeView
-  - [ ] Horizontal scrollbar
   - [ ] Vertical scrollbar
 - [ ] TMenu / TMenuItem
   - [ ] TSubMenu

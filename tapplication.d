@@ -400,6 +400,9 @@ public class TApplication {
 	// Perform window cleanup
 	window.onClose();
 
+	// Refresh screen
+	repaint = true;
+
 	// Check if we are closing a TMessageBox or similar
 	if (secondaryEventReceiver !is null) {
 	    assert(secondaryEventFiber !is null);
