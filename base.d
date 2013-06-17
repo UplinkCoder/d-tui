@@ -1577,6 +1577,15 @@ public class TMouseEvent : TInputEvent {
  */
 public class TResizeEvent : TInputEvent {
 
+    /// Resize events can be generated for either a total screen resize or a
+    /// widget/window resize.
+    public enum Type {
+	Screen,
+	Widget, };
+
+    /// The type of resize
+    public Type type;
+   
     /// New width
     public uint width;
 
@@ -1584,7 +1593,8 @@ public class TResizeEvent : TInputEvent {
     public uint height;
 
     /// Contructor
-    public this(uint width, uint height) {
+    public this(Type type, uint width, uint height) {
+	this.type = type;
 	this.width = width;
 	this.height = height;
     }
@@ -1592,7 +1602,7 @@ public class TResizeEvent : TInputEvent {
     /// Make human-readable description of this event
     override public string toString() {
 	auto writer = appender!string();
-	formattedWrite(writer, "Resize: width = %d height = %d", width, height);
+	formattedWrite(writer, "Resize: %s width = %d height = %d", type, width, height);
 	return writer.data;
     }
 
@@ -1918,7 +1928,8 @@ public class Terminal {
 	}
 
 	// Hang onto the window size
-	windowResize = new TResizeEvent(getPhysicalWidth(), getPhysicalHeight());
+	windowResize = new TResizeEvent(TResizeEvent.Type.Screen, getPhysicalWidth(),
+	    getPhysicalHeight());
     }
 
     /// Destructor restores terminal to normal state
@@ -2352,7 +2363,8 @@ public class Terminal {
 	    auto newHeight = getPhysicalHeight();
 	    if ((newWidth != windowResize.width) ||
 		(newHeight != windowResize.height)) {
-		TResizeEvent event = new TResizeEvent(newWidth, newHeight);
+		TResizeEvent event = new TResizeEvent(TResizeEvent.Type.Screen,
+		    newWidth, newHeight);
 		windowResize.width = newWidth;
 		windowResize.height = newHeight;
 		events ~= event;
@@ -3087,8 +3099,8 @@ public class ColorTheme {
 
 	// TText text
 	color = new CellAttributes();
-	color.foreColor = COLOR_BLACK;
-	color.backColor = COLOR_CYAN;
+	color.foreColor = COLOR_WHITE;
+	color.backColor = COLOR_BLACK;
 	color.bold = false;
 	colors["ttext"] = color;
 	
@@ -3177,10 +3189,15 @@ public class ColorTheme {
 
 	// THScroller / TVScroller
 	color = new CellAttributes();
+	color.foreColor = COLOR_CYAN;
+	color.backColor = COLOR_BLUE;
+	color.bold = false;
+	colors["tscroller.bar"] = color;
+	color = new CellAttributes();
 	color.foreColor = COLOR_BLUE;
 	color.backColor = COLOR_CYAN;
 	color.bold = false;
-	colors["tscroller"] = color;
+	colors["tscroller.arrows"] = color;
 
     }
 

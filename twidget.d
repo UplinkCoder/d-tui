@@ -93,16 +93,16 @@ public class TWidget {
     private int tabOrder = 0;
 
     /// If true, this widget can be tabbed to or receive events
-    protected bool enabled = true;
+    public bool enabled = true;
 
     /// If true, this widget has a cursor
     public bool hasCursor = false;
 
     /// Cursor column position in relative coordinates
-    protected uint cursorX = 0;
+    public uint cursorX = 0;
 
     /// Cursor row position in relative coordinates
-    protected uint cursorY = 0;
+    public uint cursorY = 0;
 
     /// Comparison operator sorts on tabOrder
     public override int opCmp(Object rhs) {
@@ -190,7 +190,7 @@ public class TWidget {
 
     /// Draw my specific widget.  When called, the screen rectangle I
     /// draw into is already setup (offset and clipping).
-    protected void draw() {
+    public void draw() {
 	// Default widget draws nothing.
     }
 
@@ -321,7 +321,7 @@ public class TWidget {
      * Param:
      *    forward = switch to the next enabled widget in the list
      */
-    final protected void switchWidget(bool forward) {
+    final public void switchWidget(bool forward) {
 
 	// Only switch if there are multiple enabled widgets
 	if ((children.length < 2) || (activeChild is null)) {
@@ -391,7 +391,7 @@ public class TWidget {
      * Params:
      *    event = keystroke event
      */
-    protected void onKeypress(TKeypressEvent event) {
+    public void onKeypress(TKeypressEvent event) {
 
 	if (children.length == 0) {
 	    // Defaults:
@@ -431,7 +431,7 @@ public class TWidget {
      * Params:
      *    event = mouse button event
      */
-    protected void onMouseDown(TMouseEvent event) {
+    public void onMouseDown(TMouseEvent event) {
 	// Default: do nothing, pass to children instead
 	foreach (w; children) {
 	    if (w.mouseWouldHit(event)) {
@@ -454,7 +454,7 @@ public class TWidget {
      * Params:
      *    event = mouse button release event
      */
-    protected void onMouseUp(TMouseEvent event) {
+    public void onMouseUp(TMouseEvent event) {
 	// Default: do nothing, pass to children instead
 	foreach (w; children) {
 	    if (w.mouseWouldHit(event)) {
@@ -476,7 +476,7 @@ public class TWidget {
      * Params:
      *    event = mouse motion event
      */
-    protected void onMouseMotion(TMouseEvent event) {
+    public void onMouseMotion(TMouseEvent event) {
 	// Default: do nothing, pass it on to ALL of my children.  This way
 	// the children can see the mouse "leaving" their area.
 	foreach (w; children) {
@@ -494,7 +494,7 @@ public class TWidget {
      * Params:
      *    event = resize event
      */
-    protected void onResize(TResizeEvent event) {
+    public void onResize(TResizeEvent event) {
 	// Default: do nothing, pass to children instead
 	foreach (w; children) {
 	    w.onResize(event);
@@ -508,7 +508,7 @@ public class TWidget {
      * Params:
      *    event = command event
      */
-    protected void onCommand(TCommandEvent event) {
+    public void onCommand(TCommandEvent event) {
 	// Default: do nothing, pass to children instead
 	foreach (w; children) {
 	    w.onCommand(event);

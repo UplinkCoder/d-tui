@@ -53,6 +53,9 @@ import tscroll;
  */
 public class TText : TWidget {
 
+    /// Text to display
+    public dstring text;
+
     /// Text converted to lines
     private dstring [] lines;
 
@@ -61,6 +64,64 @@ public class TText : TWidget {
 
     /// Vertical scrollbar
     private TVScroller vScroller;
+
+    /// Horizontal scrollbar
+    private THScroller hScroller;
+
+    /// Maximum width of a single line
+    private uint maxLineWidth;
+
+    /**
+     * Resize text and scrollbars for a new width/height
+     */
+    public void reflow() {
+	// Reset the lines
+	lines.length = 0;
+	maxLineWidth = 0;
+
+	// Break up text into paragraphs
+	dstring [] paragraphs = split(text, "\n\n");
+	foreach (p; paragraphs) {
+	    dstring paragraph = wrap!(dstring)(p, width - 1);
+	    lines ~= splitLines!(dstring)(paragraph);
+	    lines ~= "";
+	}
+	foreach (line; lines) {
+	    if (line.length > maxLineWidth) {
+		maxLineWidth = cast(uint)line.length;
+	    }
+	}
+
+	// Start at the top
+	if (vScroller is null) {
+	    vScroller = new TVScroller(this, width - 1, 0, height - 1);
+	} else {
+	    vScroller.x = width - 1;
+	    vScroller.height = height - 1;
+	}
+	vScroller.bottomValue = cast(int)lines.length - height - 1;
+	vScroller.topValue = 0;
+	vScroller.value = 0;
+	if (vScroller.bottomValue < 0) {
+	    vScroller.bottomValue = 0;
+	}
+	vScroller.bigChange = height - 1;
+
+	// Start at the left
+	if (hScroller is null) {
+	    hScroller = new THScroller(this, 0, height - 1, width - 1);
+	} else {
+	    hScroller.y = height - 1;
+	    hScroller.width = width - 1;
+	}
+	hScroller.rightValue = maxLineWidth - width + 1;
+	hScroller.leftValue = 0;
+	hScroller.value = 0;
+	if (hScroller.rightValue < 0) {
+	    hScroller.rightValue = 0;
+	}
+	hScroller.bigChange = width - 1;
+    }
 
     /**
      * Public constructor
@@ -84,34 +145,94 @@ public class TText : TWidget {
 	this.y = y;
 	this.width = width;
 	this.height = height;
-
-	// Break up text into paragraphs
-	dstring [] paragraphs = split(text, "\n\n");
-	foreach (p; paragraphs) {
-	    dstring paragraph = wrap!(dstring)(p, this.width - 1);
-	    lines ~= splitLines!(dstring)(paragraph);
-	    lines ~= "";
-	}
-	// Start at the top
-	vScroller = new TVScroller(this, width - 1, 0, height);
-	vScroller.bottomValue = cast(int)lines.length - height;
-	if (vScroller.bottomValue < 0) {
-	    vScroller.bottomValue = 0;
-	}
+	this.text = text;
 
 	// Setup my color
 	color = window.application.theme.getColor(colorKey);
+
+	reflow();
     }
 
     /// Draw a static text
     override public void draw() {
 	uint begin = vScroller.value;
 	uint topY = 0;
-	for (auto i = begin; i < lines.length; i++) {
-	    window.putStrXY(0, topY, leftJustify!(dstring)(lines[i],
-		    this.width - 1), color);
+	for (auto i = begin; i < lines.length - 1; i++) {
+	    dstring line = lines[i];
+	    if (hScroller.value < line.length) {
+		line = line[hScroller.value .. $];
+	    } else {
+		line = "";
+	    }
+	    window.putStrXY(0, topY,
+		leftJustify!(dstring)(line, this.width - 1), color);
 	    topY++;
 	}
+    }
+
+    /**
+     * Handle mouse motion events.
+     *
+     * Params:
+     *    mouse = mouse button release event
+     */
+    override protected void onMouseDown(TMouseEvent mouse) {
+	if (mouse.mouseWheelUp) {
+	    vScroller.decrement();
+	    return;
+	}
+	if (mouse.mouseWheelDown) {
+	    vScroller.increment();
+	    return;
+	}
+
+	// Pass to children
+	super.onMouseDown(mouse);
+    }
+
+    /**
+     * Handle keystrokes.
+     *
+     * Params:
+     *    event = keystroke event
+     */
+    override protected void onKeypress(TKeypressEvent keypress) {
+	TKeypress key = keypress.key;
+	if (key == kbLeft) {
+	    hScroller.decrement();
+	    return;
+	}
+	if (key == kbRight) {
+	    hScroller.increment();
+	    return;
+	}
+	if (key == kbUp) {
+	    vScroller.decrement();
+	    return;
+	}
+	if (key == kbDown) {
+	    vScroller.increment();
+	    return;
+	}
+	if (key == kbPgUp) {
+	    vScroller.bigDecrement();
+	    return;
+	}
+	if (key == kbPgDn) {
+	    vScroller.bigIncrement();
+	    return;
+	}
+	if (key == kbHome) {
+	    vScroller.toTop();
+	    return;
+	}
+	if (key == kbEnd) {
+	    vScroller.toBottom();
+	    return;
+	}
+
+	// Pass other keys (tab etc.) on
+	super.onKeypress(keypress);
     }
 
 }

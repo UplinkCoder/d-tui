@@ -460,7 +460,7 @@ public class TWindow : TWidget {
 		maximized = true;
 	    }
 	    // Pass a resize event to my children
-	    onResize(new TResizeEvent(width, height));
+	    onResize(new TResizeEvent(TResizeEvent.Type.Widget, width, height));
 	    return;
 	}
 
@@ -512,7 +512,7 @@ public class TWindow : TWidget {
 		inWindowResize = false;
 	    }
 	    // Pass a resize event to my children
-	    onResize(new TResizeEvent(width, height));
+	    onResize(new TResizeEvent(TResizeEvent.Type.Widget, width, height));
 	    return;
 	}
 

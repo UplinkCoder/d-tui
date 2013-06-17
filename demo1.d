@@ -87,11 +87,14 @@ private class DemoEditorWindow : TWindow {
 
 private class DemoTextWindow : TWindow {
 
+    /// Hang onto my TText so I can resize it with the window
+    private TText textField;
+
     /// Constructor
     this(TApplication parent) {
 	super(parent, "Text Areas", 0, 0, 44, 20, TWindow.Flag.RESIZABLE);
 
-	addText(
+	textField = addText(
 	    q"EOS
 This is an example of a reflowable text field.  Some example text follows.
 
@@ -109,9 +112,37 @@ xterm mouse tracking using UTF8 coordinates is supported.
 
 Win32 console support is desired, contributions to that effort would
 be *greatly* appreciated.
+
+This library is licensed LGPL ("GNU Lesser General Public License")
+version 3 or greater.  See the file COPYING for the full license text,
+which includes both the GPL v3 and the LGPL supplemental terms.
+
 EOS",
 	    1, 1, 40, 16);
     }
+
+    /**
+     * Handle window/screen resize events.
+     *
+     * Params:
+     *    event = resize event
+     */
+    override protected void onResize(TResizeEvent event) {
+	if (event.type == TResizeEvent.Type.Widget) {
+	    // Resize the text field
+	    textField.width = event.width - 4;
+	    textField.height = event.height - 4;
+	    textField.reflow();
+	    return;
+	}
+
+	// Pass to children instead
+	foreach (w; children) {
+	    w.onResize(event);
+	}
+    }
+
+
 
 }
 
