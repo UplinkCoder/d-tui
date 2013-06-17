@@ -120,6 +120,9 @@ public class TVScroller : TWidget {
      * Perform a small step change up.
      */
     public void decrement() {
+	if (bottomValue == topValue) {
+	    return;
+	}
 	value -= smallChange;
 	if (value < topValue) {
 	    value = topValue;
@@ -130,6 +133,9 @@ public class TVScroller : TWidget {
      * Perform a small step change down.
      */
     public void increment() {
+	if (bottomValue == topValue) {
+	    return;
+	}
 	value += smallChange;
 	if (value > bottomValue) {
 	    value = bottomValue;
@@ -140,6 +146,9 @@ public class TVScroller : TWidget {
      * Perform a big step change up.
      */
     public void bigDecrement() {
+	if (bottomValue == topValue) {
+	    return;
+	}
 	value -= bigChange;
 	if (value < topValue) {
 	    value = topValue;
@@ -150,6 +159,9 @@ public class TVScroller : TWidget {
      * Perform a big step change down.
      */
     public void bigIncrement() {
+	if (bottomValue == topValue) {
+	    return;
+	}
 	value += bigChange;
 	if (value > bottomValue) {
 	    value = bottomValue;
@@ -177,6 +189,9 @@ public class TVScroller : TWidget {
      *    mouse = mouse button release event
      */
     override protected void onMouseUp(TMouseEvent mouse) {
+	if (bottomValue == topValue) {
+	    return;
+	}
 
 	if (inScroll) {
 	    inScroll = false;
@@ -227,6 +242,9 @@ public class TVScroller : TWidget {
      *    mouse = mouse button release event
      */
     override protected void onMouseMotion(TMouseEvent mouse) {
+	if (bottomValue == topValue) {
+	    return;
+	}
 
 	if ((mouse.mouse1) &&
 	    (inScroll) &&
@@ -248,6 +266,10 @@ public class TVScroller : TWidget {
      *    mouse = mouse button release event
      */
     override protected void onMouseDown(TMouseEvent mouse) {
+	if (bottomValue == topValue) {
+	    return;
+	}
+
 	if ((mouse.x == 0) &&
 	    (mouse.y == boxPosition())) {
 	    inScroll = true;
@@ -331,6 +353,9 @@ public class THScroller : TWidget {
      * Perform a small step change left.
      */
     public void decrement() {
+	if (leftValue == rightValue) {
+	    return;
+	}
 	value -= smallChange;
 	if (value < leftValue) {
 	    value = leftValue;
@@ -341,6 +366,9 @@ public class THScroller : TWidget {
      * Perform a small step change right.
      */
     public void increment() {
+	if (leftValue == rightValue) {
+	    return;
+	}
 	value += smallChange;
 	if (value > rightValue) {
 	    value = rightValue;

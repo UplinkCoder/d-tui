@@ -51,7 +51,11 @@ import twidget;
 /**
  * TTreeItem is a single item in a tree view.
  */
-public class TTreeItem {
+public class TTreeItem : TWidget {
+
+    /// Hang onto reference to my parent view so I can call reflow() when
+    /// needed.
+    private TTreeView view;
 
     /// Displayable text for this item
     public dstring text;
@@ -61,17 +65,25 @@ public class TTreeItem {
 
     /// Children nodes of this item
     public TTreeItem [] children;
+
+    /// The vertical bars and such along the left side
+    public dstring prefix = "";
     
     /**
      * Public constructor
      *
      * Params:
+     *    view = parent TTreeView
      *    text = text for this item
      *    expanded = if true, have it expanded immediately
      */
-    public this(dstring text, bool expanded = false) {
+    public this(TTreeView view, dstring text, bool expanded = false) {
+	super(view);
+
 	this.text = text;
 	this.expanded = expanded;
+	this.view = view;
+	view.reflow();
     }
     
     /**
@@ -84,10 +96,17 @@ public class TTreeItem {
      * Returns:
      */
     public TTreeItem addChild(dstring text, bool expanded = false) {
-	TTreeItem item = new TTreeItem(text, expanded);
+	TTreeItem item = new TTreeItem(view, text, expanded);
 	children ~= item;
+	view.reflow();
 	return item;
     }
+
+    /// Draw this item
+    override public void draw() {
+
+    }
+
 }
 
 /**
@@ -103,6 +122,12 @@ public class TTreeView : TWidget {
 
     /// Root of the tree
     public TTreeItem treeRoot;
+
+    /// Tree view converted to lines
+    private dstring [] lines;
+
+    /// Maximum width of a single line
+    private uint maxLineWidth;
 
     /**
      * Public constructor
@@ -122,40 +147,10 @@ public class TTreeView : TWidget {
 	this.y = y;
 	this.height = height;
 	this.width = width;
-
-	// Start at the top
-	if (vScroller is null) {
-	    vScroller = new TVScroller(this, width - 1, 0, height - 1);
-	} else {
-	    vScroller.x = width - 1;
-	    vScroller.height = height - 1;
-	}
-	vScroller.bottomValue = height - 1;
-	vScroller.topValue = 0;
-	vScroller.value = 0;
-	if (vScroller.bottomValue < 0) {
-	    vScroller.bottomValue = 0;
-	}
-	vScroller.bigChange = height - 1;
-
-	// Start at the left
-	if (hScroller is null) {
-	    hScroller = new THScroller(this, 0, height - 1, width - 1);
-	} else {
-	    hScroller.y = height - 1;
-	    hScroller.width = width - 1;
-	}
-	hScroller.rightValue = width + 1;
-	hScroller.leftValue = 0;
-	hScroller.value = 0;
-	if (hScroller.rightValue < 0) {
-	    hScroller.rightValue = 0;
-	}
-	hScroller.bigChange = width - 1;
     }
 
     /**
-     * Recursively draw the view
+     * Recursively draw the view to the lines[] array.
      *
      * Params:
      *    level = recursion level (root is 0)
@@ -184,15 +179,10 @@ public class TTreeView : TWidget {
 	} else {
 	    line = "";
 	}
+	lines ~= line;
 
-	uint displayRow = row - vScroller.value;
-	if ((displayRow >= 0) && (displayRow < height - 1)) {
-	    window.putStrXY(0, row - vScroller.value, leftJustify!(dstring)(line, this.width - 1), color);
-	}
-
-	uint lines = 1;
+	uint lineNumber = 1;
 	dstring newPrefix = prefix;
-
 	if (level > 0) {
 	    if (last) {
 		newPrefix ~= "  ";
@@ -203,15 +193,146 @@ public class TTreeView : TWidget {
 	}
 	for (auto i = 0; i < item.children.length; i++) {
 	    auto p = item.children[i];
-	    lines += drawTree(level + 1, newPrefix, p, lines + row,
+	    lineNumber += drawTree(level + 1, newPrefix, p, lineNumber + row,
 		i == item.children.length - 1 ? true : false);
 	}
-	return lines;
+	return lineNumber;
+    }
+
+    /**
+     * Resize text and scrollbars for a new width/height
+     */
+    public void reflow() {
+	lines.length = 0;
+
+	if (treeRoot is null) {
+	    return;
+	}
+	
+	// Start at the top
+	if (vScroller is null) {
+	    vScroller = new TVScroller(this, width - 1, 0, height - 1);
+	} else {
+	    vScroller.x = width - 1;
+	    vScroller.height = height - 1;
+	}
+	vScroller.topValue = 0;
+	vScroller.value = 0;
+	vScroller.bigChange = height - 1;
+
+	// Start at the left
+	if (hScroller is null) {
+	    hScroller = new THScroller(this, 0, height - 1, width - 1);
+	} else {
+	    hScroller.y = height - 1;
+	    hScroller.width = width - 1;
+	}
+	hScroller.leftValue = 0;
+	hScroller.value = 0;
+	hScroller.bigChange = width - 1;
+
+	drawTree(0, "", treeRoot, 0, true);
+
+	// Update the scroll bars to reflect the recursive data
+	foreach (line; lines) {
+	    if (line.length > maxLineWidth) {
+		maxLineWidth = cast(uint)line.length;
+	    }
+	}
+	vScroller.bottomValue = cast(int)lines.length - height - 1;
+	if (vScroller.bottomValue < 0) {
+	    vScroller.bottomValue = 0;
+	}
+	hScroller.rightValue = maxLineWidth - width + 1;
+	if (hScroller.rightValue < 0) {
+	    hScroller.rightValue = 0;
+	}
     }
 
     /// Draw a tree view
     override public void draw() {
-	vScroller.bottomValue = drawTree(0, "", treeRoot, 0, true) - 1;
+	if (treeRoot is null) {
+	    return;
+	}
+	CellAttributes color = window.application.theme.getColor("ttreeview");
+	uint begin = vScroller.value;
+	uint topY = 0;
+	for (auto i = begin; i < lines.length - 1; i++) {
+	    dstring line = lines[i];
+	    if (hScroller.value < line.length) {
+		line = line[hScroller.value .. $];
+	    } else {
+		line = "";
+	    }
+	    window.putStrXY(0, topY,
+		leftJustify!(dstring)(line, this.width - 1), color);
+	    topY++;
+	}
+    }
+
+    /**
+     * Handle mouse motion events.
+     *
+     * Params:
+     *    mouse = mouse button release event
+     */
+    override protected void onMouseDown(TMouseEvent mouse) {
+	if (mouse.mouseWheelUp) {
+	    vScroller.decrement();
+	    return;
+	}
+	if (mouse.mouseWheelDown) {
+	    vScroller.increment();
+	    return;
+	}
+
+	// Pass to children
+	super.onMouseDown(mouse);
+    }
+
+    /**
+     * Handle keystrokes.
+     *
+     * Params:
+     *    event = keystroke event
+     */
+    override protected void onKeypress(TKeypressEvent keypress) {
+	TKeypress key = keypress.key;
+	if (key == kbLeft) {
+	    hScroller.decrement();
+	    return;
+	}
+	if (key == kbRight) {
+	    hScroller.increment();
+	    return;
+	}
+	if (key == kbUp) {
+	    vScroller.decrement();
+	    return;
+	}
+	if (key == kbDown) {
+	    vScroller.increment();
+	    return;
+	}
+	if (key == kbPgUp) {
+	    vScroller.bigDecrement();
+	    return;
+	}
+	if (key == kbPgDn) {
+	    vScroller.bigIncrement();
+	    return;
+	}
+	if (key == kbHome) {
+	    vScroller.toTop();
+	    return;
+	}
+	if (key == kbEnd) {
+	    vScroller.toBottom();
+	    return;
+	}
+
+	// Pass other keys (tab etc.) on
+	super.onKeypress(keypress);
     }
 
 }
