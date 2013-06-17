@@ -2946,9 +2946,9 @@ public class Terminal {
      */
     public static string mouse(bool on) {
 	if (on) {
-	    return "\033[?1003;1005h\033[>2p\033[?1049h";
+	    return "\033[?1003;1005h\033[?1049h";
 	}
-	return "\033[?1003;1005l\033[>1p\033[?1049l";
+	return "\033[?1003;1005l\033[?1049l";
     }
 
 };
@@ -3174,6 +3174,13 @@ public class ColorTheme {
 	color.backColor = COLOR_BLUE;
 	color.bold = false;
 	colors["tprogressbar.incomplete"] = color;
+
+	// THScroller / TVScroller
+	color = new CellAttributes();
+	color.foreColor = COLOR_BLUE;
+	color.backColor = COLOR_CYAN;
+	color.bold = false;
+	colors["tscroller"] = color;
 
     }
 

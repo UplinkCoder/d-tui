@@ -704,12 +704,14 @@ public class TWidget {
      *    text = text on the screen
      *    x = column relative to parent
      *    y = row relative to parent
+     *    width = width of text area
+     *    height = height of text area
      *    colorKey = ColorTheme key color to use for foreground text.  Default is "ttext"
      */
-    public TText addText(dstring text, uint x, uint y,
+    public TText addText(dstring text, uint x, uint y, uint width, uint height,
 	string colorKey = "ttext") {
 
-	return new TText(this, text, x, y, colorKey);
+	return new TText(this, text, x, y, width, height, colorKey);
     }    
 
     /**

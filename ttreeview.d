@@ -1,5 +1,5 @@
 /**
- * D Text User Interface library - TText class
+ * D Text User Interface library - TTreeView class
  *
  * Version: $Id$
  *
@@ -35,12 +35,10 @@
 
 // Imports -------------------------------------------------------------------
 
-import std.string;
 import std.utf;
 import base;
 import codepage;
 import twidget;
-import tscroll;
 
 // Defines -------------------------------------------------------------------
 
@@ -49,69 +47,38 @@ import tscroll;
 // Classes -------------------------------------------------------------------
 
 /**
- * TText implements a simple text.
+ * TTreeView implements a simple treeView.
  */
-public class TText : TWidget {
-
-    /// Text converted to lines
-    private dstring [] lines;
-
-    /// Text color
-    private CellAttributes color;
-
-    /// Vertical scrollbar
-    private TVScroller vScroller;
+public class TTreeView : TWidget {
 
     /**
      * Public constructor
      *
      * Params:
      *    parent = parent widget
-     *    text = text on the screen
+     *    text = treeView on the screen
      *    x = column relative to parent
      *    y = row relative to parent
-     *    width = width of text area
-     *    height = height of text area
-     *    colorKey = ColorTheme key color to use for foreground text.  Default is "ttext"
+     *    width = width of tree view
+     *    height = height of tree view
      */
-    public this(TWidget parent, dstring text, uint x, uint y, uint width,
-	uint height, string colorKey = "ttext") {
+    public this(TWidget parent, dstring text, uint x, uint y,
+	uint width, uint height) {
+
+	// Do this before the twidget constructor
+	this.enabled = false;
 
 	// Set parent and window
 	super(parent);
 
 	this.x = x;
 	this.y = y;
-	this.width = width;
 	this.height = height;
-
-	// Break up text into paragraphs
-	dstring [] paragraphs = split(text, "\n\n");
-	foreach (p; paragraphs) {
-	    dstring paragraph = wrap!(dstring)(p, this.width - 1);
-	    lines ~= splitLines!(dstring)(paragraph);
-	    lines ~= "";
-	}
-	// Start at the top
-	vScroller = new TVScroller(this, width - 1, 0, height);
-	vScroller.bottomValue = cast(int)lines.length - height;
-	if (vScroller.bottomValue < 0) {
-	    vScroller.bottomValue = 0;
-	}
-
-	// Setup my color
-	color = window.application.theme.getColor(colorKey);
+	this.width = width;
     }
 
-    /// Draw a static text
+    /// Draw a tree view
     override public void draw() {
-	uint begin = vScroller.value;
-	uint topY = 0;
-	for (auto i = begin; i < lines.length; i++) {
-	    window.putStrXY(0, topY, leftJustify!(dstring)(lines[i],
-		    this.width - 1), color);
-	    topY++;
-	}
     }
 
 }

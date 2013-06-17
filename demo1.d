@@ -89,7 +89,7 @@ private class DemoTextWindow : TWindow {
 
     /// Constructor
     this(TApplication parent) {
-	super(parent, "Text Areas", 0, 0, 70, 20, TWindow.Flag.RESIZABLE);
+	super(parent, "Text Areas", 0, 0, 44, 20, TWindow.Flag.RESIZABLE);
 
 	addText(
 	    q"EOS
@@ -110,7 +110,7 @@ xterm mouse tracking using UTF8 coordinates is supported.
 Win32 console support is desired, contributions to that effort would
 be *greatly* appreciated.
 EOS",
-	    1, 1);
+	    1, 1, 40, 16);
     }
 
 }
