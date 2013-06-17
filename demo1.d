@@ -156,8 +156,14 @@ private class DemoTreeViewWindow : TWindow {
 	root.addChild("bin");
 	root.addChild("etc");
 	TTreeItem home = root.addChild("home");
-	home.addChild("user1");
+	TTreeItem user1 = home.addChild("user1");
+	user1.addChild("foo");
+	user1.addChild("foo2");
+	user1.addChild("foo3");
 	root.addChild("usr");
+	TTreeItem var = root.addChild("var");
+	TTreeItem varLog = var.addChild("log");
+	varLog.addChild("apache2");
     }
 }
 

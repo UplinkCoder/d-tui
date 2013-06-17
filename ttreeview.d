@@ -159,26 +159,23 @@ public class TTreeView : TWidget {
      *
      * Params:
      *    level = recursion level (root is 0)
+     *    prefix = vertical bar of parent levels and such
      *    item = tree item to draw
      *    row = row number to render to
+     *    last = if true, this is the "last" leaf node of a tree
      *
      * Return:
      *    the number of lines displayed
      */
-    private uint drawTree(uint level, TTreeItem item, uint row) {
-	if (row > width - 1) {
-	    return 0;
-	}
+    private uint drawTree(uint level, dstring prefix, TTreeItem item, uint row, bool last) {
 	CellAttributes color = window.application.theme.getColor("ttreeview");
-	dstring line = "";
-	if (level > 1) {
-	    for (auto i = 0; i < level - 1; i++) {
-		line ~= cp437_chars[0xB3];
-		line ~= ' ';
-	    }
-	}
+	dstring line = prefix;
 	if (level > 0) {
-	    line ~= cp437_chars[0xC0];
+	    if (last) {
+		line ~= cp437_chars[0xC0];
+	    } else {
+		line ~= cp437_chars[0xC3];
+	    }
 	    line ~= cp437_chars[0xC4];
 	}
 	line ~= item.text;
@@ -187,17 +184,34 @@ public class TTreeView : TWidget {
 	} else {
 	    line = "";
 	}
-	window.putStrXY(0, row, leftJustify!(dstring)(line, this.width - 1), color);
+
+	uint displayRow = row - vScroller.value;
+	if ((displayRow >= 0) && (displayRow < height - 1)) {
+	    window.putStrXY(0, row - vScroller.value, leftJustify!(dstring)(line, this.width - 1), color);
+	}
+
 	uint lines = 1;
-	foreach (p; item.children) {
-	    lines += drawTree(level + 1, p, lines + row);
+	dstring newPrefix = prefix;
+
+	if (level > 0) {
+	    if (last) {
+		newPrefix ~= "  ";
+	    } else {
+		newPrefix ~= cp437_chars[0xB3];
+		newPrefix ~= ' ';
+	    }
+	}
+	for (auto i = 0; i < item.children.length; i++) {
+	    auto p = item.children[i];
+	    lines += drawTree(level + 1, newPrefix, p, lines + row,
+		i == item.children.length - 1 ? true : false);
 	}
 	return lines;
     }
 
     /// Draw a tree view
     override public void draw() {
-	drawTree(0, treeRoot, 0);
+	vScroller.bottomValue = drawTree(0, "", treeRoot, 0, true) - 1;
     }
 
 }
