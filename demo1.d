@@ -151,7 +151,7 @@ private class DemoTreeViewWindow : TWindow {
 
 	// Load the treeview with "stuff"
 	TTreeView view = addTreeView(1, 1, 20, 16);
-	TTreeItem root = new TTreeItem(view, "/");
+	TTreeItem root = new TTreeItem(view, "/", true);
 	view.treeRoot = root;
 	root.addChild("bin");
 	root.addChild("etc");

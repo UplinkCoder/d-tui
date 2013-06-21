@@ -35,12 +35,15 @@
 
 // Imports -------------------------------------------------------------------
 
+import std.array;
+import std.format;
 import std.string;
 import std.utf;
 import base;
 import codepage;
 import tscroll;
 import twidget;
+import twindow;
 
 // Defines -------------------------------------------------------------------
 
@@ -51,7 +54,7 @@ import twidget;
 /**
  * TTreeItem is a single item in a tree view.
  */
-public class TTreeItem : TWidget {
+public class TTreeItem {
 
     /// Hang onto reference to my parent view so I can call reflow() when
     /// needed.
@@ -61,14 +64,23 @@ public class TTreeItem : TWidget {
     public dstring text;
 
     /// If true, this item is expanded in the tree view
-    public bool expanded = false;
+    public bool expanded = true;
 
     /// Children nodes of this item
     public TTreeItem [] children;
 
     /// The vertical bars and such along the left side
-    public dstring prefix = "";
-    
+    private dstring prefix = "";
+
+    /// Whether or not this item is last in its parent's list of children
+    private bool last = false;
+
+    /// Tree level
+    private uint level = 0;
+
+    /// The column location that has the expand/unexpand button
+    public uint expandX = 0;
+
     /**
      * Public constructor
      *
@@ -77,9 +89,7 @@ public class TTreeItem : TWidget {
      *    text = text for this item
      *    expanded = if true, have it expanded immediately
      */
-    public this(TTreeView view, dstring text, bool expanded = false) {
-	super(view);
-
+    public this(TTreeView view, dstring text, bool expanded) {
 	this.text = text;
 	this.expanded = expanded;
 	this.view = view;
@@ -95,16 +105,84 @@ public class TTreeItem : TWidget {
      *
      * Returns:
      */
-    public TTreeItem addChild(dstring text, bool expanded = false) {
+    public TTreeItem addChild(dstring text, bool expanded = true) {
 	TTreeItem item = new TTreeItem(view, text, expanded);
+	item.level = this.level + 1;
 	children ~= item;
 	view.reflow();
 	return item;
     }
 
-    /// Draw this item
-    override public void draw() {
+    /**
+     * Recursively expand the tree into a linear array of items.
+     *
+     * Params:
+     *    prefix = vertical bar of parent levels and such that is set on each child
+     *    last = if true, this is the "last" leaf node of a tree
+     *
+     * Return:
+     *    additional items to add to the array
+     */
+    public TTreeItem [] expandTree(dstring prefix, bool last) {
+	TTreeItem [] array;
+	this.last = last;
+	this.prefix = prefix;
+	array ~= this;
 
+	if ((children.length == 0) || (expanded == false)) {
+	    return array;
+	}
+
+	dstring newPrefix = prefix;
+	if (level > 0) {
+	    if (last) {
+		newPrefix ~= "  ";
+	    } else {
+		newPrefix ~= cp437_chars[0xB3];
+		newPrefix ~= ' ';
+	    }
+	}
+	for (auto i = 0; i < children.length; i++) {
+	    auto p = children[i];
+	    array ~= p.expandTree(newPrefix, i == children.length - 1 ? true : false);
+	}
+	return array;
+    }
+
+    /**
+     * Draw this item to a window
+     *
+     * Params:
+     *    window = window to draw to
+     *    x = column to draw at
+     *    y = row to draw at
+     *    color = color to use for text
+     */
+    public void draw(TWindow window, uint x, uint y, CellAttributes color) {
+	dstring line = prefix;
+	if (level > 0) {
+	    if (last) {
+		line ~= cp437_chars[0xC0];
+	    } else {
+		line ~= cp437_chars[0xC3];
+	    }
+	    line ~= cp437_chars[0xC4];
+	    if (expanded) {
+		line ~= "[-] ";
+	    } else {
+		line ~= "[+] ";
+	    }
+	}
+	line ~= text;
+	window.putStrXY(x, y, line, color);
+    }
+
+    /// Make human-readable description of this Keystroke.
+    override public string toString() {
+	auto writer = appender!string();
+	formattedWrite(writer, "TTreeItem expanded: %s prefix: %s text: %s last: %s children.length: %d",
+	    expanded, prefix, text, last, children.length);
+	return writer.data;
     }
 
 }
@@ -123,8 +201,8 @@ public class TTreeView : TWidget {
     /// Root of the tree
     public TTreeItem treeRoot;
 
-    /// Tree view converted to lines
-    private dstring [] lines;
+    /// Tree view converted from the B-tree form into a linear list
+    private TTreeItem [] treeList;
 
     /// Maximum width of a single line
     private uint maxLineWidth;
@@ -150,61 +228,9 @@ public class TTreeView : TWidget {
     }
 
     /**
-     * Recursively draw the view to the lines[] array.
-     *
-     * Params:
-     *    level = recursion level (root is 0)
-     *    prefix = vertical bar of parent levels and such
-     *    item = tree item to draw
-     *    row = row number to render to
-     *    last = if true, this is the "last" leaf node of a tree
-     *
-     * Return:
-     *    the number of lines displayed
-     */
-    private uint drawTree(uint level, dstring prefix, TTreeItem item, uint row, bool last) {
-	CellAttributes color = window.application.theme.getColor("ttreeview");
-	dstring line = prefix;
-	if (level > 0) {
-	    if (last) {
-		line ~= cp437_chars[0xC0];
-	    } else {
-		line ~= cp437_chars[0xC3];
-	    }
-	    line ~= cp437_chars[0xC4];
-	}
-	line ~= item.text;
-	if (hScroller.value < line.length) {
-	    line = line[hScroller.value .. $];
-	} else {
-	    line = "";
-	}
-	lines ~= line;
-
-	uint lineNumber = 1;
-	dstring newPrefix = prefix;
-	if (level > 0) {
-	    if (last) {
-		newPrefix ~= "  ";
-	    } else {
-		newPrefix ~= cp437_chars[0xB3];
-		newPrefix ~= ' ';
-	    }
-	}
-	for (auto i = 0; i < item.children.length; i++) {
-	    auto p = item.children[i];
-	    lineNumber += drawTree(level + 1, newPrefix, p, lineNumber + row,
-		i == item.children.length - 1 ? true : false);
-	}
-	return lineNumber;
-    }
-
-    /**
      * Resize text and scrollbars for a new width/height
      */
     public void reflow() {
-	lines.length = 0;
-
 	if (treeRoot is null) {
 	    return;
 	}
@@ -231,15 +257,19 @@ public class TTreeView : TWidget {
 	hScroller.value = 0;
 	hScroller.bigChange = width - 1;
 
-	drawTree(0, "", treeRoot, 0, true);
+	treeList = treeRoot.expandTree("", true);
+	assert(treeList.length > 0);
+	std.stdio.stderr.writefln("treeList.length: %d", treeList.length);
 
 	// Update the scroll bars to reflect the recursive data
-	foreach (line; lines) {
-	    if (line.length > maxLineWidth) {
-		maxLineWidth = cast(uint)line.length;
+	foreach (item; treeList) {
+	    std.stdio.stderr.writefln("%s", item);
+
+	    if (item.text.length + item.prefix.length > maxLineWidth) {
+		maxLineWidth = cast(uint)(item.text.length + item.prefix.length);
 	    }
 	}
-	vScroller.bottomValue = cast(int)lines.length - height - 1;
+	vScroller.bottomValue = cast(int)treeList.length - height - 1;
 	if (vScroller.bottomValue < 0) {
 	    vScroller.bottomValue = 0;
 	}
@@ -257,15 +287,9 @@ public class TTreeView : TWidget {
 	CellAttributes color = window.application.theme.getColor("ttreeview");
 	uint begin = vScroller.value;
 	uint topY = 0;
-	for (auto i = begin; i < lines.length - 1; i++) {
-	    dstring line = lines[i];
-	    if (hScroller.value < line.length) {
-		line = line[hScroller.value .. $];
-	    } else {
-		line = "";
-	    }
-	    window.putStrXY(0, topY,
-		leftJustify!(dstring)(line, this.width - 1), color);
+	for (auto i = begin; i < treeList.length; i++) {
+	    TTreeItem item = treeList[i];
+	    item.draw(window, hScroller.value, topY, color);
 	    topY++;
 	}
     }
