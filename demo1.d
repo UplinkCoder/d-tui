@@ -145,26 +145,40 @@ EOS",
 
 private class DemoTreeViewWindow : TWindow {
 
+    /// Hang onto my TTreeView so I can resize it with the window
+    TTreeView treeView;
+
     /// Constructor
     this(TApplication parent) {
-	super(parent, "Tree View", 0, 0, 24, 20, TWindow.Flag.RESIZABLE);
+	super(parent, "Tree View", 0, 0, 24, 16, TWindow.Flag.RESIZABLE);
 
 	// Load the treeview with "stuff"
-	TTreeView view = addTreeView(1, 1, 20, 16);
-	TTreeItem root = new TTreeItem(view, "/", true);
-	view.treeRoot = root;
-	root.addChild("bin");
-	root.addChild("etc");
-	TTreeItem home = root.addChild("home");
-	TTreeItem user1 = home.addChild("user1");
-	user1.addChild("foo");
-	user1.addChild("foo2");
-	user1.addChild("foo3");
-	root.addChild("usr");
-	TTreeItem var = root.addChild("var");
-	TTreeItem varLog = var.addChild("log");
-	varLog.addChild("apache2");
+	treeView = addTreeView(1, 1, 20, 12);
+	TDirTreeItem root = new TDirTreeItem(treeView, "/", true);
     }
+
+
+    /**
+     * Handle window/screen resize events.
+     *
+     * Params:
+     *    event = resize event
+     */
+    override protected void onResize(TResizeEvent event) {
+	if (event.type == TResizeEvent.Type.Widget) {
+	    // Resize the text field
+	    treeView.width = event.width - 4;
+	    treeView.height = event.height - 4;
+	    treeView.reflow();
+	    return;
+	}
+
+	// Pass to children instead
+	foreach (w; children) {
+	    w.onResize(event);
+	}
+    }
+
 }
 
 private class DemoMsgBoxWindow : TWindow {

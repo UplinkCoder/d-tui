@@ -69,8 +69,6 @@ calling this version 1.0:
 - [ ] TTerminal
   - [ ] Horizontal scrollbar
   - [ ] Vertical scrollbar
-- [ ] TTreeView
-  - [ ] Mouse actions
 - [ ] TMenu / TMenuItem
   - [ ] TSubMenu
   - [ ] TMenuItem: enabled, disabled, checked, unchecked

@@ -201,8 +201,8 @@ public class TWidget {
 	assert (window !is null);
 	assert (window.screen !is null);
 
-	window.screen.clipX = width;
-	window.screen.clipY = height;
+	window.screen.clipRight = width;
+	window.screen.clipBottom = height;
 
 	int absoluteRightEdge = window.getAbsoluteX() + window.width;
 	int absoluteBottomEdge = window.getAbsoluteY() + window.height;
@@ -214,15 +214,15 @@ public class TWidget {
 	int myBottomEdge = getAbsoluteY() + height;
 	if (getAbsoluteX() > absoluteRightEdge) {
 	    // I am offscreen
-	    window.screen.clipX = 0;
+	    window.screen.clipRight = 0;
 	} else if (myRightEdge > absoluteRightEdge) {
-	    window.screen.clipX -= myRightEdge - absoluteRightEdge;
+	    window.screen.clipRight -= myRightEdge - absoluteRightEdge;
 	}
 	if (getAbsoluteY() > absoluteBottomEdge) {
 	    // I am offscreen
-	    window.screen.clipY = 0;
+	    window.screen.clipBottom = 0;
 	} else if (myBottomEdge > absoluteBottomEdge) {
-	    window.screen.clipY -= myBottomEdge - absoluteBottomEdge;
+	    window.screen.clipBottom -= myBottomEdge - absoluteBottomEdge;
 	}
 
 	// Set my offset

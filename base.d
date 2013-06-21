@@ -270,11 +270,17 @@ public class Screen {
     /// Drawing offset for y.  Note int and not uint.
     public int offsetY;
 
-    /// Ignore anything drawn beyond clipX
-    public int clipX;
+    /// Ignore anything drawn right of clipRight
+    public int clipRight;
 
-    /// Ignore anything drawn beyond clipY
-    public int clipY;
+    /// Ignore anything drawn below clipBottom
+    public int clipBottom;
+
+    /// Ignore anything drawn left of clipLeft
+    public int clipLeft;
+
+    /// Ignore anything drawn above clipTop
+    public int clipTop;
 
     /// The physical screen last sent out on flush()
     private Cell [][] physical;
@@ -316,7 +322,7 @@ public class Screen {
 	int Y = y;
 
 	if (clip) {
-	    if ((x >= clipX) || (y >= clipY)) {
+	    if ((x < clipLeft) || (x >= clipRight) || (y < clipTop) || (y >= clipBottom)) {
 		return;
 	    }
 	    X += offsetX;
@@ -372,7 +378,7 @@ public class Screen {
      *    attr = attributes to use (bold, foreColor, backColor)
      */ 
     public void putCharXY(int x, int y, dchar ch, CellAttributes attr) {
-	if ((x >= clipX) || (y >= clipY)) {
+	if ((x < clipLeft) || (x >= clipRight) || (y < clipTop) || (y >= clipBottom)) {
 	    return;
 	}
 
@@ -409,7 +415,7 @@ public class Screen {
      *    ch = character to draw
      */ 
     public void putCharXY(int x, int y, dchar ch) {
-	if ((x >= clipX) || (y >= clipY)) {
+	if ((x < clipLeft) || (x >= clipRight) || (y < clipTop) || (y >= clipBottom)) {
 	    return;
 	}
 
@@ -533,8 +539,10 @@ public class Screen {
 	this.width = width;
 	this.height = height;
 
-	clipX = width;
-	clipY = height;
+	clipLeft = 0;
+	clipTop = 0;
+	clipRight = width;
+	clipBottom = height;
 
 	reallyCleared = true;
 	dirty = true;
@@ -624,8 +632,10 @@ public class Screen {
     public void resetClipping() {
 	offsetX = 0;
 	offsetY = 0;
-	clipX = width;
-	clipY = height;
+	clipLeft = 0;
+	clipTop = 0;
+	clipRight = width;
+	clipBottom = height;
     }
 
     /// Set if the user explicitly wants to redraw everything starting
@@ -942,10 +952,10 @@ public class Screen {
 	CellAttributes shadowAttr = new CellAttributes();
 
 	// Shadows do not honor clipping but they DO honor offset.
-	int oldClipX = clipX;
-	int oldClipY = clipY;
-	clipX = boxWidth + 2;
-	clipY = boxHeight + 1;
+	int oldClipRight = clipRight;
+	int oldClipBottom = clipBottom;
+	clipRight = boxWidth + 2;
+	clipBottom = boxHeight + 1;
 
 	for (auto i = 0; i < boxHeight; i++) {
 	    putAttrXY(boxLeft + boxWidth, boxTop + 1 + i, shadowAttr);
@@ -954,8 +964,8 @@ public class Screen {
 	for (auto i = 0; i < boxWidth; i++) {
 	    putAttrXY(boxLeft + 2 + i, boxTop + boxHeight, shadowAttr);
 	}
-	clipX = oldClipX;
-	clipY = oldClipY;
+	clipRight = oldClipRight;
+	clipBottom = oldClipBottom;
     }
 }
 
@@ -3205,6 +3215,16 @@ public class ColorTheme {
 	color.backColor = COLOR_BLUE;
 	color.bold = false;
 	colors["ttreeview"] = color;
+	color = new CellAttributes();
+	color.foreColor = COLOR_GREEN;
+	color.backColor = COLOR_BLUE;
+	color.bold = true;
+	colors["ttreeview.expandbutton"] = color;
+	color = new CellAttributes();
+	color.foreColor = COLOR_BLACK;
+	color.backColor = COLOR_CYAN;
+	color.bold = false;
+	colors["ttreeview.selected"] = color;
     }
 
     /// Public constructor.

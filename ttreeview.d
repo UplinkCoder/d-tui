@@ -36,7 +36,9 @@
 // Imports -------------------------------------------------------------------
 
 import std.array;
+import std.file;
 import std.format;
+import std.path;
 import std.string;
 import std.utf;
 import base;
@@ -52,12 +54,84 @@ import twindow;
 // Classes -------------------------------------------------------------------
 
 /**
+ * TDirTreeItem is a single item in a disk directory tree view.
+ */
+public class TDirTreeItem : TTreeItem {
+
+    /// Directory entry corresponding to this list item
+    DirEntry dir;
+
+    /**
+     * Called when this item is expanded or collapsed.  this.expanded will be
+     * true if this item was just expanded from a mouse click or keypress.
+     */
+    override public void onExpand() {
+	if (dir is null) {
+	    return;
+	}
+	children.length = 0;
+
+	if (dir.isDir()) {
+	    expandable = true;
+	}
+
+	if (!dir.isDir()) {
+	    expandable = false;
+	    expanded = false;
+	}
+
+	if ((expanded == false) || (expandable == false)) {
+	    view.reflow();
+	    return;
+	}
+
+	// Refresh my child list
+	foreach (string name; dirEntries(dir.name, SpanMode.shallow)) {
+	    TDirTreeItem item = new TDirTreeItem(view, toUTF32(name), false);
+	    item.level = this.level + 1;
+	    children ~= item;
+	}
+
+	view.reflow();
+    }
+
+    /**
+     * Add a child item
+     *
+     * Params:
+     *    text = text for this item
+     *    expanded = if true, have it expanded immediately
+     *
+     * Returns:
+     */
+    override public TTreeItem addChild(dstring text, bool expanded = true) {
+	throw new FileException("Do not call addChild(), use onExpand() instead");
+    }
+
+    /**
+     * Public constructor
+     *
+     * Params:
+     *    view = root TTreeView
+     *    text = text for this item
+     *    expanded = if true, have it expanded immediately
+     */
+    public this(TTreeView view, dstring text, bool expanded = false) {
+	super(view, text, expanded);
+	dir = DirEntry(toUTF8(text));
+	this.text = baseName(text);
+	onExpand();
+	view.reflow();
+    }
+}
+
+/**
  * TTreeItem is a single item in a tree view.
  */
-public class TTreeItem {
+public class TTreeItem : TWidget {
 
-    /// Hang onto reference to my parent view so I can call reflow() when
-    /// needed.
+    /// Hang onto reference to my parent TTreeView so I can call its reflow()
+    /// when I add a child node.
     private TTreeView view;
 
     /// Displayable text for this item
@@ -66,8 +140,8 @@ public class TTreeItem {
     /// If true, this item is expanded in the tree view
     public bool expanded = true;
 
-    /// Children nodes of this item
-    public TTreeItem [] children;
+    /// If true, this item can be expanded in the tree view
+    public bool expandable = false;
 
     /// The vertical bars and such along the left side
     private dstring prefix = "";
@@ -78,24 +152,38 @@ public class TTreeItem {
     /// Tree level
     private uint level = 0;
 
-    /// The column location that has the expand/unexpand button
-    public uint expandX = 0;
+    /// If true, this item will not be drawn
+    public bool invisible = false;
+
+    /// True means selected
+    public bool selected = false;
 
     /**
      * Public constructor
      *
      * Params:
-     *    view = parent TTreeView
+     *    view = root TTreeView
      *    text = text for this item
      *    expanded = if true, have it expanded immediately
      */
     public this(TTreeView view, dstring text, bool expanded) {
+	super(view);
 	this.text = text;
 	this.expanded = expanded;
 	this.view = view;
+
+	this.x = 0;
+	this.y = 0;
+	this.height = 1;
+	this.width = view.width - 3;
+
+	if (view.treeRoot is null) {
+	    view.treeRoot = this;
+	}
+
 	view.reflow();
     }
-    
+
     /**
      * Add a child item
      *
@@ -143,10 +231,77 @@ public class TTreeItem {
 	    }
 	}
 	for (auto i = 0; i < children.length; i++) {
-	    auto p = children[i];
-	    array ~= p.expandTree(newPrefix, i == children.length - 1 ? true : false);
+	    TTreeItem item = cast(TTreeItem)children[i];
+	    assert(item);
+	    array ~= item.expandTree(newPrefix, i == children.length - 1 ? true : false);
 	}
 	return array;
+    }
+
+    /**
+     * Get the x spot for the + or - to expand/collapse
+     *
+     * Return:
+     *    column of the expand/collapse button
+     */
+    private uint getExpanderX() {
+	if ((level == 0) || (!expandable)) {
+	    return 0;
+	}
+	return cast(uint)prefix.length + 3;
+    }
+
+    /**
+     * Recursively unselect my or my children
+     */
+    private void unselect() {
+	if (selected == true) {
+	    selected = false;
+	    view.setSelected(null);
+	}
+	foreach (w; children) {
+	    TTreeItem item = cast(TTreeItem)w;
+	    if (item) {
+		item.unselect();
+	    }
+	}
+    }	
+
+    /**
+     * Handle mouse release events.
+     *
+     * Params:
+     *    mouse = mouse button release event
+     */
+    override protected void onMouseUp(TMouseEvent mouse) {
+	if ((mouse.x == getExpanderX()) &&
+	    (mouse.y == 0)
+	) {
+	    // Flip expanded flag
+	    expanded = !expanded;
+	    if (expanded == false) {
+		// Unselect children that became invisible
+		unselect();
+	    }
+	    // Let subclasses do something with this
+	    onExpand();
+	} else if (mouse.y == 0) {
+	    view.setSelected(this);
+	}
+
+	// Update the screen after any thing has expanded/contracted
+	view.reflow();
+    }
+
+    /**
+     * Called when this item is expanded or collapsed.  this.expanded will be
+     * true if this item was just expanded from a mouse click or keypress.
+     */
+    public void onExpand() {
+	// Default: do nothing.
+	if (!expandable) {
+	    return;
+	}
     }
 
     /**
@@ -158,7 +313,16 @@ public class TTreeItem {
      *    y = row to draw at
      *    color = color to use for text
      */
-    public void draw(TWindow window, uint x, uint y, CellAttributes color) {
+    override public void draw() {
+	if (invisible) {
+	    return;
+	}
+	int offset = -view.hScroller.value;
+
+	CellAttributes color = window.application.theme.getColor("ttreeview");
+	CellAttributes expanderColor = window.application.theme.getColor("ttreeview.expandbutton");
+	CellAttributes selectedColor = window.application.theme.getColor("ttreeview.selected");
+	uint expandX = 0;
 	dstring line = prefix;
 	if (level > 0) {
 	    if (last) {
@@ -167,24 +331,24 @@ public class TTreeItem {
 		line ~= cp437_chars[0xC3];
 	    }
 	    line ~= cp437_chars[0xC4];
-	    if (expanded) {
-		line ~= "[-] ";
-	    } else {
-		line ~= "[+] ";
+	    if (expandable) {
+		line ~= "[ ] ";
 	    }
 	}
-	line ~= text;
-	window.putStrXY(x, y, line, color);
+	window.putStrXY(offset, 0, line, color);
+	if (selected) {
+	    window.putStrXY(offset + cast(uint)line.length, 0, text, selectedColor);
+	} else {
+	    window.putStrXY(offset + cast(uint)line.length, 0, text, color);
+	}
+	if ((level > 0) && (expandable)) {
+	    if (expanded) {
+		window.putCharXY(offset + getExpanderX(), 0, '-', expanderColor);
+	    } else {
+		window.putCharXY(offset + getExpanderX(), 0, '+', expanderColor);
+	    }
+	}
     }
-
-    /// Make human-readable description of this Keystroke.
-    override public string toString() {
-	auto writer = appender!string();
-	formattedWrite(writer, "TTreeItem expanded: %s prefix: %s text: %s last: %s children.length: %d",
-	    expanded, prefix, text, last, children.length);
-	return writer.data;
-    }
-
 }
 
 /**
@@ -201,11 +365,11 @@ public class TTreeView : TWidget {
     /// Root of the tree
     public TTreeItem treeRoot;
 
-    /// Tree view converted from the B-tree form into a linear list
-    private TTreeItem [] treeList;
-
     /// Maximum width of a single line
     private uint maxLineWidth;
+
+    /// Only one of my children can be selected
+    private TTreeItem selectedItem = null;
 
     /**
      * Public constructor
@@ -228,48 +392,92 @@ public class TTreeView : TWidget {
     }
 
     /**
-     * Resize text and scrollbars for a new width/height
+     * Get the radio item ID that was selected.
+     *
+     * Returns:
+     *    the selected item, or null if no item is selected
      */
-    public void reflow() {
-	if (treeRoot is null) {
-	    return;
+    public TTreeItem getSelected() {
+	return selectedItem;
+    }
+
+    /**
+     * Set the new selected radio item.
+     *
+     * Params:
+     *    item = new item that became selected
+     */
+    private void setSelected(TTreeItem item) {
+	if (item !is null) {
+	    item.selected = true;
 	}
-	
-	// Start at the top
+	if (selectedItem !is null) {
+	    selectedItem.selected = false;
+	}
+	selectedItem = item;
+    }
+
+    /**
+     * Update (or instantiate) vScroller and hScroller
+     */
+    private void updateScrollers() {
+	// Setup vertical scroller
 	if (vScroller is null) {
 	    vScroller = new TVScroller(this, width - 1, 0, height - 1);
+	    vScroller.value = 0;
+	    vScroller.topValue = 0;
+	    vScroller.bigChange = height - 1;
 	} else {
 	    vScroller.x = width - 1;
 	    vScroller.height = height - 1;
 	}
-	vScroller.topValue = 0;
-	vScroller.value = 0;
-	vScroller.bigChange = height - 1;
 
-	// Start at the left
+	// Setup horizontal scroller
 	if (hScroller is null) {
 	    hScroller = new THScroller(this, 0, height - 1, width - 1);
+	    hScroller.value = 0;
+	    hScroller.leftValue = 0;
+	    hScroller.bigChange = width - 1;
 	} else {
 	    hScroller.y = height - 1;
 	    hScroller.width = width - 1;
 	}
-	hScroller.leftValue = 0;
-	hScroller.value = 0;
-	hScroller.bigChange = width - 1;
+    }
 
-	treeList = treeRoot.expandTree("", true);
-	assert(treeList.length > 0);
-	std.stdio.stderr.writefln("treeList.length: %d", treeList.length);
+    /**
+     * Resize text and scrollbars for a new width/height
+     */
+    public void reflow() {
+	updateScrollers();
+	if (treeRoot is null) {
+	    return;
+	}
 
-	// Update the scroll bars to reflect the recursive data
-	foreach (item; treeList) {
-	    std.stdio.stderr.writefln("%s", item);
-
-	    if (item.text.length + item.prefix.length > maxLineWidth) {
-		maxLineWidth = cast(uint)(item.text.length + item.prefix.length);
+	// Make each child invisible/inactive to start, expandTree() will
+	// reactivate the visible ones.
+	foreach (w; children) {
+	    TTreeItem item = cast(TTreeItem)w;
+	    if (item) {
+		item.invisible = true;
+		item.enabled = false;
 	    }
 	}
-	vScroller.bottomValue = cast(int)treeList.length - height - 1;
+
+	// Expand the tree into a linear list
+	children.length = 0;
+	children ~= treeRoot.expandTree("", true);
+	foreach (w; children) {
+	    TTreeItem item = cast(TTreeItem)w;
+	    assert(item);
+	    uint lineWidth = cast(uint)(item.text.length + item.prefix.length + 4);
+	    if (lineWidth > maxLineWidth) {
+		maxLineWidth = lineWidth;
+	    }
+	}
+	updatePositions();
+
+	// Rescale the scroll bars
+	vScroller.bottomValue = cast(int)children.length - height + 1;
 	if (vScroller.bottomValue < 0) {
 	    vScroller.bottomValue = 0;
 	}
@@ -277,41 +485,80 @@ public class TTreeView : TWidget {
 	if (hScroller.rightValue < 0) {
 	    hScroller.rightValue = 0;
 	}
-    }
-
-    /// Draw a tree view
-    override public void draw() {
-	if (treeRoot is null) {
-	    return;
-	}
-	CellAttributes color = window.application.theme.getColor("ttreeview");
-	uint begin = vScroller.value;
-	uint topY = 0;
-	for (auto i = begin; i < treeList.length; i++) {
-	    TTreeItem item = treeList[i];
-	    item.draw(window, hScroller.value, topY, color);
-	    topY++;
-	}
+	children ~= hScroller;
+	children ~= vScroller;
     }
 
     /**
-     * Handle mouse motion events.
+     * Update the Y positions of all the children items
+     */
+    private void updatePositions() {
+	if (treeRoot is null) {
+	    return;
+	}
+
+	uint begin = vScroller.value;
+	uint topY = 0;
+	for (auto i = 0; i < children.length; i++) {
+	    TTreeItem item = cast(TTreeItem)children[i];
+	    if (!item) {
+		// Skip
+		continue;
+	    }
+
+	    if (i < begin) {
+		// Render invisible
+		item.enabled = false;
+		item.invisible = true;
+		continue;
+	    }
+
+	    if (topY >= height - 1) {
+		// Render invisible
+		item.enabled = false;
+		item.invisible = true;
+		continue;
+	    }
+
+	    item.y = topY;
+	    item.enabled = true;
+	    item.invisible = false;
+	    topY++;
+	}
+    }
+    
+    /**
+     * Handle mouse press events.
      *
      * Params:
-     *    mouse = mouse button release event
+     *    mouse = mouse button press event
      */
     override protected void onMouseDown(TMouseEvent mouse) {
 	if (mouse.mouseWheelUp) {
 	    vScroller.decrement();
-	    return;
-	}
-	if (mouse.mouseWheelDown) {
+	} else if (mouse.mouseWheelDown) {
 	    vScroller.increment();
-	    return;
+	} else {
+	    // Pass to children
+	    super.onMouseDown(mouse);
 	}
 
+	// Update the screen after the scrollbars have moved
+	reflow();
+    }
+
+    /**
+     * Handle mouse release events.
+     *
+     * Params:
+     *    mouse = mouse button release event
+     */
+    override protected void onMouseUp(TMouseEvent mouse) {
 	// Pass to children
 	super.onMouseDown(mouse);
+
+	// Update the screen after any thing has expanded/contracted
+	reflow();
     }
 
     /**
@@ -324,39 +571,27 @@ public class TTreeView : TWidget {
 	TKeypress key = keypress.key;
 	if (key == kbLeft) {
 	    hScroller.decrement();
-	    return;
-	}
-	if (key == kbRight) {
+	} else if (key == kbRight) {
 	    hScroller.increment();
-	    return;
-	}
-	if (key == kbUp) {
+	} else if (key == kbUp) {
 	    vScroller.decrement();
-	    return;
-	}
-	if (key == kbDown) {
+	} else if (key == kbDown) {
 	    vScroller.increment();
-	    return;
-	}
-	if (key == kbPgUp) {
+	} else if (key == kbPgUp) {
 	    vScroller.bigDecrement();
-	    return;
-	}
-	if (key == kbPgDn) {
+	} else if (key == kbPgDn) {
 	    vScroller.bigIncrement();
-	    return;
-	}
-	if (key == kbHome) {
+	} else if (key == kbHome) {
 	    vScroller.toTop();
-	    return;
-	}
-	if (key == kbEnd) {
+	} else if (key == kbEnd) {
 	    vScroller.toBottom();
-	    return;
+	} else {
+	    // Pass other keys (tab etc.) on
+	    super.onKeypress(keypress);
 	}
 
-	// Pass other keys (tab etc.) on
-	super.onKeypress(keypress);
+	// Update the screen after any thing has expanded/contracted
+	reflow();
     }
 
 }

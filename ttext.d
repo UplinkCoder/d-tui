@@ -171,10 +171,10 @@ public class TText : TWidget {
     }
 
     /**
-     * Handle mouse motion events.
+     * Handle mouse press events.
      *
      * Params:
-     *    mouse = mouse button release event
+     *    mouse = mouse button press event
      */
     override protected void onMouseDown(TMouseEvent mouse) {
 	if (mouse.mouseWheelUp) {
