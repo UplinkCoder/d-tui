@@ -266,6 +266,19 @@ public class TApplication {
 	window.z = 0;
     }
 
+    /**
+     * Check if there is a system-modal window on top
+     *
+     * Returns:
+     *    true if the active window is modal
+     */
+    private bool modalWindowActive() {
+	if (windows.length == 0) {
+	    return false;
+	}
+	return windows[$ - 1].isModal();
+    }
+    
     /// Switch to the next window
     final public void switchWindow() {
 	// Only switch if there are multiple windows
@@ -305,6 +318,7 @@ public class TApplication {
 
 	if ((mouse.type == TMouseEvent.Type.MOUSE_DOWN) &&
 	    (activeMenu !is null) &&
+	    (mouse.absoluteY != 0) &&
 	    (!activeMenu.mouseWouldHit(mouse))
 	) {
 	    // They clicked outside the active menu, turn it off
@@ -315,7 +329,9 @@ public class TApplication {
 
 	// See if they hit the menu bar
 	if ((mouse.type == TMouseEvent.Type.MOUSE_DOWN) &&
-	    (activeMenu is null)) {
+	    (activeMenu is null) &&
+	    (!modalWindowActive())
+	) {
 
 	    // They selected the menu, go activate it
 	    foreach (m; menus) {
@@ -326,6 +342,31 @@ public class TApplication {
 		    m.active = true;
 		    activeMenu = m;
 		}
+	    }
+	    repaint = true;
+	    return;
+	}
+
+	// See if they hit the menu bar
+	if ((mouse.type == TMouseEvent.Type.MOUSE_MOTION) &&
+	    (mouse.mouse1) &&
+	    (activeMenu !is null)) {
+
+	    TMenu oldMenu = activeMenu;
+
+	    // See if we should switch menus
+	    foreach (m; menus) {
+		if ((mouse.absoluteY == 0) &&
+		    (mouse.absoluteX >= m.x) &&
+		    (mouse.absoluteX < m.x + m.title.length + 2)
+		) {
+		    m.active = true;
+		    activeMenu = m;
+		}
+	    }
+	    if (oldMenu !is activeMenu) {
+		// They switched menus
+		oldMenu.active = false;
 	    }
 	    repaint = true;
 	    return;

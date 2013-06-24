@@ -80,6 +80,16 @@ public class TDirTreeItem : TTreeItem {
 	    expanded = false;
 	}
 
+	// http://d.puremagic.com/issues/show_bug.cgi?id=10463 - dirEntries
+	// will segfault if we do not have access to this path.  As a
+	// workaround, try to opendir() it first.
+	core.sys.posix.dirent.DIR * pDIR;
+	pDIR = core.sys.posix.dirent.opendir(toStringz(dir.name));
+	if (pDIR is null) {
+	    expandable = false;
+	    expanded = false;
+	}
+
 	if ((expanded == false) || (expandable == false)) {
 	    view.reflow();
 	    return;
@@ -91,6 +101,7 @@ public class TDirTreeItem : TTreeItem {
 	    item.level = this.level + 1;
 	    children ~= item;
 	}
+	children.sort;
 
 	view.reflow();
     }
@@ -157,6 +168,15 @@ public class TTreeItem : TWidget {
 
     /// True means selected
     public bool selected = false;
+
+    /// Comparison operator sorts on text
+    public override int opCmp(Object rhs) {
+	auto that = cast(TTreeItem)rhs;
+	if (!that) {
+	    return 0;
+	}
+	return text > that.text;
+    }
 
     /**
      * Public constructor
@@ -349,6 +369,7 @@ public class TTreeItem : TWidget {
 	    }
 	}
     }
+
 }
 
 /**

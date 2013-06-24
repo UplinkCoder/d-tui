@@ -244,6 +244,17 @@ public class TMenu : TWindow {
     override protected void onMouseMotion(TMouseEvent event) {
 	mouse = event;
 	application.repaint = true;
+
+	// See if we should activate a different menu item
+	foreach (w; children) {
+	    if ((event.mouse1) &&
+		(w.mouseWouldHit(event))
+	    ) {
+		// Activate this menu item
+		activate(w);
+		return;
+	    }
+	}
     }
 
     /**
@@ -488,6 +499,7 @@ public class TMenuItem : TWidget {
 	}
     }
 
+    /+
     /**
      * Handle mouse button presses.
      *
@@ -495,6 +507,22 @@ public class TMenuItem : TWidget {
      *    event = mouse button press event
      */
     override protected void onMouseDown(TMouseEvent event) {
+	if ((mouseOnMenuItem(event)) && (event.mouse1)) {
+	    if (hasCommand) {
+		window.application.addMenuEvent(new TCommandEvent(cmd));
+	    }
+	    return;
+	}
+    }
+     +/
+
+    /**
+     * Handle mouse button releases.
+     *
+     * Params:
+     *    event = mouse button release event
+     */
+    override protected void onMouseUp(TMouseEvent event) {
 	if ((mouseOnMenuItem(event)) && (event.mouse1)) {
 	    if (hasCommand) {
 		window.application.addMenuEvent(new TCommandEvent(cmd));
