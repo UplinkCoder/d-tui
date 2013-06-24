@@ -3225,6 +3225,14 @@ public class ColorTheme {
 	color.backColor = COLOR_CYAN;
 	color.bold = false;
 	colors["ttreeview.selected"] = color;
+
+	// TEditor
+	color = new CellAttributes();
+	color.foreColor = COLOR_WHITE;
+	color.backColor = COLOR_BLACK;
+	color.bold = false;
+	colors["teditor"] = color;
+
     }
 
     /// Public constructor.

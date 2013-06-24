@@ -113,6 +113,8 @@ public class TWindow : TWidget {
     // Resizing
     private uint resizeWindowWidth;
     private uint resizeWindowHeight;
+    public uint minimumWindowWidth = 10;
+    public uint minimumWindowHeight = 2;
 
     // For maximize/restore
     private uint restoreWindowWidth;
@@ -503,12 +505,12 @@ public class TWindow : TWidget {
 		    y = application.desktopTop;
 		}
 	    }
-	    if (width < 10) {
-		width = 10;
+	    if (width < minimumWindowWidth) {
+		width = minimumWindowWidth;
 		inWindowResize = false;
 	    }
-	    if (height < 2) {
-		height = 2;
+	    if (height < minimumWindowHeight) {
+		height = minimumWindowHeight;
 		inWindowResize = false;
 	    }
 	    // Pass a resize event to my children

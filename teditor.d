@@ -1,5 +1,5 @@
 /**
- * D Text User Interface library - TText class
+ * D Text User Interface library - TEditor class
  *
  * Version: $Id$
  *
@@ -49,18 +49,12 @@ import tscroll;
 // Classes -------------------------------------------------------------------
 
 /**
- * TText implements a simple text.
+ * TEditor implements an editable text area.
  */
-public class TText : TWidget {
+public class TEditor : TWidget {
 
-    /// Text to display
-    public dstring text;
-
-    /// Text converted to lines
+    /// Lines of text being edited
     private dstring [] lines;
-
-    /// Text color
-    private CellAttributes color;
 
     /// Vertical scrollbar
     private TVScroller vScroller;
@@ -68,30 +62,26 @@ public class TText : TWidget {
     /// Horizontal scrollbar
     private THScroller hScroller;
 
-    /// Maximum width of a single line
-    private uint maxLineWidth;
-
     /**
-     * Resize text and scrollbars for a new width/height
+     * Get the maximum width of the lines with text
+     *
+     * Returns:
+     *    the maximum width
      */
-    public void reflow() {
-	// Reset the lines
-	lines.length = 0;
-	maxLineWidth = 0;
-
-	// Break up text into paragraphs
-	dstring [] paragraphs = split(text, "\n\n");
-	foreach (p; paragraphs) {
-	    dstring paragraph = wrap!(dstring)(p, width - 1);
-	    lines ~= splitLines!(dstring)(paragraph);
-	    lines ~= "";
-	}
+    private uint getLineWidth() {
+	uint maxLineWidth = 0;
 	foreach (line; lines) {
 	    if (line.length > maxLineWidth) {
 		maxLineWidth = cast(uint)line.length;
 	    }
 	}
+	return maxLineWidth;
+    }
 
+    /**
+     * Resize text and scrollbars for a new width/height
+     */
+    public void reflow() {
 	// Start at the top
 	if (vScroller is null) {
 	    vScroller = new TVScroller(this, width - 1, 0, height - 1);
@@ -114,7 +104,7 @@ public class TText : TWidget {
 	    hScroller.y = height - 1;
 	    hScroller.width = width - 1;
 	}
-	hScroller.rightValue = maxLineWidth - width + 1;
+	hScroller.rightValue = getLineWidth() - width + 1;
 	hScroller.leftValue = 0;
 	hScroller.value = 0;
 	if (hScroller.rightValue < 0) {
@@ -128,15 +118,14 @@ public class TText : TWidget {
      *
      * Params:
      *    parent = parent widget
-     *    text = text on the screen
      *    x = column relative to parent
      *    y = row relative to parent
      *    width = width of text area
      *    height = height of text area
      *    colorKey = ColorTheme key color to use for foreground text.  Default is "ttext"
      */
-    public this(TWidget parent, dstring text, uint x, uint y, uint width,
-	uint height, string colorKey = "ttext") {
+    public this(TWidget parent, uint x, uint y, uint width,
+	uint height) {
 
 	// Set parent and window
 	super(parent);
@@ -145,19 +134,15 @@ public class TText : TWidget {
 	this.y = y;
 	this.width = width;
 	this.height = height;
-	this.text = text;
-
-	// Setup my color
-	color = window.application.theme.getColor(colorKey);
-
 	reflow();
     }
 
     /// Draw a static text
     override public void draw() {
+	CellAttributes color = window.application.theme.getColor("teditor");
 	uint begin = vScroller.value;
 	uint topY = 0;
-	for (auto i = begin; i < lines.length - 1; i++) {
+	for (auto i = begin; i < lines.length; i++) {
 	    dstring line = lines[i];
 	    if (hScroller.value < line.length) {
 		line = line[hScroller.value .. $];
@@ -167,6 +152,9 @@ public class TText : TWidget {
 	    window.putStrXY(0, topY,
 		leftJustify!(dstring)(line, this.width - 1), color);
 	    topY++;
+	    if (topY == height - 1) {
+		break;
+	    }
 	}
     }
 
@@ -191,6 +179,17 @@ public class TText : TWidget {
     }
 
     /**
+     * Handle mouse release events.
+     *
+     * Params:
+     *    mouse = mouse button release event
+     */
+    override protected void onMouseUp(TMouseEvent mouse) {
+	// TODO: reposition cursor
+
+    }
+
+    /**
      * Handle keystrokes.
      *
      * Params:
@@ -199,13 +198,13 @@ public class TText : TWidget {
     override protected void onKeypress(TKeypressEvent keypress) {
 	TKeypress key = keypress.key;
 	if (key == kbLeft) {
-	    hScroller.decrement();
+
 	} else if (key == kbRight) {
-	    hScroller.increment();
+
 	} else if (key == kbUp) {
-	    vScroller.decrement();
+
 	} else if (key == kbDown) {
-	    vScroller.increment();
+
 	} else if (key == kbPgUp) {
 	    vScroller.bigDecrement();
 	} else if (key == kbPgDn) {

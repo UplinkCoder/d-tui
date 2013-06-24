@@ -75,13 +75,36 @@ private class DemoCheckboxWindow : TWindow {
 
 private class DemoEditorWindow : TWindow {
 
+    TEditor editField;
+
     /// Constructor
     this(TApplication parent) {
 	super(parent, "Editor", 0, 0, 60, 15, TWindow.Flag.CENTERED | TWindow.Flag.RESIZABLE);
+	editField = new TEditor(this, 1, 1, 40, 16);
+	onResize(new TResizeEvent(TResizeEvent.Type.Widget, width, height));
 
-	// TODO
+	minimumWindowHeight = 8;
+    }
 
+    /**
+     * Handle window/screen resize events.
+     *
+     * Params:
+     *    event = resize event
+     */
+    override protected void onResize(TResizeEvent event) {
+	if (event.type == TResizeEvent.Type.Widget) {
+	    // Resize the text field
+	    editField.width = event.width - 4;
+	    editField.height = event.height - 4;
+	    editField.reflow();
+	    return;
+	}
 
+	// Pass to children instead
+	foreach (w; children) {
+	    w.onResize(event);
+	}
     }
 }
 
