@@ -329,6 +329,7 @@ public class TApplication {
 
 	// See if they hit the menu bar
 	if ((mouse.type == TMouseEvent.Type.MOUSE_DOWN) &&
+	    (mouse.mouse1) &&
 	    (activeMenu is null) &&
 	    (!modalWindowActive())
 	) {
