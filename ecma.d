@@ -139,6 +139,8 @@ public class ECMAScreen : Screen {
 
 		    for (auto i = x; i < width; i++) {
 			assert(logical[i][y].isBlank());
+			// Physical is always updatesd
+			physical[i][y].reset();
 		    }
 
 		    // Clear remaining line
@@ -146,6 +148,7 @@ public class ECMAScreen : Screen {
 		    lastAttr.reset();
 		    return;
 		}
+
 		// Now emit only the modified attributes
 		if ((lCell.foreColor != lastAttr.foreColor) &&
 		    (lCell.backColor != lastAttr.backColor) &&
@@ -161,7 +164,6 @@ public class ECMAScreen : Screen {
 		    if (debugToStderr) {
 			stderr.writefln("1 Change only fore/back colors");
 		    }
-
 		} else if ((lCell.foreColor != lastAttr.foreColor) &&
 		    (lCell.backColor != lastAttr.backColor) &&
 		    (lCell.bold != lastAttr.bold) &&
@@ -220,7 +222,6 @@ public class ECMAScreen : Screen {
 		    if (debugToStderr) {
 			stderr.writefln("5 Only emit character");
 		    }
-
 		} else {
 		    // Just reset everything again
 		    writer.put(terminal.color(lCell.foreColor, lCell.backColor,
@@ -285,7 +286,7 @@ public class ECMAScreen : Screen {
     /// Push the logical screen to the physical device.
     override public void flushPhysical() {
 	string result = flushString();
-	if (cursorVisible) {
+	if ((cursorVisible) && (cursorY <= height - 1)) {
 	    result ~= terminal.cursor(true);
 	    result ~= terminal.gotoXY(cursorX, cursorY);
 	} else {
@@ -1537,8 +1538,9 @@ public class ECMATerminal {
     }
 
     /**
-     * Clear the line up the cursor (inclusive).  Because some terminals use
-     * back-color-erase, set the color to white-on-black beforehand.
+     * Clear the line from the cursor (inclusive) to the end of the screen.
+     * Because some terminals use back-color-erase, set the color to
+     * white-on-black beforehand.
      * 
      * Returns:
      *    the string to emit to an ANSI / ECMA-style terminal
@@ -1548,9 +1550,8 @@ public class ECMATerminal {
     }
 
     /**
-     * Clear the line from the cursor (inclusive) to the end of the screen.
-     * Because some terminals use back-color-erase, set the color to
-     * white-on-black beforehand.
+     * Clear the line up the cursor (inclusive).  Because some terminals use
+     * back-color-erase, set the color to white-on-black beforehand.
      * 
      * Returns:
      *    the string to emit to an ANSI / ECMA-style terminal
