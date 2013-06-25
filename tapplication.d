@@ -117,31 +117,16 @@ public class TApplication {
     public this() {
 	backend = new ECMABackend();
 	theme = new ColorTheme();
-
 	desktopBottom = backend.screen.getHeight() - 1;
-
 	primaryEventFiber = new Fiber(&primaryEventHandler);
     }
 
     /// Invert the cell at the mouse pointer position
-    private void flipMouse() {
-
-	Color [] sgrToPCMap = [
-	    Color.BLACK,
-	    Color.BLUE,
-	    Color.GREEN,
-	    Color.CYAN,
-	    Color.RED,
-	    Color.MAGENTA,
-	    Color.YELLOW,
-	    Color.WHITE
-	];
-
+    private void drawMouse() {
 	CellAttributes attr = backend.screen.getAttrXY(mouseX, mouseY);
-	attr.foreColor = cast(Color)(sgrToPCMap[attr.foreColor] ^ 0x7);
-	attr.backColor = cast(Color)(sgrToPCMap[attr.backColor] ^ 0x7);
+	attr.foreColor = invertColor(attr.foreColor);
+	attr.backColor = invertColor(attr.backColor);
 	backend.screen.putAttrXY(mouseX, mouseY, attr, false);
-	// screen.putCharXY(mouseX, mouseY, 'X', attr);
 	flush = true;
     }
 
@@ -162,6 +147,9 @@ public class TApplication {
 	if (!repaint) {
 	    return;
 	}
+
+	// Kill the cursor
+	backend.screen.putCursor(false, 0, 0);
 
 	// Start with a clean screen
 	backend.screen.clear();
@@ -210,24 +198,18 @@ public class TApplication {
 	    x += m.title.length + 2;
 	}
 
+	// Draw the mouse pointer
+	drawMouse();
+
 	// Place the cursor if it is visible
 	TWidget activeWidget = null;
-	bool hasCursor = false;
 	if (sorted.length > 0) {
 	    activeWidget = sorted[$ - 1].getActiveChild();
 	    if (activeWidget.hasCursor) {
-		backend.putCursor(true, activeWidget.getCursorAbsoluteX(),
+		backend.screen.putCursor(true, activeWidget.getCursorAbsoluteX(),
 		    activeWidget.getCursorAbsoluteY());
-		hasCursor = true;
 	    }
 	}
-	// Kill the cursor
-	if (!hasCursor) {
-	    backend.putCursor(false, 0, 0);
-	}
-
-	// Place the mouse pointer
-	flipMouse();
 
 	// Flush the screen contents
 	backend.flushScreen();
@@ -575,7 +557,7 @@ public class TApplication {
 		if ((mouseX != mouse.x) || (mouseY != mouse.y)) {
 		    mouseX = mouse.x;
 		    mouseY = mouse.y;
-		    repaint = true;
+		    drawMouse();
 		}
 	    }
 

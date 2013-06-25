@@ -293,6 +293,16 @@ public class Screen {
     /// with a ECMATerminal.clearAll()
     protected bool reallyCleared;
 
+    /// If true, the cursor is visible and should be placed onscreen at
+    /// (cursorX, cursorY) during a call to flushPhysical()
+    protected bool cursorVisible;
+    
+    /// Cursor X position if visible
+    protected uint cursorX;
+
+    /// Cursor Y position if visible
+    protected uint cursorY;
+
     /**
      * Get the attributes at one location.
      *
@@ -300,7 +310,7 @@ public class Screen {
      *    x = column coordinate.  0 is the left-most column.
      *    y = row coordinate.  0 is the top-most row.
      *
-     * Return:
+     * Returns:
      *    attributes at (x, y)
      */ 
     public CellAttributes getAttrXY(int x, int y) {
@@ -767,6 +777,20 @@ public class Screen {
     /// Subclasses must provide an implementation to push the logical
     /// screen to the physical device.
     abstract public void flushPhysical();
+
+    /**
+     * Put the cursor at (x,y).
+     *
+     * Params:
+     *    visible = if true, the cursor should be visible
+     *    x = column coordinate to put the cursor on
+     *    y = column coordinate to put the cursor on
+     */
+    public void putCursor(bool visible, uint x, uint y) {
+	cursorVisible = visible;
+	cursorX = x;
+	cursorY = y;
+    }
 }
 
 /**
@@ -1470,6 +1494,7 @@ public class TCommandEvent : TInputEvent {
  * TApplication.
  */
 public class Backend {
+
     /// The screen to draw on
     public Screen screen;
 
@@ -1479,17 +1504,6 @@ public class Backend {
      */
     abstract public void flushScreen();
 
-    /**
-     * Subclasses must provide an implementation that puts the
-     * cursor at (x,y).
-     *
-     * Params:
-     *    visible = if true, the cursor should be visible
-     *    x = column coordinate to put the cursor on
-     *    y = column coordinate to put the cursor on
-     */
-    abstract public void putCursor(bool visible, uint x, uint y);
-    
     /**
      * Subclasses must provide an implementation to get keyboard,
      * mouse, and screen resize events.
@@ -1770,3 +1784,35 @@ public class ColorTheme {
 }
 
 // Functions -----------------------------------------------------------------
+
+/**
+ * Invert a color in the same way as (CGA/VGA color XOR 0x7).
+ *
+ * Params:
+ *    color = color to change
+ *
+ * Returns:
+ *    the inverted color
+ */
+public Color invertColor(Color color) {
+    final switch (color) {
+    case Color.BLACK:
+	return Color.WHITE;
+    case Color.WHITE:
+	return Color.BLACK;
+    case Color.RED:
+	return Color.CYAN;
+    case Color.CYAN:
+	return Color.RED;
+    case Color.GREEN:
+	return Color.MAGENTA;
+    case Color.MAGENTA:
+	return Color.GREEN;
+    case Color.BLUE:
+	return Color.YELLOW;
+    case Color.YELLOW:
+	return Color.BLUE;
+    }
+    
+
+}

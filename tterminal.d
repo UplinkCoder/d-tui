@@ -1479,7 +1479,7 @@ private class ECMA48 {
      *    charsetGl = character set defined for GL
      *    charsetGr = character set defined for GR
      *
-     * Return:
+     * Returns:
      *    character to display on the screen
      */
     private dchar mapCharacterCharset(dchar ch,
@@ -1556,7 +1556,7 @@ private class ECMA48 {
      * Params:
      *    ch = UTF-decoded character from the remote side
      *
-     * Return:
+     * Returns:
      *    character to display on the screen
      */
     private dchar mapCharacter(dchar ch) {
@@ -1933,7 +1933,7 @@ private class ECMA48 {
      *    position = parameter index.  0 is the first parameter.
      *    defaultValue = value to use if csiParams[position] doesn't exist
      *
-     * Return:
+     * Returns:
      *    parameter value
      */
     private int getCsiParam(uint position, int defaultValue) {
@@ -1952,7 +1952,7 @@ private class ECMA48 {
      *    minValue = minimum value inclusive
      *    maxValue = maximum value inclusive
      *
-     * Return:
+     * Returns:
      *    parameter value
      */
     private int getCsiParam(uint position, int defaultValue,
@@ -5305,7 +5305,7 @@ private class ECMA48 {
     /**
      * Expose current cursor X to outside world
      *
-     * Return:
+     * Returns:
      *    current cursor X
      */
     public uint getCursorX() {
@@ -5315,7 +5315,7 @@ private class ECMA48 {
     /**
      * Expose current cursor Y to outside world
      *
-     * Return:
+     * Returns:
      *    current cursor Y
      */
     public uint getCursorY() {

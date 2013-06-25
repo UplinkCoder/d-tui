@@ -71,6 +71,19 @@ import codepage;
  */
 public class ECMAScreen : Screen {
 
+    /// We call terminal.cursor() so need the instance
+    private ECMATerminal terminal;
+
+    /**
+     * Public constructor
+     *
+     * Params:
+     *    terminal = ECMATerminal to use
+     */
+    public this(ECMATerminal terminal) {
+	this.terminal = terminal;
+    }
+
     /**
      * Perform a somewhat-optimal rendering of a line
      *
@@ -110,13 +123,13 @@ public class ECMAScreen : Screen {
 
 		if (lastAttr is null) {
 		    lastAttr = new CellAttributes();
-		    writer.put(ECMATerminal.normal());
+		    writer.put(terminal.normal());
 		}
 
 		// Place the cell
 		if ((lastX != (x - 1)) || (lastX == -1)) {
 		    // Advancing at least one cell, or the first gotoXY
-		    writer.put(ECMATerminal.gotoXY(x, y));
+		    writer.put(terminal.gotoXY(x, y));
 		}
 
 		assert(lastAttr !is null);
@@ -129,11 +142,10 @@ public class ECMAScreen : Screen {
 		    }
 
 		    // Clear remaining line
-		    writer.put(ECMATerminal.clearRemainingLine());
+		    writer.put(terminal.clearRemainingLine());
 		    lastAttr.reset();
 		    return;
 		}
-
 		// Now emit only the modified attributes
 		if ((lCell.foreColor != lastAttr.foreColor) &&
 		    (lCell.backColor != lastAttr.backColor) &&
@@ -143,7 +155,7 @@ public class ECMAScreen : Screen {
 		    (lCell.blink == lastAttr.blink)) {
 
 		    // Both colors changed, attributes the same
-		    writer.put(ECMATerminal.color(lCell.foreColor,
+		    writer.put(terminal.color(lCell.foreColor,
 			    lCell.backColor));
 
 		    if (debugToStderr) {
@@ -162,11 +174,10 @@ public class ECMAScreen : Screen {
 		    }
 		    
 		    // Everything is different
-		    writer.put(ECMATerminal.color(lCell.foreColor,
+		    writer.put(terminal.color(lCell.foreColor,
 			    lCell.backColor,
 			    lCell.bold, lCell.reverse, lCell.blink,
 			    lCell.underline));
-
 
 		} else if ((lCell.foreColor != lastAttr.foreColor) &&
 		    (lCell.backColor == lastAttr.backColor) &&
@@ -176,7 +187,7 @@ public class ECMAScreen : Screen {
 		    (lCell.blink == lastAttr.blink)) {
 
 		    // Attributes same, foreColor different
-		    writer.put(ECMATerminal.color(lCell.foreColor, true));
+		    writer.put(terminal.color(lCell.foreColor, true));
 
 		    if (debugToStderr) {
 			stderr.writefln("3 Change foreColor");
@@ -190,7 +201,7 @@ public class ECMAScreen : Screen {
 		    (lCell.blink == lastAttr.blink)) {
 
 		    // Attributes same, backColor different
-		    writer.put(ECMATerminal.color(lCell.backColor, false));
+		    writer.put(terminal.color(lCell.backColor, false));
 
 		    if (debugToStderr) {
 			stderr.writefln("4 Change backColor");
@@ -211,9 +222,8 @@ public class ECMAScreen : Screen {
 		    }
 
 		} else {
-
 		    // Just reset everything again
-		    writer.put(ECMATerminal.color(lCell.foreColor, lCell.backColor,
+		    writer.put(terminal.color(lCell.foreColor, lCell.backColor,
 			    lCell.bold, lCell.reverse, lCell.blink,
 			    lCell.underline));
 
@@ -221,7 +231,6 @@ public class ECMAScreen : Screen {
 			stderr.writefln("6 Change all attributes");
 		    }
 		}
-
 		// Emit the character
 		writer.put(dcharToString(lCell.ch));
 
@@ -256,7 +265,7 @@ public class ECMAScreen : Screen {
 	auto writer = appender!string();
 	if (reallyCleared == true) {
 	    attr = new CellAttributes();
-	    writer.put(ECMATerminal.clearAll());
+	    writer.put(terminal.clearAll());
 	}
 
 	for (auto y = 0; y < height; y++) {
@@ -276,6 +285,12 @@ public class ECMAScreen : Screen {
     /// Push the logical screen to the physical device.
     override public void flushPhysical() {
 	string result = flushString();
+	if (cursorVisible) {
+	    result ~= terminal.cursor(true);
+	    result ~= terminal.gotoXY(cursorX, cursorY);
+	} else {
+	    result ~= terminal.cursor(false);
+	}
 	stdout.write(result);
 	stdout.flush();
     }
@@ -1280,7 +1295,7 @@ public class ECMATerminal {
 	uint ecmaColor = color;
 
 	// Convert Color.* values to SGR numerics
-	if (foreground) {
+	if (foreground == true) {
 	    ecmaColor += 30;
 	} else {
 	    ecmaColor += 40;
@@ -1288,9 +1303,9 @@ public class ECMATerminal {
 
 	auto writer = appender!string();
 	if (header) {
-	    formattedWrite(writer, "\033[%dm", color);
+	    formattedWrite(writer, "\033[%dm", ecmaColor);
 	} else {
-	    formattedWrite(writer, "%d;", color);
+	    formattedWrite(writer, "%d;", ecmaColor);
 	}
 	return writer.data;
     }
@@ -1626,14 +1641,14 @@ public class ECMABackend : Backend {
 	terminal = new ECMATerminal(true);
 
 	// Create a screen
-	screen = new ECMAScreen();
+	screen = new ECMAScreen(terminal);
 
 	// Reset the screen size
 	screen.setDimensions(terminal.getPhysicalWidth(),
 	    terminal.getPhysicalHeight());
 
 	// Clear the screen
-	stdout.write(ECMATerminal.clearAll());
+	stdout.write(terminal.clearAll());
 	stdout.flush();
     }
 
@@ -1666,24 +1681,6 @@ public class ECMABackend : Backend {
 	    return terminal.getEvents(ch);
 	}
 	return terminal.getEvents(0, true);
-    }
-
-    /**
-     * Put the cursor at (x,y).
-     *
-     * Params:
-     *    visible = if true, the cursor should be visible
-     *    x = column coordinate to put the cursor on
-     *    y = column coordinate to put the cursor on
-     */
-    override public void putCursor(bool visible, uint x, uint y) {
-	string result = "";
-	result ~= terminal.cursor(visible);
-	if (visible == true) {
-	    result ~= terminal.gotoXY(x, y);
-	}
-	stdout.write(result);
-	stdout.flush();
     }
 }
 
