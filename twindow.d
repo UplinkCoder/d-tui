@@ -159,7 +159,7 @@ public class TWindow : TWidget {
 
 	this.title = title;
 	this.application = application;
-	this.screen = application.screen;
+	this.screen = application.backend.screen;
 	this.x = x;
 	this.y = y + application.desktopTop;
 	this.width = width;

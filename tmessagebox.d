@@ -116,8 +116,8 @@ public class TMessageBox : TWindow {
 	    }
 	}
 	this.width = cast(uint)width;
-	if (this.width > application.screen.getWidth()) {
-	    this.width = application.screen.getWidth();
+	if (this.width > application.backend.screen.getWidth()) {
+	    this.width = application.backend.screen.getWidth();
 	}
 
 	// Register with the TApplication

@@ -40,6 +40,7 @@ import std.datetime;
 import std.stdio;
 import base;
 import codepage;
+import ecma;
 import twidget;
 import twindow;
 import tmessagebox;
@@ -58,11 +59,8 @@ import tterminal;
  */
 public class TApplication {
 
-    /// All drawing for the application renders to this Screen.
-    public Screen screen;
-
-    /// Input events are processed by this Terminal.
-    private Terminal terminal;
+    /// Access to the physical screen, keyboard, and mouse.
+    public Backend backend;
 
     /// Actual mouse coordinate X
     private uint mouseX;
@@ -117,10 +115,10 @@ public class TApplication {
 
     /// Public constructor.
     public this() {
-	screen = new Screen();
+	backend = new ECMABackend();
 	theme = new ColorTheme();
 
-	desktopBottom = screen.getHeight() - 1;
+	desktopBottom = backend.screen.getHeight() - 1;
 
 	primaryEventFiber = new Fiber(&primaryEventHandler);
     }
@@ -139,10 +137,10 @@ public class TApplication {
 	    Color.WHITE
 	];
 
-	CellAttributes attr = screen.getAttrXY(mouseX, mouseY);
+	CellAttributes attr = backend.screen.getAttrXY(mouseX, mouseY);
 	attr.foreColor = cast(Color)(sgrToPCMap[attr.foreColor] ^ 0x7);
 	attr.backColor = cast(Color)(sgrToPCMap[attr.backColor] ^ 0x7);
-	screen.putAttrXY(mouseX, mouseY, attr, false);
+	backend.screen.putAttrXY(mouseX, mouseY, attr, false);
 	// screen.putCharXY(mouseX, mouseY, 'X', attr);
 	flush = true;
     }
@@ -154,26 +152,23 @@ public class TApplication {
      *    escape sequences string that provides the updates to the
      *    physical screen
      */
-    final public string drawAll() {
+    final public void drawAll() {
 	if ((flush) && (!repaint)) {
-	    string result = screen.flushString();
+	    backend.flushScreen();
 	    flush = false;
-	    return result;
+	    return;
 	}
 
 	if (!repaint) {
-	    return "";
+	    return;
 	}
 
 	// Start with a clean screen
-	screen.clear();
-
-	// Kill the cursor
-	string result = terminal.cursor(false);
+	backend.screen.clear();
 
 	// Draw the background
 	CellAttributes background = theme.getColor("tapplication.background");
-	screen.putAll(GraphicsChars.HATCH, background);
+	backend.screen.putAll(GraphicsChars.HATCH, background);
 
 	// Draw each window in reverse Z order
 	TWindow [] sorted = windows.dup;
@@ -184,8 +179,9 @@ public class TApplication {
 
 	// Draw the blank menubar line - reset the screen clipping first so
 	// it won't trim it out.
-	screen.resetClipping();
-	screen.hLineXY(0, 0, screen.getWidth(), ' ', theme.getColor("tmenu"));
+	backend.screen.resetClipping();
+	backend.screen.hLineXY(0, 0, backend.screen.getWidth(), ' ',
+	    theme.getColor("tmenu"));
 	// Now draw the menus.
 	uint x = 1;
 	foreach (m; menus) {
@@ -199,40 +195,45 @@ public class TApplication {
 		menuAcceleratorColor = theme.getColor("tmenu.accelerator");
 	    }
 	    // Draw the menu title
-	    screen.hLineXY(x, 0, cast(uint)m.title.length + 2, ' ', menuColor);
-	    screen.putStrXY(x + 1, 0, m.title, menuColor);
+	    backend.screen.hLineXY(x, 0, cast(uint)m.title.length + 2, ' ',
+		menuColor);
+	    backend.screen.putStrXY(x + 1, 0, m.title, menuColor);
 	    // Draw the highlight character
-	    screen.putCharXY(x + 1 + m.accelerator.shortcutIdx, 0,
+	    backend.screen.putCharXY(x + 1 + m.accelerator.shortcutIdx, 0,
 		m.accelerator.shortcut, menuAcceleratorColor);
 
 	    if (m.active) {
 		m.drawChildren();
 		// Reset the screen clipping so we can draw the next title.
-		screen.resetClipping();
+		backend.screen.resetClipping();
 	    }
 	    x += m.title.length + 2;
+	}
+
+	// Place the cursor if it is visible
+	TWidget activeWidget = null;
+	bool hasCursor = false;
+	if (sorted.length > 0) {
+	    activeWidget = sorted[$ - 1].getActiveChild();
+	    if (activeWidget.hasCursor) {
+		backend.putCursor(true, activeWidget.getCursorAbsoluteX(),
+		    activeWidget.getCursorAbsoluteY());
+		hasCursor = true;
+	    }
+	}
+	// Kill the cursor
+	if (!hasCursor) {
+	    backend.putCursor(false, 0, 0);
 	}
 
 	// Place the mouse pointer
 	flipMouse();
 
-	// Get the screen contents
-	result ~= screen.flushString();
-
-	// Place the cursor if it is visible
-	TWidget activeWidget = null;
-	if (sorted.length > 0) {
-	    activeWidget = sorted[$ - 1].getActiveChild();
-	    if (activeWidget.hasCursor) {
-		result ~= terminal.cursor(true);
-		result ~= terminal.gotoXY(activeWidget.getCursorAbsoluteX(),
-		    activeWidget.getCursorAbsoluteY());
-	    }
-	}
+	// Flush the screen contents
+	backend.flushScreen();
 
 	repaint = false;
 	flush = false;
-	return result;
     }
 
     /**
@@ -561,8 +562,8 @@ public class TApplication {
 
 	    // Screen resize
 	    if (auto resize = cast(TResizeEvent)event) {
-		screen.setDimensions(resize.width, resize.height);
-		desktopBottom = screen.getHeight() - 1;
+		backend.screen.setDimensions(resize.width, resize.height);
+		desktopBottom = backend.screen.getHeight() - 1;
 		repaint = true;
 		mouseX = 0;
 		mouseY = 0;
@@ -784,35 +785,8 @@ public class TApplication {
 	return false;
     }
 
-    /**
-     * Pass this raw input char into the event loop.  This will be
-     * processed by Terminal.getEvent().
-     *
-     * Params:
-     *    ch = Unicode code point
-     */
-    final public void processChar(dchar ch) {
-	if (terminal is null) {
-	    terminal = new Terminal(false);
-	}
-	TInputEvent [] events = terminal.getEvents(ch);
-	metaHandleEvents(events);
-    }
-
-    version(Posix) {
-	// Used in run() to poll stdin
-	import core.sys.posix.poll;
-    }
-
     /// Do stuff when there is no user input
     private void doIdle() {
-	if (terminal is null) {
-	    terminal = new Terminal(false);
-	}
-	// Pull any pending input events
-	TInputEvent [] events = terminal.getEvents(0, true);
-	metaHandleEvents(events);
-
 	// Now run any timers that have timed out
 	auto now = Clock.currTime;
 	TTimer [] keepTimers;
@@ -862,29 +836,8 @@ public class TApplication {
 
     /// Run this application until it exits, using stdin and stdout
     final public void run() {
-	// Create a terminal and explicitly set stdin into raw mode
-	assert(terminal is null);
-	terminal = new Terminal(true);
-
-	// Reset the screen size
-	screen.setDimensions(terminal.getPhysicalWidth(),
-	    terminal.getPhysicalHeight());
-	desktopBottom = screen.getHeight() - 1;
-
-	// Clear the screen
-	stdout.write(Terminal.clearAll());
-	stdout.flush();
-
-	// Use poll() on stdin
-	pollfd pfd;
 
 	while (quit == false) {
-
-	    // Poll on stdin.  Last parameter is milliseconds, so timeout
-	    // after 0.1 seconds of inactivity.
-	    pfd.fd = stdin.fileno();
-	    pfd.events = POLLIN;
-	    pfd.revents = 0;
 
 	    // Timeout is in milliseconds, so default timeout after 1
 	    // second of inactivity.
@@ -897,32 +850,15 @@ public class TApplication {
 		timeout = 0;
 	    }
 
-	    auto poll_rc = poll(&pfd, 1, timeout);
+	    // Pull any pending input events
+	    TInputEvent [] events = backend.getEvents(timeout);
+	    metaHandleEvents(events);
 
-	    if (poll_rc < 0) {
-		// Interrupt
-		continue;
-	    }
-
-	    if (poll_rc > 0) {
-		// We have something to read
-		dchar ch = terminal.getCharStdin();
-		processChar(ch);
-	    }
-
-	    if (poll_rc == 0) {
-		// Do timeout
-		doIdle();
-	    }
+	    // Process timers and call doIdle()'s
+	    doIdle();
 
 	    // Update the screen
-	    string output = drawAll();
-	    stdout.write(output);
-	    stdout.flush();
-
-	    // DEBUG
-	    // stderr.write(output);
-	    // stderr.flush();
+	    drawAll();
 	}
     }
 

@@ -51,6 +51,7 @@ import std.format;
 import std.string;
 import std.utf;
 import base;
+import ecma;
 import codepage;
 import tapplication;
 import twindow;
@@ -5559,7 +5560,7 @@ public class TTerminal : TWindow {
 		try {
 		    if (utf8) {
 			try {
-			    emulator.consume(Terminal.getCharFileno(shellFD));
+			    emulator.consume(ECMATerminal.getCharFileno(shellFD));
 			} catch (UTFException e) {
 			    // The remote side is sending non-UTF, so
 			    // stop trying to decode UTF8 from here on
@@ -5567,7 +5568,7 @@ public class TTerminal : TWindow {
 			    utf8 = false;
 			}
 		    } else {
-			emulator.consume(Terminal.getByteFileno(shellFD));
+			emulator.consume(ECMATerminal.getByteFileno(shellFD));
 		    }
 		    readEmulatorState();
 		} catch (FileException e) {
