@@ -141,7 +141,7 @@ public class TButton : TWidget {
 	CellAttributes buttonColor;
 	CellAttributes shadowColor = new CellAttributes();
 	shadowColor.setTo(window.getBackground());
-	shadowColor.foreColor = COLOR_BLACK;
+	shadowColor.foreColor = Color.BLACK;
 	shadowColor.bold = false;
 
 	if (getAbsoluteActive()) {

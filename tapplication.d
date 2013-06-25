@@ -128,20 +128,20 @@ public class TApplication {
     /// Invert the cell at the mouse pointer position
     private void flipMouse() {
 
-	ubyte [] sgrToPCMap = [
-	    COLOR_BLACK,
-	    COLOR_BLUE,
-	    COLOR_GREEN,
-	    COLOR_CYAN,
-	    COLOR_RED,
-	    COLOR_MAGENTA,
-	    COLOR_YELLOW,
-	    COLOR_WHITE
+	Color [] sgrToPCMap = [
+	    Color.BLACK,
+	    Color.BLUE,
+	    Color.GREEN,
+	    Color.CYAN,
+	    Color.RED,
+	    Color.MAGENTA,
+	    Color.YELLOW,
+	    Color.WHITE
 	];
 
 	CellAttributes attr = screen.getAttrXY(mouseX, mouseY);
-	attr.foreColor = sgrToPCMap[attr.foreColor] ^ 0x7;
-	attr.backColor = sgrToPCMap[attr.backColor] ^ 0x7;
+	attr.foreColor = cast(Color)(sgrToPCMap[attr.foreColor] ^ 0x7);
+	attr.backColor = cast(Color)(sgrToPCMap[attr.backColor] ^ 0x7);
 	screen.putAttrXY(mouseX, mouseY, attr, false);
 	// screen.putCharXY(mouseX, mouseY, 'X', attr);
 	flush = true;

@@ -2944,81 +2944,81 @@ private class ECMA48 {
 
 	    case 30:
 		// Set black foreground
-		currentState.attr.foreColor = COLOR_BLACK;
+		currentState.attr.foreColor = Color.BLACK;
 		break;
 	    case 31:
 		// Set red foreground
-		currentState.attr.foreColor = COLOR_RED;
+		currentState.attr.foreColor = Color.RED;
 		break;
 	    case 32:
 		// Set green foreground
-		currentState.attr.foreColor = COLOR_GREEN;
+		currentState.attr.foreColor = Color.GREEN;
 		break;
 	    case 33:
 		// Set yellow foreground
-		currentState.attr.foreColor = COLOR_YELLOW;
+		currentState.attr.foreColor = Color.YELLOW;
 		break;
 	    case 34:
 		// Set blue foreground
-		currentState.attr.foreColor = COLOR_BLUE;
+		currentState.attr.foreColor = Color.BLUE;
 		break;
 	    case 35:
 		// Set magenta foreground
-		currentState.attr.foreColor = COLOR_MAGENTA;
+		currentState.attr.foreColor = Color.MAGENTA;
 		break;
 	    case 36:
 		// Set cyan foreground
-		currentState.attr.foreColor = COLOR_CYAN;
+		currentState.attr.foreColor = Color.CYAN;
 		break;
 	    case 37:
 		// Set white foreground
-		currentState.attr.foreColor = COLOR_WHITE;
+		currentState.attr.foreColor = Color.WHITE;
 		break;
 	    case 38:
 		// Underscore on, default foreground color
 		currentState.attr.underline = true;
-		currentState.attr.foreColor = COLOR_WHITE;
+		currentState.attr.foreColor = Color.WHITE;
 		break;
 	    case 39:
 		// Underscore off, default foreground color
 		currentState.attr.underline = false;
-		currentState.attr.foreColor = COLOR_WHITE;
+		currentState.attr.foreColor = Color.WHITE;
 		break;
 	    case 40:
 		// Set black background
-		currentState.attr.backColor = COLOR_BLACK;
+		currentState.attr.backColor = Color.BLACK;
 		break;
 	    case 41:
 		// Set red background
-		currentState.attr.backColor = COLOR_RED;
+		currentState.attr.backColor = Color.RED;
 		break;
 	    case 42:
 		// Set green background
-		currentState.attr.backColor = COLOR_GREEN;
+		currentState.attr.backColor = Color.GREEN;
 		break;
 	    case 43:
 		// Set yellow background
-		currentState.attr.backColor = COLOR_YELLOW;
+		currentState.attr.backColor = Color.YELLOW;
 		break;
 	    case 44:
 		// Set blue background
-		currentState.attr.backColor = COLOR_BLUE;
+		currentState.attr.backColor = Color.BLUE;
 		break;
 	    case 45:
 		// Set magenta background
-		currentState.attr.backColor = COLOR_MAGENTA;
+		currentState.attr.backColor = Color.MAGENTA;
 		break;
 	    case 46:
 		// Set cyan background
-		currentState.attr.backColor = COLOR_CYAN;
+		currentState.attr.backColor = Color.CYAN;
 		break;
 	    case 47:
 		// Set white background
-		currentState.attr.backColor = COLOR_WHITE;
+		currentState.attr.backColor = Color.WHITE;
 		break;
 	    case 49:
 		// Default background
-		currentState.attr.backColor = COLOR_BLACK;
+		currentState.attr.backColor = Color.BLACK;
 		break;
 
 	    default:

@@ -64,31 +64,34 @@ import codepage;
 
 // Globals -------------------------------------------------------------------
 
-/// Black.  Bold + black = dark grey
-public static immutable ubyte COLOR_BLACK   = 0;
-
-/// Red
-public static immutable ubyte COLOR_RED     = 1;
-
-/// Green
-public static immutable ubyte COLOR_GREEN   = 2;
-
-/// Yellow.  Sometimes not-bold yellow is brown
-public static immutable ubyte COLOR_YELLOW  = 3;
-
-/// Blue
-public static immutable ubyte COLOR_BLUE    = 4;
-
-/// Magenta (purple)
-public static immutable ubyte COLOR_MAGENTA = 5;
-
-/// Cyan (blue-green)
-public static immutable ubyte COLOR_CYAN    = 6;
-
-/// White
-public static immutable ubyte COLOR_WHITE   = 7;
-
 // Classes -------------------------------------------------------------------
+
+enum Color {
+
+    /// Black.  Bold + black = dark grey
+    BLACK   = 0,
+
+    /// Red
+    RED     = 1,
+
+    /// Green
+    GREEN   = 2,
+
+    /// Yellow.  Sometimes not-bold yellow is brown
+    YELLOW  = 3,
+
+    /// Blue
+    BLUE    = 4,
+
+    /// Magenta (purple)
+    MAGENTA = 5,
+
+    /// Cyan (blue-green)
+    CYAN    = 6,
+
+    /// White
+    WHITE   = 7,
+}
 
 /**
  * The attributes used by a Cell: color, bold, blink, etc.
@@ -111,10 +114,10 @@ public class CellAttributes {
     public bool protect;
 
     /// Foreground color.  COLOR_WHITE, COLOR_RED, etc.
-    public ubyte foreColor;
+    public Color foreColor;
 
     /// Background color.  COLOR_WHITE, COLOR_RED, etc.
-    public ubyte backColor;
+    public Color backColor;
 
     /// Set to default not-bold, white foreground on black background
     public void reset() {
@@ -123,8 +126,8 @@ public class CellAttributes {
 	reverse = false;
 	protect = false;
 	underline = false;
-	foreColor = COLOR_WHITE;
-	backColor = COLOR_BLACK;
+	foreColor = Color.WHITE;
+	backColor = Color.BLACK;
     }
 
     /// Constructor
@@ -179,8 +182,8 @@ public class Cell : CellAttributes {
 
     /// Returns true if this cell has default attributes
     public bool isBlank() {
-	if ((foreColor == COLOR_WHITE) &&
-	    (backColor == COLOR_BLACK) &&
+	if ((foreColor == Color.WHITE) &&
+	    (backColor == Color.BLACK) &&
 	    (bold == false) &&
 	    (blink == false) &&
 	    (reverse == false) &&
@@ -2649,7 +2652,7 @@ public class Terminal {
      * Create a SGR parameter sequence for a single color change.
      *
      * Params:
-     *    color = one of the COLOR_WHITE, COLOR_BLUE, etc. constants
+     *    color = one of the Color.WHITE, Color.BLUE, etc. constants
      *    foreground = if true, this is a foreground color
      *    header = if true, make the full header, otherwise just emit
      *    the color parameter e.g. "42;"
@@ -2657,19 +2660,21 @@ public class Terminal {
      * Returns:
      *    the string to emit to an ANSI / ECMA-style terminal, e.g. "\033[42m"
      */
-    public static string color(ubyte color, bool foreground, bool header = true) {
-	// Convert COLOR_* values to SGR numerics
+    public static string color(Color color, bool foreground, bool header = true) {
+	uint ecmaColor = color;
+
+	// Convert Color.* values to SGR numerics
 	if (foreground) {
-	    color += 30;
+	    ecmaColor += 30;
 	} else {
-	    color += 40;
+	    ecmaColor += 40;
 	}
 
 	auto writer = appender!string();
 	if (header) {
-	    formattedWrite(writer, "\033[%dm", color);
+	    formattedWrite(writer, "\033[%dm", ecmaColor);
 	} else {
-	    formattedWrite(writer, "%d;", color);
+	    formattedWrite(writer, "%d;", ecmaColor);
 	}
 	return writer.data;
     }
@@ -2679,24 +2684,27 @@ public class Terminal {
      * background color change.
      *
      * Params:
-     *    foreColor = one of the COLOR_WHITE, COLOR_BLUE, etc. constants
-     *    backColor = one of the COLOR_WHITE, COLOR_BLUE, etc. constants
+     *    foreColor = one of the Color.WHITE, Color.BLUE, etc. constants
+     *    backColor = one of the Color.WHITE, Color.BLUE, etc. constants
      *    header = if true, make the full header, otherwise just emit
      *    the color parameter e.g. "31;42;"
      *    
      * Returns:
      *    the string to emit to an ANSI / ECMA-style terminal, e.g. "\033[31;42m"
      */
-    public static string color(ubyte foreColor, ubyte backColor, bool header = true) {
-	// Convert COLOR_* values to SGR numerics
-	backColor += 40;
-	foreColor += 30;
+    public static string color(Color foreColor, Color backColor, bool header = true) {
+	uint ecmaBackColor = backColor;
+	uint ecmaForeColor = foreColor;
+
+	// Convert Color.* values to SGR numerics
+	ecmaBackColor += 40;
+	ecmaForeColor += 30;
 
 	auto writer = appender!string();
 	if (header) {
-	    formattedWrite(writer, "\033[%d;%dm", foreColor, backColor);
+	    formattedWrite(writer, "\033[%d;%dm", ecmaForeColor, ecmaBackColor);
 	} else {
-	    formattedWrite(writer, "%d;%d;", foreColor, backColor);
+	    formattedWrite(writer, "%d;%d;", ecmaForeColor, ecmaBackColor);
 	}
 	return writer.data;
     }
@@ -2707,8 +2715,8 @@ public class Terminal {
      * to default, then sets attributes as per the parameters.
      *
      * Params:
-     *    foreColor = one of the COLOR_WHITE, COLOR_BLUE, etc. constants
-     *    backColor = one of the COLOR_WHITE, COLOR_BLUE, etc. constants
+     *    foreColor = one of the Color.WHITE, Color.BLUE, etc. constants
+     *    backColor = one of the Color.WHITE, Color.BLUE, etc. constants
      *    bold = if true, set bold
      *    reverse = if true, set reverse
      *    blink = if true, set blink
@@ -2716,10 +2724,14 @@ public class Terminal {
      * Returns:
      *    the string to emit to an ANSI / ECMA-style terminal, e.g. "\033[0;1;31;42m"
      */
-    public static string color(ubyte foreColor, ubyte backColor, bool bold, bool reverse, bool blink, bool underline) {
-	// Convert COLOR_* values to SGR numerics
-	backColor += 40;
-	foreColor += 30;
+    public static string color(Color foreColor, Color backColor, bool bold, bool reverse, bool blink, bool underline) {
+
+	uint ecmaBackColor = backColor;
+	uint ecmaForeColor = foreColor;
+
+	// Convert Color.* values to SGR numerics
+	ecmaBackColor += 40;
+	ecmaForeColor += 30;
 
 	auto writer = appender!string();
 	if        (  bold &&  reverse &&  blink && !underline ) {
@@ -2756,7 +2768,7 @@ public class Terminal {
 	    assert(!bold && !reverse && !blink && !underline);
 	    writer.put("\033[0;");
 	}
-	formattedWrite(writer, "%d;%dm", foreColor, backColor);
+	formattedWrite(writer, "%d;%dm", ecmaForeColor, ecmaBackColor);
 	return writer.data;
     }
     
@@ -3006,230 +3018,230 @@ public class ColorTheme {
 
 	// TWindow border
 	color = new CellAttributes();
-	color.foreColor = COLOR_WHITE;
-	color.backColor = COLOR_BLUE;
+	color.foreColor = Color.WHITE;
+	color.backColor = Color.BLUE;
 	color.bold = true;
 	colors["twindow.border"] = color;
 
 	// TWindow background
 	color = new CellAttributes();
-	color.foreColor = COLOR_YELLOW;
-	color.backColor = COLOR_BLUE;
+	color.foreColor = Color.YELLOW;
+	color.backColor = Color.BLUE;
 	color.bold = true;
 	colors["twindow.background"] = color;
 
 	// TWindow border - inactive
 	color = new CellAttributes();
-	color.foreColor = COLOR_BLACK;
-	color.backColor = COLOR_BLUE;
+	color.foreColor = Color.BLACK;
+	color.backColor = Color.BLUE;
 	color.bold = true;
 	colors["twindow.border.inactive"] = color;
 
 	// TWindow background - inactive
 	color = new CellAttributes();
-	color.foreColor = COLOR_YELLOW;
-	color.backColor = COLOR_BLUE;
+	color.foreColor = Color.YELLOW;
+	color.backColor = Color.BLUE;
 	color.bold = true;
 	colors["twindow.background.inactive"] = color;
 
 	// TWindow border - modal
 	color = new CellAttributes();
-	color.foreColor = COLOR_WHITE;
-	color.backColor = COLOR_WHITE;
+	color.foreColor = Color.WHITE;
+	color.backColor = Color.WHITE;
 	color.bold = true;
 	colors["twindow.border.modal"] = color;
 
 	// TWindow background - modal
 	color = new CellAttributes();
-	color.foreColor = COLOR_BLACK;
-	color.backColor = COLOR_WHITE;
+	color.foreColor = Color.BLACK;
+	color.backColor = Color.WHITE;
 	color.bold = false;
 	colors["twindow.background.modal"] = color;
 
 	// TWindow border - modal + inactive
 	color = new CellAttributes();
-	color.foreColor = COLOR_BLACK;
-	color.backColor = COLOR_WHITE;
+	color.foreColor = Color.BLACK;
+	color.backColor = Color.WHITE;
 	color.bold = true;
 	colors["twindow.border.modal.inactive"] = color;
 
 	// TWindow background - modal + inactive
 	color = new CellAttributes();
-	color.foreColor = COLOR_BLACK;
-	color.backColor = COLOR_WHITE;
+	color.foreColor = Color.BLACK;
+	color.backColor = Color.WHITE;
 	color.bold = false;
 	colors["twindow.background.modal.inactive"] = color;
 
 	// TWindow border - during window movement - modal
 	color = new CellAttributes();
-	color.foreColor = COLOR_GREEN;
-	color.backColor = COLOR_WHITE;
+	color.foreColor = Color.GREEN;
+	color.backColor = Color.WHITE;
 	color.bold = true;
 	colors["twindow.border.modal.windowmove"] = color;
 
 	// TWindow border - during window movement
 	color = new CellAttributes();
-	color.foreColor = COLOR_GREEN;
-	color.backColor = COLOR_BLUE;
+	color.foreColor = Color.GREEN;
+	color.backColor = Color.BLUE;
 	color.bold = true;
 	colors["twindow.border.windowmove"] = color;
 
 	// TWindow background - during window movement
 	color = new CellAttributes();
-	color.foreColor = COLOR_YELLOW;
-	color.backColor = COLOR_BLUE;
+	color.foreColor = Color.YELLOW;
+	color.backColor = Color.BLUE;
 	color.bold = false;
 	colors["twindow.background.windowmove"] = color;
 
 	// TApplication background
 	color = new CellAttributes();
-	color.foreColor = COLOR_BLUE;
-	color.backColor = COLOR_WHITE;
+	color.foreColor = Color.BLUE;
+	color.backColor = Color.WHITE;
 	color.bold = false;
 	colors["tapplication.background"] = color;
 
 	// TButton text
 	color = new CellAttributes();
-	color.foreColor = COLOR_BLACK;
-	color.backColor = COLOR_GREEN;
+	color.foreColor = Color.BLACK;
+	color.backColor = Color.GREEN;
 	color.bold = false;
 	colors["tbutton.inactive"] = color;
 	color = new CellAttributes();
-	color.foreColor = COLOR_WHITE;
-	color.backColor = COLOR_GREEN;
+	color.foreColor = Color.WHITE;
+	color.backColor = Color.GREEN;
 	color.bold = true;
 	colors["tbutton.active"] = color;
 
 	// TLabel text
 	color = new CellAttributes();
-	color.foreColor = COLOR_WHITE;
-	color.backColor = COLOR_BLUE;
+	color.foreColor = Color.WHITE;
+	color.backColor = Color.BLUE;
 	color.bold = true;
 	colors["tlabel"] = color;
 
 	// TText text
 	color = new CellAttributes();
-	color.foreColor = COLOR_WHITE;
-	color.backColor = COLOR_BLACK;
+	color.foreColor = Color.WHITE;
+	color.backColor = Color.BLACK;
 	color.bold = false;
 	colors["ttext"] = color;
 	
 	// TField text
 	color = new CellAttributes();
-	color.foreColor = COLOR_WHITE;
-	color.backColor = COLOR_BLUE;
+	color.foreColor = Color.WHITE;
+	color.backColor = Color.BLUE;
 	color.bold = false;
 	colors["tfield.inactive"] = color;
 	color = new CellAttributes();
-	color.foreColor = COLOR_YELLOW;
-	color.backColor = COLOR_BLACK;
+	color.foreColor = Color.YELLOW;
+	color.backColor = Color.BLACK;
 	color.bold = true;
 	colors["tfield.active"] = color;
 
 	// TCheckbox
 	color = new CellAttributes();
-	color.foreColor = COLOR_WHITE;
-	color.backColor = COLOR_BLUE;
+	color.foreColor = Color.WHITE;
+	color.backColor = Color.BLUE;
 	color.bold = false;
 	colors["tcheckbox.inactive"] = color;
 	color = new CellAttributes();
-	color.foreColor = COLOR_YELLOW;
-	color.backColor = COLOR_BLACK;
+	color.foreColor = Color.YELLOW;
+	color.backColor = Color.BLACK;
 	color.bold = true;
 	colors["tcheckbox.active"] = color;
 
 
 	// TRadioButton
 	color = new CellAttributes();
-	color.foreColor = COLOR_WHITE;
-	color.backColor = COLOR_BLUE;
+	color.foreColor = Color.WHITE;
+	color.backColor = Color.BLUE;
 	color.bold = false;
 	colors["tradiobutton.inactive"] = color;
 	color = new CellAttributes();
-	color.foreColor = COLOR_YELLOW;
-	color.backColor = COLOR_BLACK;
+	color.foreColor = Color.YELLOW;
+	color.backColor = Color.BLACK;
 	color.bold = true;
 	colors["tradiobutton.active"] = color;
 
 	// TRadioGroup
 	color = new CellAttributes();
-	color.foreColor = COLOR_WHITE;
-	color.backColor = COLOR_BLUE;
+	color.foreColor = Color.WHITE;
+	color.backColor = Color.BLUE;
 	color.bold = false;
 	colors["tradiogroup.inactive"] = color;
 	color = new CellAttributes();
-	color.foreColor = COLOR_YELLOW;
-	color.backColor = COLOR_BLUE;
+	color.foreColor = Color.YELLOW;
+	color.backColor = Color.BLUE;
 	color.bold = true;
 	colors["tradiogroup.active"] = color;
 
 	// TMenu
 	color = new CellAttributes();
-	color.foreColor = COLOR_BLACK;
-	color.backColor = COLOR_WHITE;
+	color.foreColor = Color.BLACK;
+	color.backColor = Color.WHITE;
 	color.bold = false;
 	colors["tmenu"] = color;
 	color = new CellAttributes();
-	color.foreColor = COLOR_BLACK;
-	color.backColor = COLOR_GREEN;
+	color.foreColor = Color.BLACK;
+	color.backColor = Color.GREEN;
 	color.bold = false;
 	colors["tmenu.highlighted"] = color;
 	color = new CellAttributes();
-	color.foreColor = COLOR_RED;
-	color.backColor = COLOR_WHITE;
+	color.foreColor = Color.RED;
+	color.backColor = Color.WHITE;
 	color.bold = false;
 	colors["tmenu.accelerator"] = color;
 	color = new CellAttributes();
-	color.foreColor = COLOR_RED;
-	color.backColor = COLOR_GREEN;
+	color.foreColor = Color.RED;
+	color.backColor = Color.GREEN;
 	color.bold = false;
 	colors["tmenu.accelerator.highlighted"] = color;
 
 	// TProgressBar
 	color = new CellAttributes();
-	color.foreColor = COLOR_BLUE;
-	color.backColor = COLOR_BLUE;
+	color.foreColor = Color.BLUE;
+	color.backColor = Color.BLUE;
 	color.bold = true;
 	colors["tprogressbar.complete"] = color;
 	color = new CellAttributes();
-	color.foreColor = COLOR_WHITE;
-	color.backColor = COLOR_BLUE;
+	color.foreColor = Color.WHITE;
+	color.backColor = Color.BLUE;
 	color.bold = false;
 	colors["tprogressbar.incomplete"] = color;
 
 	// THScroller / TVScroller
 	color = new CellAttributes();
-	color.foreColor = COLOR_CYAN;
-	color.backColor = COLOR_BLUE;
+	color.foreColor = Color.CYAN;
+	color.backColor = Color.BLUE;
 	color.bold = false;
 	colors["tscroller.bar"] = color;
 	color = new CellAttributes();
-	color.foreColor = COLOR_BLUE;
-	color.backColor = COLOR_CYAN;
+	color.foreColor = Color.BLUE;
+	color.backColor = Color.CYAN;
 	color.bold = false;
 	colors["tscroller.arrows"] = color;
 
 	// TTreeView
 	color = new CellAttributes();
-	color.foreColor = COLOR_WHITE;
-	color.backColor = COLOR_BLUE;
+	color.foreColor = Color.WHITE;
+	color.backColor = Color.BLUE;
 	color.bold = false;
 	colors["ttreeview"] = color;
 	color = new CellAttributes();
-	color.foreColor = COLOR_GREEN;
-	color.backColor = COLOR_BLUE;
+	color.foreColor = Color.GREEN;
+	color.backColor = Color.BLUE;
 	color.bold = true;
 	colors["ttreeview.expandbutton"] = color;
 	color = new CellAttributes();
-	color.foreColor = COLOR_BLACK;
-	color.backColor = COLOR_CYAN;
+	color.foreColor = Color.BLACK;
+	color.backColor = Color.CYAN;
 	color.bold = false;
 	colors["ttreeview.selected"] = color;
 
 	// TEditor
 	color = new CellAttributes();
-	color.foreColor = COLOR_WHITE;
-	color.backColor = COLOR_BLACK;
+	color.foreColor = Color.WHITE;
+	color.backColor = Color.BLACK;
 	color.bold = false;
 	colors["teditor"] = color;
 
