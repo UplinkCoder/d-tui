@@ -5401,10 +5401,10 @@ public class TTerminal : TWindow {
 
 	    // Set window size
 	    winsize terminalSize;
-	    if (ioctl(shellFD, TIOCGWINSZ, &terminalSize) >= 0) {
+	    if (ioctl(stdin.fileno(), TIOCGWINSZ, &terminalSize) >= 0) {
 		terminalSize.ws_col = cast(ushort)emulator.width;
 		terminalSize.ws_row = cast(ushort)emulator.height;
-		ioctl(shellFD, TIOCSWINSZ, &terminalSize);
+		ioctl(stdin.fileno(), TIOCSWINSZ, &terminalSize);
 	    }
 
 	    // Execute the shell

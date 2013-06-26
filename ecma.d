@@ -286,7 +286,10 @@ public class ECMAScreen : Screen {
     /// Push the logical screen to the physical device.
     override public void flushPhysical() {
 	string result = flushString();
-	if ((cursorVisible) && (cursorY <= height - 1)) {
+	if ((cursorVisible) &&
+	    (cursorY <= height - 1) &&
+	    (cursorX <= width - 1)
+	) {
 	    result ~= terminal.cursor(true);
 	    result ~= terminal.gotoXY(cursorX, cursorY);
 	} else {
@@ -522,6 +525,10 @@ public class ECMATerminal {
 		// Error.  So assume 80
 		return 80;
 	    }
+	    if (consoleSize.ws_col == 0) {
+		// Error.  So assume 80
+		return 80;
+	    }
 	    return consoleSize.ws_col;
 	}
     }
@@ -537,6 +544,10 @@ public class ECMATerminal {
 	    // We use TIOCGWINSZ
 	    winsize consoleSize;
 	    if (ioctl(stdin.fileno(), TIOCGWINSZ, &consoleSize) < 0) {
+		// Error.  So assume 24
+		return 24;
+	    }
+	    if (consoleSize.ws_row == 0) {
 		// Error.  So assume 24
 		return 24;
 	    }
