@@ -313,7 +313,6 @@ public class TApplication {
 	// See if they hit the menu bar
 	if ((mouse.type == TMouseEvent.Type.MOUSE_DOWN) &&
 	    (mouse.mouse1) &&
-	    (activeMenu is null) &&
 	    (!modalWindowActive())
 	) {
 
@@ -325,6 +324,8 @@ public class TApplication {
 		) {
 		    m.active = true;
 		    activeMenu = m;
+		} else {
+		    m.active = false;
 		}
 	    }
 	    repaint = true;
