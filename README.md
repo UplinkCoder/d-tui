@@ -64,8 +64,10 @@ I am just beginning as a work in progress.  Many tasks remain before
 calling this version 1.0:
 
 - [ ] Demo
-  - [ ] Add editor window
 - [ ] TEditor : TWindow
+  - [ ] Page up/down
+  - [ ] Scrollbar mouse clicks
+  - [ ] Move position with mouse
 - [ ] TTerminal
   - [ ] Horizontal scrollbar
   - [ ] Vertical scrollbar

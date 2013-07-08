@@ -273,6 +273,50 @@ public class TWindow : TWidget {
 	}
     }
 
+    /// Retrieve the border color
+    public CellAttributes getBorder() {
+	if (!isModal() && (inWindowMove || inWindowResize)) {
+	    assert(active == 1);
+	    return application.theme.getColor("twindow.border.windowmove");
+	} else if (isModal() && inWindowMove) {
+	    assert(active == 1);
+	    return application.theme.getColor("twindow.border.modal.windowmove");
+	} else if (isModal()) {
+	    if (active) {
+		return application.theme.getColor("twindow.border.modal");
+	    } else {
+		return application.theme.getColor("twindow.border.modal.inactive");
+	    }
+	} else if (active) {
+	    assert(!isModal());
+	    return application.theme.getColor("twindow.border");
+	} else {
+	    assert(!isModal());
+	    return application.theme.getColor("twindow.border.inactive");
+	}
+    }
+
+    /// Retrieve the border line type
+    public uint getBorderType() {
+	if (!isModal() && (inWindowMove || inWindowResize)) {
+	    assert(active == 1);
+	    return 1;
+	} else if (isModal() && inWindowMove) {
+	    assert(active == 1);
+	    return 1;
+	} else if (isModal()) {
+	    if (active) {
+		return 2;
+	    } else {
+		return 1;
+	    }
+	} else if (active) {
+	    return 2;
+	} else {
+	    return 1;
+	}
+    }
+
     /**
      * Subclasses should override this method to cleanup resources.  This is
      * called by application.closeWindow().
@@ -284,32 +328,10 @@ public class TWindow : TWidget {
     /// Called by TApplication.drawChildren() to render on screen.
     override public void draw() {
 	// Draw the box and background first.
-	CellAttributes border;
+	CellAttributes border = getBorder();
 	CellAttributes background = getBackground();
-	uint borderType = 1;
+	uint borderType = getBorderType();
 
-	if (!isModal() && (inWindowMove || inWindowResize)) {
-	    assert(active == 1);
-	    border = application.theme.getColor("twindow.border.windowmove");
-	} else if (isModal() && inWindowMove) {
-	    assert(active == 1);
-	    border = application.theme.getColor("twindow.border.modal.windowmove");
-	} else if (isModal()) {
-	    if (active) {
-		border = application.theme.getColor("twindow.border.modal");
-		borderType = 2;
-	    } else {
-		border = application.theme.getColor("twindow.border.modal.inactive");
-		borderType = 1;
-	    }
-	} else if (active) {
-	    assert(!isModal());
-	    border = application.theme.getColor("twindow.border");
-	    borderType = 2;
-	} else {
-	    assert(!isModal());
-	    border = application.theme.getColor("twindow.border.inactive");
-	}
 	drawBox(0, 0, width, height, border, background, borderType, true);
 
 	if (!inWindowMove) {

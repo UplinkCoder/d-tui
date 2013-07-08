@@ -73,41 +73,6 @@ private class DemoCheckboxWindow : TWindow {
 
 }
 
-private class DemoEditorWindow : TWindow {
-
-    TEditor editField;
-
-    /// Constructor
-    this(TApplication parent) {
-	super(parent, "Editor", 0, 0, 60, 15, TWindow.Flag.CENTERED | TWindow.Flag.RESIZABLE);
-	editField = new TEditor(this, 1, 1, 40, 16);
-	onResize(new TResizeEvent(TResizeEvent.Type.Widget, width, height));
-
-	minimumWindowHeight = 8;
-    }
-
-    /**
-     * Handle window/screen resize events.
-     *
-     * Params:
-     *    event = resize event
-     */
-    override protected void onResize(TResizeEvent event) {
-	if (event.type == TResizeEvent.Type.Widget) {
-	    // Resize the text field
-	    editField.width = event.width - 4;
-	    editField.height = event.height - 4;
-	    editField.reflow();
-	    return;
-	}
-
-	// Pass to children instead
-	foreach (w; children) {
-	    w.onResize(event);
-	}
-    }
-}
-
 private class DemoTextWindow : TWindow {
 
     /// Hang onto my TText so I can resize it with the window
@@ -398,7 +363,7 @@ private class DemoMainWindow : TWindow {
 	    addLabel("Editor window", 1, row);
 	    addButton("Editor", 35, row,
 		{
-		    new DemoEditorWindow(application);
+		    new TEditor(application, 0, 0, 60, 15);
 		}
 	    );
 	}

@@ -394,8 +394,6 @@ private static immutable wchar vt52_special_graphics_chars[128] = [
  */
 private class ECMA48 {
 
-    private import std.stdio;
-
     /// This controls what is sent back from the "Device Attributes"
     /// function.
     public enum DeviceType {
@@ -5342,8 +5340,6 @@ version (Posix) {
  */
 public class TTerminal : TWindow {
 
-    private import std.stdio;
-
     /// The emulator
     private ECMA48 emulator;
 
@@ -5401,19 +5397,19 @@ public class TTerminal : TWindow {
 
 	    // Set window size
 	    winsize terminalSize;
-	    if (ioctl(stdin.fileno(), TIOCGWINSZ, &terminalSize) >= 0) {
+	    if (ioctl(std.stdio.stdin.fileno(), TIOCGWINSZ, &terminalSize) >= 0) {
 		terminalSize.ws_col = cast(ushort)emulator.width;
 		terminalSize.ws_row = cast(ushort)emulator.height;
-		ioctl(stdin.fileno(), TIOCSWINSZ, &terminalSize);
+		ioctl(std.stdio.stdin.fileno(), TIOCSWINSZ, &terminalSize);
 	    }
 
 	    // Execute the shell
 	    core.sys.posix.unistd.execvp(argz[0], argz.ptr);
 
 	    // Should never get here
-	    stderr.writefln("exec() failed: %d (%s)", errno,
+	    std.stdio.stderr.writefln("exec() failed: %d (%s)", errno,
 		to!string(strerror(errno)));
-	    stderr.flush();
+	    std.stdio.stderr.flush();
 	    exit(-1);
 	}
 	processRunning = true;

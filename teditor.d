@@ -35,12 +35,16 @@
 
 // Imports -------------------------------------------------------------------
 
+import std.array;
+import std.format;
 import std.string;
 import std.utf;
 import base;
 import codepage;
-import twidget;
+import tapplication;
 import tscroll;
+import twindow;
+import twidget;
 
 // Defines -------------------------------------------------------------------
 
@@ -49,9 +53,9 @@ import tscroll;
 // Classes -------------------------------------------------------------------
 
 /**
- * TEditor implements an editable text area.
+ * TEditorWidget implements an editable text area.
  */
-public class TEditor : TWidget {
+public class TEditorWidget : TWidget {
 
     /// Lines of text being edited
     private dstring [] lines;
@@ -63,13 +67,27 @@ public class TEditor : TWidget {
     private uint editingColumn = 0;
 
     /// When true, insert rather than overwrite
-    private bool insert = true;
+    private bool insertMode = true;
+
+    /// Horizontal tab stops
+    private uint [] tabStops;
 
     /// Vertical scrollbar
     private TVScroller vScroller;
 
     /// Horizontal scrollbar
     private THScroller hScroller;
+
+    /**
+     * Reset the tab stops list
+     */
+    private void resetTabStops() {
+	tabStops.length = 0;
+	for (int i = 0; (i * 8) <= width; i++) {
+	    tabStops.length++;
+	    tabStops[i] = i * 8;
+	}
+    }
 
     /**
      * Get the maximum width of the lines with text
@@ -91,6 +109,9 @@ public class TEditor : TWidget {
      * Resize text and scrollbars for a new width/height
      */
     public void reflow() {
+
+	resetTabStops();
+
 	// Start at the top
 	if (vScroller is null) {
 	    vScroller = new TVScroller(this, width - 1, 0, height - 1);
@@ -98,7 +119,7 @@ public class TEditor : TWidget {
 	    vScroller.x = width - 1;
 	    vScroller.height = height - 1;
 	}
-	vScroller.bottomValue = cast(int)lines.length - height - 1;
+	vScroller.bottomValue = cast(int)lines.length - height + 1;
 	vScroller.topValue = 0;
 	vScroller.value = 0;
 	if (vScroller.bottomValue < 0) {
@@ -113,7 +134,7 @@ public class TEditor : TWidget {
 	    hScroller.y = height - 1;
 	    hScroller.width = width - 1;
 	}
-	hScroller.rightValue = getLineWidth() - width + 1;
+	hScroller.rightValue = getLineWidth() - width + 2;
 	hScroller.leftValue = 0;
 	hScroller.value = 0;
 	if (hScroller.rightValue < 0) {
@@ -129,7 +150,8 @@ public class TEditor : TWidget {
      *    widget that is active, or this if no children
      */
     override public TWidget getActiveChild() {
-	// Always return me
+	// Always return me so that the cursor will be here and not on the
+	// scrollbars.
 	return this;
     }
 
@@ -157,7 +179,8 @@ public class TEditor : TWidget {
 	this.hasCursor = true;
 
 	// Start with one blank line
-	lines ~= "";
+	// lines ~= "";
+	lines ~= "12345678901234567890abcdefg1234567890abcdefgh1234567890zyxwvu0987654321hgfedbc-a-";
 
 	reflow();
     }
@@ -196,16 +219,33 @@ public class TEditor : TWidget {
      */
     override protected void onMouseDown(TMouseEvent mouse) {
 	if (mouse.mouseWheelUp) {
-	    vScroller.decrement();
-	    return;
+	    moveUp();
 	}
 	if (mouse.mouseWheelDown) {
-	    vScroller.increment();
-	    return;
+	    moveDown();
 	}
+
+	// TODO: reposition cursor
 
 	// Pass to children
 	super.onMouseDown(mouse);
+
+	// Update visible window
+	updateCursor();
+    }
+
+    /**
+     * Handle mouse motion events.
+     *
+     * Params:
+     *    mouse = mouse button press event
+     */
+    override protected void onMouseMotion(TMouseEvent mouse) {
+	// Pass to children
+	super.onMouseDown(mouse);
+
+	// Update visible window
+	updateCursor();
     }
 
     /**
@@ -215,8 +255,45 @@ public class TEditor : TWidget {
      *    mouse = mouse button release event
      */
     override protected void onMouseUp(TMouseEvent mouse) {
-	// TODO: reposition cursor
+	// Pass to children
+	super.onMouseDown(mouse);
 
+	// Update visible window
+	updateCursor();
+    }
+
+    /// Update the cursor position
+    private void updateCursor() {
+
+	// Update the scrollbar limit
+	hScroller.rightValue = getLineWidth() - width + 2;
+
+	// If we are editing outside the visible window, shift the window.
+	uint left = hScroller.value;
+	uint right = hScroller.value + width - 2;
+	if ((editingColumn < left) || (editingColumn > right)) {
+	    int newLeft = editingColumn - ((width * 3/4) - 2);
+	    if (newLeft < 0) {
+		newLeft = 0;
+	    }
+	    hScroller.value = newLeft;
+	}
+	if (hScroller.value + (width - 2) > lines[editingRow].length - 1) {
+	    hScroller.value = cast(uint)lines[editingRow].length - (width/2);
+	}
+	if (hScroller.value > hScroller.rightValue) {
+	    hScroller.value = hScroller.rightValue;
+	}
+	if (hScroller.value < hScroller.leftValue) {
+	    hScroller.value = hScroller.leftValue;
+	}
+	if (editingColumn < hScroller.value) {
+	    editingColumn = hScroller.value;
+	}
+	cursorX = editingColumn - hScroller.value;
+
+	vScroller.bottomValue = cast(int)lines.length - height + 1;
+	cursorY = editingRow - vScroller.value;
     }
 
     /**
@@ -228,48 +305,295 @@ public class TEditor : TWidget {
     override protected void onKeypress(TKeypressEvent keypress) {
 	TKeypress key = keypress.key;
 	if (key == kbLeft) {
-
+	    moveLeft();
 	} else if (key == kbRight) {
-
+	    moveRight();
 	} else if (key == kbUp) {
-
+	    moveUp();
 	} else if (key == kbDown) {
-
+	    moveDown();
 	} else if (key == kbPgUp) {
-	    vScroller.bigDecrement();
+	    pageUp();
 	} else if (key == kbPgDn) {
-	    vScroller.bigIncrement();
+	    pageDown();
 	} else if (key == kbHome) {
-	    vScroller.toTop();
+	    home();
 	} else if (key == kbEnd) {
-	    vScroller.toBottom();
+	    end();
+	} else if (key == kbIns) {
+	    insertMode = !insertMode;
+	} else if ((key == kbBackspace) || (key == kbBackspaceDel)) {
+	    deleteLeft();
+	} else if (key == kbDel) {
+	    deleteRight();
+	} else if (key == kbTab) {
+	    tab();
+	} else if (key == kbEnter) {
+	    enter();
 	} else if (key.isKey == false) {
-	    appendChar(key.ch);
-	} else {
-	    // Pass other keys (tab etc.) on
-	    super.onKeypress(keypress);
+	    editChar(key.ch);
+	}
+	updateCursor();
+    }
+
+    /**
+     * Move cursor left
+     */
+    private void moveLeft() {
+	if ((editingColumn == 0) && (editingRow > 0)) {
+	    moveUp();
+	    editingColumn = cast(uint)lines[editingRow].length;
+	    return;
+	}
+
+	if (editingColumn > 0) {
+	    editingColumn--;
 	}
     }
 
     /**
-     * Append char to the end of the field
+     * Move cursor right
+     */
+    private void moveRight() {
+	if ((editingColumn == lines[editingRow].length) &&
+	    (editingRow < lines.length - 1)
+	) {
+	    // Go one line below
+	    moveDown();
+	    editingColumn = 0;
+	    return;
+	}
+	    
+	if (editingColumn < lines[editingRow].length) {
+	    editingColumn++;
+	}
+    }
+
+    /**
+     * Move cursor up
+     */
+    private void moveUp() {
+	if (editingRow > 0) {
+	    editingRow--;
+	    if (cursorY == 0) {
+		if (vScroller.value > 0) {
+		    vScroller.value--;
+		}
+	    }
+	    if (editingColumn > lines[editingRow].length) {
+		editingColumn = cast(uint)lines[editingRow].length;
+	    }
+	}
+    }
+
+    /**
+     * Move cursor down
+     */
+    private void moveDown() {
+	if (editingRow < lines.length - 1) {
+	    editingRow++;
+	    if (cursorY == height - 2) {
+		vScroller.value++;
+	    }
+	    if (editingColumn > lines[editingRow].length) {
+		editingColumn = cast(uint)lines[editingRow].length;
+	    }
+	}
+    }
+
+    /**
+     * Page up
+     */
+    private void pageUp() {
+	// TODO
+    }
+
+    /**
+     * Page down
+     */
+    private void pageDown() {
+	// TODO
+    }
+
+    /**
+     * Enter
+     */
+    private void enter() {
+	dstring line = lines[editingRow];
+	// Split the line right here
+	dstring nextLine = line[editingColumn .. $];
+	line = line[0 .. editingColumn];
+	lines = lines[0 .. editingRow] ~ line ~ nextLine ~ lines[editingRow + 1 .. $];
+	editingRow++;
+	if (cursorY == height - 2) {
+	    vScroller.value++;
+	}
+	editingColumn = 0;
+	hScroller.value = 0;
+    }
+
+    /**
+     * Tab
+     */
+    private void tab() {
+	bool oldInsertMode = insertMode;
+	insertMode = true;
+	foreach (stop; tabStops) {
+	    if (stop > editingColumn) {
+		auto n = stop - editingColumn;
+		for (auto i = 0; i < n; i++) {
+		    editChar(' ');
+		}
+		break;
+	    }
+	}
+	insertMode = oldInsertMode;
+    }
+
+    /**
+     * Home
+     */
+    private void home() {
+	editingColumn = 0;
+    }
+
+    /**
+     * End
+     */
+    private void end() {
+	editingColumn = cast(uint)lines[editingRow].length;
+    }
+
+    /**
+     * Delete character to the left of the cursor (backspace)
+     */
+    private void deleteLeft() {
+	dstring line = lines[editingRow];
+
+	if ((editingColumn == 0) && (editingRow > 0)) {
+	    // Merge this line with the one above
+	    editingColumn = cast(uint)lines[editingRow - 1].length;
+	    lines[editingRow - 1] ~= line;
+	    lines = lines[0 .. editingRow] ~ lines[editingRow + 1 .. $];
+	    editingRow--;
+	    return;
+	}
+
+	if (editingColumn > 0) {
+	    assert(line.length > 0);
+	    line = line[0 .. editingColumn - 1] ~ line[editingColumn .. $];
+	    editingColumn--;
+	    lines[editingRow] = line;
+	}
+    }
+
+    /**
+     * Delete character to the right of the cursor (delete)
+     */
+    private void deleteRight() {
+	dstring line = lines[editingRow];
+
+	if ((editingColumn == line.length) && (editingRow < lines.length - 1)) {
+	    // Merge this line with the one below
+	    line ~= lines[editingRow + 1];
+	    lines = lines[0 .. editingRow] ~ line ~ lines[editingRow + 2 .. $];
+	    return;
+	}
+
+	if (editingColumn < line.length) {
+	    line = line[0 .. editingColumn] ~ line[editingColumn + 1 .. $];
+	    lines[editingRow] = line;
+	}
+    }
+
+    /**
+     * Handle a new character.  If insert
      *
      * Params:
      *    ch = char to append
      */
-    private void appendChar(dchar ch) {
-	// Append the LAST character
-	lines[editingRow] ~= ch;
-	editingColumn++;
-	/+
-	if ((position - windowStart) == width) {
-	    windowStart++;
+    private void editChar(dchar ch) {
+	dstring line = lines[editingRow];
+	if (editingColumn == line.length) {
+	    // Append
+	    lines[editingRow] ~= ch;
+	    editingColumn++;
+	    return;
 	}
-	+/
+	if (insertMode) {
+	    // Insert
+	    line = line[0 .. editingColumn] ~ ch ~ line[editingColumn .. $];
+	} else {
+	    // Overwrite
+	    line = line[0 .. editingColumn] ~ ch ~ line[editingColumn + 1 .. $];
+	}
+	editingColumn++;
+	lines[editingRow] = line;
+    }
+}
+
+/**
+ * This implements a resizable editor window.
+ */
+public class TEditor : TWindow {
+
+    /// Edit field
+    private TEditorWidget editField;
+
+    /**
+     * Public constructor.
+     *
+     * Params:
+     *    application = TApplication that manages this window
+     *    x = column relative to parent
+     *    y = row relative to parent
+     *    width = width of window
+     *    height = height of window
+     *    flags = mask of CENTERED, MODAL, or RESIZABLE
+     */
+    public this(TApplication application, int x, int y, uint width, uint height,
+	Flag flags = Flag.CENTERED | Flag.RESIZABLE) {
+
+	super(application, "Editor", x, y, width, height, flags);
+	editField = new TEditorWidget(this, 0, 0, width - 1, height - 1);
+	onResize(new TResizeEvent(TResizeEvent.Type.Widget, width, height));
+	minimumWindowHeight = 8;
     }
 
+    /**
+     * Handle window/screen resize events.
+     *
+     * Params:
+     *    event = resize event
+     */
+    override protected void onResize(TResizeEvent event) {
+	if (event.type == TResizeEvent.Type.Widget) {
+	    // Resize the text field
+	    editField.width = event.width - 2;
+	    editField.height = event.height - 2;
+	    editField.reflow();
+	    return;
+	}
 
+	// Pass to children instead
+	foreach (w; children) {
+	    w.onResize(event);
+	}
+    }
 
+    /// Draw a static text
+    override public void draw() {
+	// Draw the box using my superclass
+	super.draw();
+
+	// Draw row, column
+	auto writer = appender!dstring();
+	formattedWrite(writer, " %d:%d %s", editField.editingRow + 1,
+	    editField.editingColumn,
+	    editField.insertMode ? "" : "Ovwrt ");
+	window.putStrXY(3, height - 1, writer.data, getBorder());
+    }
 }
+
 
 // Functions -----------------------------------------------------------------
