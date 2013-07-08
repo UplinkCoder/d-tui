@@ -56,6 +56,15 @@ public class TEditor : TWidget {
     /// Lines of text being edited
     private dstring [] lines;
 
+    /// Current editing line
+    private uint editingRow = 0;
+
+    /// Current editing column
+    private uint editingColumn = 0;
+
+    /// When true, insert rather than overwrite
+    private bool insert = true;
+
     /// Vertical scrollbar
     private TVScroller vScroller;
 
@@ -114,6 +123,17 @@ public class TEditor : TWidget {
     }
 
     /**
+     * Returns my active widget.
+     *
+     * Returns:
+     *    widget that is active, or this if no children
+     */
+    override public TWidget getActiveChild() {
+	// Always return me
+	return this;
+    }
+
+    /**
      * Public constructor
      *
      * Params:
@@ -134,6 +154,11 @@ public class TEditor : TWidget {
 	this.y = y;
 	this.width = width;
 	this.height = height;
+	this.hasCursor = true;
+
+	// Start with one blank line
+	lines ~= "";
+
 	reflow();
     }
 
@@ -155,6 +180,11 @@ public class TEditor : TWidget {
 	    if (topY == height - 1) {
 		break;
 	    }
+	}
+
+	// Pad the rest with blank lines
+	for (auto i = topY; i < height - 1; i++) {
+	    window.hLineXY(0, i, this.width - 1, ' ', color);
 	}
     }
 
@@ -213,11 +243,32 @@ public class TEditor : TWidget {
 	    vScroller.toTop();
 	} else if (key == kbEnd) {
 	    vScroller.toBottom();
+	} else if (key.isKey == false) {
+	    appendChar(key.ch);
 	} else {
 	    // Pass other keys (tab etc.) on
 	    super.onKeypress(keypress);
 	}
     }
+
+    /**
+     * Append char to the end of the field
+     *
+     * Params:
+     *    ch = char to append
+     */
+    private void appendChar(dchar ch) {
+	// Append the LAST character
+	lines[editingRow] ~= ch;
+	editingColumn++;
+	/+
+	if ((position - windowStart) == width) {
+	    windowStart++;
+	}
+	+/
+    }
+
+
 
 }
 
