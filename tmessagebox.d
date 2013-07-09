@@ -53,7 +53,9 @@ import tfield;
  * TMessageBox is a system-modal dialog with buttons for OK, Cancel,
  * Yes, or No.  Call it like:
  *
- *     box = application.messageBox(title, caption, TMessageBox.OK | TMessageBox.CANCEL);
+ *     box = application.messageBox(title, caption,
+ *         TMessageBox.Type.OK | TMessageBox.Type.CANCEL);
+ *
  *     if (box.result == TMessageBox.OK) {
  *        ... the user pressed OK, do stuff ...
  *     }

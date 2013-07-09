@@ -62,8 +62,9 @@ public class TDirTreeItem : TTreeItem {
     DirEntry dir;
 
     /**
-     * Called when this item is expanded or collapsed.  this.expanded will be
-     * true if this item was just expanded from a mouse click or keypress.
+     * Called when this item is expanded or collapsed.  this.expanded
+     * will be true if this item was just expanded from a mouse click
+     * or keypress.
      */
     override public void onExpand() {
 	if (dir is null) {
@@ -80,9 +81,9 @@ public class TDirTreeItem : TTreeItem {
 	    expanded = false;
 	}
 
-	// http://d.puremagic.com/issues/show_bug.cgi?id=10463 - dirEntries
-	// will segfault if we do not have access to this path.  As a
-	// workaround, try to opendir() it first.
+	// http://d.puremagic.com/issues/show_bug.cgi?id=10463 -
+	// dirEntries will segfault if we do not have access to this
+	// path.  As a workaround, try to opendir() it first.
 	core.sys.posix.dirent.DIR * pDIR;
 	pDIR = core.sys.posix.dirent.opendir(toStringz(dir.name));
 	if (pDIR is null) {
@@ -97,7 +98,12 @@ public class TDirTreeItem : TTreeItem {
 
 	// Refresh my child list
 	foreach (string name; dirEntries(dir.name, SpanMode.shallow)) {
-	    TDirTreeItem item = new TDirTreeItem(view, toUTF32(name), false);
+	    if (baseName(name)[0] == '.') {
+		continue;
+	    }
+	    TDirTreeItem item = new TDirTreeItem(view, toUTF32(name),
+		false, false);
+
 	    item.level = this.level + 1;
 	    children ~= item;
 	}
@@ -126,12 +132,50 @@ public class TDirTreeItem : TTreeItem {
      *    view = root TTreeView
      *    text = text for this item
      *    expanded = if true, have it expanded immediately
+     *    openParents = if true, expand all paths up the root path and return the root path entry
      */
-    public this(TTreeView view, dstring text, bool expanded = false) {
+    public this(TTreeView view, dstring text, bool expanded = false,
+	bool openParents = true) {
+
+	TDirTreeItem [] parentItems;
+	dstring [] parentPaths;
+	bool oldExpanded = expanded;
+
+	if (openParents == true) {
+	    expanded = true;
+
+	    // Go up the directory tree
+	    string rootPath = buildNormalizedPath(absolutePath(toUTF8(text)));
+	    while (rootPath != rootName(rootPath)) {
+		parentPaths ~= toUTF32(baseName(rootPath));
+		rootPath = dirName(rootPath);
+	    }
+
+	    text = toUTF32(rootPath);
+	}
+
 	super(view, text, expanded);
 	dir = DirEntry(toUTF8(text));
 	this.text = baseName(text);
 	onExpand();
+
+	if (openParents == true) {
+	    TDirTreeItem childPath = this;
+	    foreach (p; parentPaths.reverse) {
+		foreach (w; childPath.children) {
+		    TDirTreeItem child = cast(TDirTreeItem)w;
+		    if (child.text == p) {
+			childPath = child;
+			childPath.expanded = true;
+			childPath.onExpand();
+			break;
+		    }
+		}
+	    }
+	    unselect();
+	    childPath.selected = true;
+	    expanded = oldExpanded;
+	}
 	view.reflow();
     }
 }
@@ -544,6 +588,7 @@ public class TTreeView : TWidget {
 	    item.y = topY;
 	    item.enabled = true;
 	    item.invisible = false;
+	    item.width = maxLineWidth;
 	    topY++;
 	}
     }

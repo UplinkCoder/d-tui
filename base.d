@@ -1641,6 +1641,11 @@ public class ColorTheme {
 	color.backColor = Color.GREEN;
 	color.bold = true;
 	colors["tbutton.active"] = color;
+	color = new CellAttributes();
+	color.foreColor = Color.BLACK;
+	color.backColor = Color.WHITE;
+	color.bold = true;
+	colors["tbutton.disabled"] = color;
 
 	// TLabel text
 	color = new CellAttributes();

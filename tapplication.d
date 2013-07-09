@@ -43,6 +43,8 @@ import codepage;
 import ecma;
 import twidget;
 import twindow;
+import teditor;
+import tfileopen;
 import tmessagebox;
 import tmenu;
 import ttimer;
@@ -464,7 +466,7 @@ public class TApplication {
     final public void enableSecondaryEventReceiver(TWidget widget) {
 	assert(secondaryEventReceiver is null);
 	assert(secondaryEventFiber is null);
-	assert(cast(TMessageBox)widget);
+	assert(cast(TMessageBox)widget || cast(TFileOpenBox)widget);
 	secondaryEventReceiver = widget;
 	secondaryEventFiber = new Fiber(&widgetEventHandler);
 
@@ -902,6 +904,42 @@ public class TApplication {
     }
 
     /**
+     * Convenience function to load a text file in a new editor window.
+     *
+     * Params:
+     *    filename = filename to open
+     *
+     * Returns:
+     *    the new editor window
+     */
+    final public TEditor addEditor(dstring filename) {
+	assert(filename !is null);
+	TEditor editor = addEditor(0, 0, backend.screen.getWidth() / 2,
+	    desktopBottom - desktopTop);
+	editor.loadFile(filename);
+	return editor;
+    }
+
+    /**
+     * Convenience function to spawn a text file editor window.
+     *
+     * Params:
+     *    x = column relative to parent
+     *    y = row relative to parent
+     *    width = width of window
+     *    height = height of window
+     *    flags = mask of CENTERED, MODAL, or RESIZABLE
+     *
+     * Returns:
+     *    the new editor window
+     */
+    final public TEditor addEditor(int x, int y, uint width, uint height,
+	TWindow.Flag flags = TWindow.Flag.CENTERED | TWindow.Flag.RESIZABLE) {
+
+	return new TEditor(this, x, y, width, height, flags);
+    }
+
+    /**
      * Convenience function to spawn a message box.
      *
      * Params:
@@ -933,6 +971,23 @@ public class TApplication {
 	dstring text) {
 
 	return new TInputBox(this, title, caption, text);
+    }
+
+    /**
+     * Convenience function to spawn an file open box.
+     *
+     * Params:
+     *    path = path of selected file
+     *    type = one of the Type constants.  Default is Type.OPEN.
+     *
+     * Returns:
+     *    the result of the new file open box
+     */
+    final public dstring fileOpenBox(dstring path,
+	TFileOpenBox.Type type = TFileOpenBox.Type.OPEN) {
+
+	TFileOpenBox box = new TFileOpenBox(this, path, type);
+	return box.filename;
     }
 
     /**

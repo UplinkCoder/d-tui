@@ -189,9 +189,6 @@ public class TEditorWidget : TWidget {
 	// Start with one blank line
 	lines ~= "";
 	reflow();
-
-	// DEBUG
-	loadFile("README.md");
     }
 
     /**
@@ -200,8 +197,8 @@ public class TEditorWidget : TWidget {
      * Params:
      *    filename = name of file to open
      */
-    public void loadFile(string filename) {
-	string text = std.file.readText!(string)(filename);
+    public void loadFile(dstring filename) {
+	string text = std.file.readText!(string)(toUTF8(filename));
 	foreach (line; splitLines!(string)(text)) {
 	    lines ~= toUTF32(line);
 	}
@@ -704,6 +701,17 @@ public class TEditor : TWindow {
 	    editField.insertMode ? "" : "Ovwrt ");
 	window.putStrXY(3, height - 1, writer.data, getBorder());
     }
+
+    /**
+     * Open a file in this editor.
+     *
+     * Params:
+     *    filename = name of file to open
+     */
+    public void loadFile(dstring filename) {
+	editField.loadFile(filename);
+    }
+
 }
 
 

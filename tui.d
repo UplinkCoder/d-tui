@@ -42,6 +42,7 @@ public import tbutton;
 public import tcheckbox;
 public import teditor;
 public import tfield;
+public import tfileopen;
 public import tlabel;
 public import tmenu;
 public import tmessagebox;

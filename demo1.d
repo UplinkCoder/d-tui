@@ -142,7 +142,7 @@ private class DemoTreeViewWindow : TWindow {
 
 	// Load the treeview with "stuff"
 	treeView = addTreeView(1, 1, 20, 12);
-	TDirTreeItem root = new TDirTreeItem(treeView, "/", true);
+	TDirTreeItem root = new TDirTreeItem(treeView, ".", true);
     }
 
 
@@ -416,6 +416,27 @@ private class DemoMainWindow : TWindow {
 		parent.repaint = true;
 	    }, true);
     }
+
+    /**
+     * Handle menu or posted command events.
+     *
+     * Params:
+     *    event = command event
+     */
+    override public void onCommand(TCommandEvent cmd) {
+	if (cmd.cmd == cmOpen) {
+	    dstring filename = application.fileOpenBox(".");
+	    if (filename !is null) {
+		application.addEditor(filename);
+	    }
+	}
+
+	// Do nothing, pass to children instead
+	foreach (w; children) {
+	    w.onCommand(cmd);
+	}
+    }
+
 
 }
 

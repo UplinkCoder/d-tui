@@ -64,17 +64,22 @@ I am just beginning as a work in progress.  Many tasks remain before
 calling this version 1.0:
 
 - [ ] Demo
+- [ ] TFileOpenDialog
+- [ ] TEditor
+  - [ ] Word wrap
+  - [ ] Forward/backward word
+  - [ ] Search
+  - [ ] Replace
+  - [ ] Cut/Copy/Paste
 - [ ] TTerminal
   - [ ] Horizontal scrollbar
   - [ ] Vertical scrollbar
 - [ ] TMenu / TMenuItem
   - [ ] TSubMenu
   - [ ] TMenuItem: enabled, disabled, checked, unchecked
-- [ ] TButton: enabled, disabled
 - [ ] TWindow
   - [ ] Horizontal scrollbar
   - [ ] Vertical scrollbar
-- [ ] TFileOpenDialog
 - [ ] TApplicationSocket - socket that knows about environment variables and
         rows X cols
       - [ ] this(TApplication application)
