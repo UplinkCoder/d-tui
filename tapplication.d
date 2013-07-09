@@ -912,11 +912,13 @@ public class TApplication {
      * Returns:
      *    the new editor window
      */
-    final public TEditor addEditor(dstring filename) {
+    final public TEditor addEditor(dstring filename = "") {
 	assert(filename !is null);
 	TEditor editor = addEditor(0, 0, backend.screen.getWidth() / 2,
 	    desktopBottom - desktopTop);
-	editor.loadFile(filename);
+	if (filename.length > 0) {
+	    editor.loadFile(filename);
+	}
 	return editor;
     }
 

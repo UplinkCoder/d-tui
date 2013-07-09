@@ -36,8 +36,10 @@
 // Imports -------------------------------------------------------------------
 
 import core.thread;
+import std.file;
 import std.string;
 import std.utf;
+import base;
 import tapplication;
 import tbutton;
 import tfield;
@@ -70,6 +72,16 @@ public class TFileOpenBox : TWindow {
     /// String to return, or null if the user canceled
     public dstring filename = null;
 
+    /// Tree view
+    private TTreeView treeView;
+    private TDirTreeItem treeViewRoot;
+
+    /// Text field
+    private TField entryField;
+
+    /// Open or Save button
+    private TButton openButton;
+
     /**
      * Public constructor.  The file open box will be centered on
      * screen.
@@ -82,11 +94,32 @@ public class TFileOpenBox : TWindow {
     public this(TApplication application, dstring path,
 	Type type = Type.OPEN) {
 
-	width = 60;
+	width = 70;
 	height = 22;
 
 	// Register with the TApplication
 	super(application, title, 0, 0, this.width, this.height, Flag.MODAL);
+
+	// Add treeview
+	treeView = addTreeView(1, 3, width - 16, height - 6);
+	treeViewRoot = new TDirTreeItem(treeView, path, true);
+
+	// Add text field
+	entryField = addField(1, 1, width - 4, false, path,
+	    {
+		string newFilename = toUTF8(entryField.text);
+		if (exists(newFilename)) {
+		    if (isFile(newFilename)) {
+			filename = entryField.text;
+			application.closeWindow(this);
+		    }
+		    if (isDir(newFilename)) {
+			treeViewRoot = new TDirTreeItem(treeView,
+			    entryField.text, true);
+		    }
+		}
+	    }
+	);
 
 	dstring openLabel = "";
 	final switch (type) {
@@ -101,15 +134,17 @@ public class TFileOpenBox : TWindow {
 	}
 
 	// Setup button actions
-	TButton buttons[2];
-	buttons[0] = addButton(openLabel, this.width - 14, 2,
+	openButton = addButton(openLabel, this.width - 12, 3,
 	    delegate void() {
 		// TODO: hang onto filename
+
+
 		application.closeWindow(this);
 	    }
 	);
-	buttons[0].enabled = false;
-	buttons[1] = addButton("Cancel", this.width - 14, 4,
+	// openButton.enabled = false;
+
+	addButton("Cancel", this.width - 12, 5,
 	    delegate void() {
 		filename = null;
 		application.closeWindow(this);
@@ -123,6 +158,26 @@ public class TFileOpenBox : TWindow {
 	// response will already be set.
 	Fiber.yield();
     }
+
+    /**
+     * Handle keystrokes.
+     *
+     * Params:
+     *    keypress = keystroke event
+     */
+    override protected void onKeypress(TKeypressEvent keypress) {
+	// Escape - behave like cancel
+	if (keypress.key == kbEsc) {
+	    // Close window
+	    filename = null;
+	    application.closeWindow(this);
+	    return;
+	}
+
+	// Pass to my parent
+	super.onKeypress(keypress);
+    }
+
 }
 
 // Functions -----------------------------------------------------------------

@@ -386,6 +386,10 @@ public class TTreeItem : TWidget {
 	CellAttributes color = window.application.theme.getColor("ttreeview");
 	CellAttributes expanderColor = window.application.theme.getColor("ttreeview.expandbutton");
 	CellAttributes selectedColor = window.application.theme.getColor("ttreeview.selected");
+
+	// Blank out the background
+	window.hLineXY(0, 0, width, ' ', color);
+
 	uint expandX = 0;
 	dstring line = prefix;
 	if (level > 0) {
@@ -457,7 +461,7 @@ public class TTreeView : TWidget {
     }
 
     /**
-     * Get the radio item ID that was selected.
+     * Get the tree view item that was selected.
      *
      * Returns:
      *    the selected item, or null if no item is selected
@@ -467,7 +471,7 @@ public class TTreeView : TWidget {
     }
 
     /**
-     * Set the new selected radio item.
+     * Set the new selected tree view item.
      *
      * Params:
      *    item = new item that became selected
@@ -588,7 +592,7 @@ public class TTreeView : TWidget {
 	    item.y = topY;
 	    item.enabled = true;
 	    item.invisible = false;
-	    item.width = maxLineWidth;
+	    item.width = width - 1;
 	    topY++;
 	}
     }

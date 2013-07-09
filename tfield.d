@@ -70,6 +70,10 @@ public class TField : TWidget {
     /// If true, new characters are inserted at position
     private bool insertMode = true;
 
+    /// The action to perform when the user presses Enter
+    private void delegate() actionDelegate;
+    private void function() actionFunction;
+
     /**
      * Public constructor
      *
@@ -97,6 +101,46 @@ public class TField : TWidget {
 	this.hasCursor = true;
     }
 
+    /**
+     * Public constructor
+     *
+     * Params:
+     *    parent = parent widget
+     *    x = column relative to parent
+     *    y = row relative to parent
+     *    width = visible text width
+     *    fixed = if true, the text cannot exceed the display width
+     *    text = initial text
+     *    actionFn = function to call when button is pressed
+     */
+    public this(TWidget parent, uint x, uint y, uint width, bool fixed,
+	dstring text, void delegate() actionFn) {
+
+	this.actionFunction = null;
+	this.actionDelegate = actionFn;
+	this(parent, x, y, width, fixed, text);
+    }
+
+    /**
+     * Public constructor
+     *
+     * Params:
+     *    parent = parent widget
+     *    x = column relative to parent
+     *    y = row relative to parent
+     *    width = visible text width
+     *    fixed = if true, the text cannot exceed the display width
+     *    text = initial text
+     *    actionFn = function to call when button is pressed
+     */
+    public this(TWidget parent, uint x, uint y, uint width, bool fixed,
+	dstring text, void function() actionFn) {
+
+	this.actionDelegate = null;
+	this.actionFunction = actionFn;
+	this(parent, x, y, width, fixed, text);
+    }
+
     /// Returns true if the mouse is currently on the field
     private bool mouseOnField() {
 	int rightEdge = width - 1;
@@ -108,6 +152,16 @@ public class TField : TWidget {
 	    return true;
 	}
 	return false;
+    }
+
+    /// Dispatch to the action function/delegate.
+    private void dispatch() {
+	if (actionFunction !is null) {
+	    actionFunction();
+	}
+	if (actionDelegate !is null) {
+	    actionDelegate();
+	}
     }
 
     /**
@@ -265,6 +319,11 @@ public class TField : TWidget {
 		    }
 		}
 	    }
+	    return;
+	}
+
+	if (key == kbEnter) {
+	    dispatch();
 	    return;
 	}
 

@@ -38,15 +38,12 @@ applications somewhat as follows:
             // Create an editor window that has support for
             // copy/paste, search text, arrow keys, horizontal
             // and vertical scrollbar, etc.
-            TEditor editor = new TEditor(this);
+            addEditor();
 
             // Create a menu with Open and Exit actions
             TMenu menu = addMenu("&File");
             menu.addItem("&Open", cmOpen, kbAltO);
             menu.addItem("E&xit", cmExit, kbAltX);
-
-            // Add the Edit menu
-            editor.addMenu(this);
         }
     }
 
@@ -65,6 +62,8 @@ calling this version 1.0:
 
 - [ ] Demo
 - [ ] TFileOpenDialog
+- [ ] TTreeView
+  - [ ] action on select
 - [ ] TEditor
   - [ ] Word wrap
   - [ ] Forward/backward word

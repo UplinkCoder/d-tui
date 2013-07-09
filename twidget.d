@@ -394,7 +394,11 @@ public class TWidget {
      */
     public void onKeypress(TKeypressEvent event) {
 
-	if (children.length == 0) {
+	if ((children.length == 0) ||
+	    (cast(TTreeView)this) ||
+	    (cast(TText)this)
+	) {
+
 	    // Defaults:
 	    //   tab / shift-tab - switch to next/previous widget
 	    //   right-arrow or down-arrow: same as tab
@@ -661,6 +665,48 @@ public class TWidget {
 	dstring text = "") {
 
 	return new TField(this, x, y, width, fixed, text);
+    }
+
+    /**
+     * Convenience function to add a field to this container/window.
+     *
+     * Params:
+     *    parent = parent widget
+     *    x = column relative to parent
+     *    y = row relative to parent
+     *    width = visible text width
+     *    fixed = if true, the text cannot exceed the display width
+     *    text = initial text
+     *    actionFn = function to call when button is pressed
+     *
+     * Returns:
+     *    the new field
+     */
+    public TField addField(uint x, uint y, uint width, bool fixed,
+	dstring text, void delegate() actionFn) {
+
+	return new TField(this, x, y, width, fixed, text, actionFn);
+    }
+
+    /**
+     * Convenience function to add a field to this container/window.
+     *
+     * Params:
+     *    parent = parent widget
+     *    x = column relative to parent
+     *    y = row relative to parent
+     *    width = visible text width
+     *    fixed = if true, the text cannot exceed the display width
+     *    text = initial text
+     *    actionFn = function to call when button is pressed
+     *
+     * Returns:
+     *    the new field
+     */
+    public TField addField(uint x, uint y, uint width, bool fixed,
+	dstring text, void function() actionFn) {
+
+	return new TField(this, x, y, width, fixed, text, actionFn);
     }
 
     /**
