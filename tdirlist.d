@@ -1,5 +1,5 @@
 /**
- * D Text User Interface library - TText class
+ * D Text User Interface library - TDirectoryList class
  *
  * Version: $Id$
  *
@@ -35,12 +35,17 @@
 
 // Imports -------------------------------------------------------------------
 
+import std.array;
+import std.file;
+import std.format;
+import std.path;
 import std.string;
 import std.utf;
 import base;
 import codepage;
-import twidget;
 import tscroll;
+import ttext;
+import twidget;
 
 // Defines -------------------------------------------------------------------
 
@@ -49,43 +54,35 @@ import tscroll;
 // Classes -------------------------------------------------------------------
 
 /**
- * TText implements a simple text.
+ * TDirectoryList shows the files within a directory.
  */
-public class TText : TWidget {
-
-    /// Text to display
-    public dstring text;
-
-    /// Text converted to lines
-    protected dstring [] lines;
-
-    /// Text color
-    protected CellAttributes color;
-
-    /// Vertical scrollbar
-    protected TVScroller vScroller;
-
-    /// Horizontal scrollbar
-    protected THScroller hScroller;
-
-    /// Maximum width of a single line
-    protected uint maxLineWidth;
+public class TDirectoryList : TText {
 
     /**
      * Resize text and scrollbars for a new width/height
      */
-    public void reflow() {
+    override public void reflow() {
 	// Reset the lines
 	lines.length = 0;
 	maxLineWidth = 0;
 
-	// Break up text into paragraphs
-	dstring [] paragraphs = split(text, "\n\n");
-	foreach (p; paragraphs) {
-	    dstring paragraph = wrap!(dstring)(p, width - 1);
-	    lines ~= splitLines!(dstring)(paragraph);
-	    lines ~= "";
+	// Build a list of files in this directory
+	foreach (string name; dirEntries(toUTF8(text), SpanMode.shallow)) {
+	    if (baseName(name)[0] == '.') {
+		continue;
+	    }
+	    if (isDir(DirEntry(name))) {
+		continue;
+	    }
+	    DirEntry child = dirEntry(name);
+	    auto writer = appender!dstring();
+	    formattedWrite(writer, "%10u %s", child.size, baseName(name));
+	    lines ~= writer.data;
 	}
+
+	// TODO
+	lines ~= "";
+
 	foreach (line; lines) {
 	    if (line.length > maxLineWidth) {
 		maxLineWidth = cast(uint)line.length;
@@ -128,29 +125,17 @@ public class TText : TWidget {
      *
      * Params:
      *    parent = parent widget
-     *    text = text on the screen
+     *    path = directory path, must be a directory
      *    x = column relative to parent
      *    y = row relative to parent
      *    width = width of text area
      *    height = height of text area
-     *    colorKey = ColorTheme key color to use for foreground text.  Default is "ttext"
      */
-    public this(TWidget parent, dstring text, uint x, uint y, uint width,
-	uint height, string colorKey = "ttext") {
+    public this(TWidget parent, dstring path, uint x, uint y, uint width,
+	uint height) {
 
 	// Set parent and window
-	super(parent);
-
-	this.x = x;
-	this.y = y;
-	this.width = width;
-	this.height = height;
-	this.text = text;
-
-	// Setup my color
-	color = window.application.theme.getColor(colorKey);
-
-	reflow();
+	super(parent, path, x, y, width, height, "tdirectorylist");
     }
 
     /// Draw a static text
@@ -167,6 +152,11 @@ public class TText : TWidget {
 	    window.putStrXY(0, topY,
 		leftJustify!(dstring)(line, this.width - 1), color);
 	    topY++;
+	}
+
+	// Pad the rest with blank lines
+	for (auto i = topY; i < height - 1; i++) {
+	    window.hLineXY(0, i, this.width - 1, ' ', color);
 	}
     }
 

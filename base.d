@@ -1778,12 +1778,20 @@ public class ColorTheme {
 	color.bold = false;
 	colors["ttreeview.unreadable"] = color;
 
+	// TText text
+	color = new CellAttributes();
+	color.foreColor = Color.WHITE;
+	color.backColor = Color.BLUE;
+	color.bold = false;
+	colors["tdirectorylist"] = color;
+
 	// TEditor
 	color = new CellAttributes();
 	color.foreColor = Color.WHITE;
 	color.backColor = Color.BLACK;
 	color.bold = false;
 	colors["teditor"] = color;
+
 
     }
 

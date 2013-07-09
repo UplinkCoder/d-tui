@@ -41,9 +41,10 @@ import tmenu;
 
 // Convenience constructors
 import tbutton;
-import tlabel;
-import tfield;
 import tcheckbox;
+import tdirlist;
+import tfield;
+import tlabel;
 import tprogress;
 import tradio;
 import ttext;
@@ -822,6 +823,22 @@ public class TWidget {
 
 	return new TTreeView(this, x, y, width, height, actionFn);
     }
+
+    /**
+     * Convenience function to add a directory list view to this
+     * container/window.
+     *
+     * Params:
+     *    path = directory path, must be a directory
+     *    x = column relative to parent
+     *    y = row relative to parent
+     *    width = width of text area
+     *    height = height of text area
+     */
+    public TDirectoryList addDirectoryList(dstring path, uint x, uint y, uint width, uint height) {
+
+	return new TDirectoryList(this, path, x, y, width, height);
+    }    
 
 }
 

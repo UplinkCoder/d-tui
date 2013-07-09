@@ -41,8 +41,10 @@ import std.path;
 import std.string;
 import std.utf;
 import base;
+import codepage;
 import tapplication;
 import tbutton;
+import tdirlist;
 import tfield;
 import ttreeview;
 import twindow;
@@ -77,6 +79,9 @@ public class TFileOpenBox : TWindow {
     private TTreeView treeView;
     private TDirTreeItem treeViewRoot;
 
+    /// Directory list
+    private TDirectoryList directoryList;
+
     /// Text field
     private TField entryField;
 
@@ -95,20 +100,22 @@ public class TFileOpenBox : TWindow {
     public this(TApplication application, dstring path,
 	Type type = Type.OPEN) {
 
-	width = 70;
+	width = 72;
 	height = 22;
 
 	// Register with the TApplication
 	super(application, title, 0, 0, this.width, this.height, Flag.MODAL);
 
 	// Add treeview
-	treeView = addTreeView(1, 3, width - 46, height - 6,
+	treeView = addTreeView(1, 3, 30, height - 6,
 	    delegate(TTreeItem item) {
 		TDirTreeItem dirItem = cast(TDirTreeItem)item;
 		entryField.text = toUTF32(dirItem.dir.name) ~ "/";
 	    }
 	);
 	treeViewRoot = new TDirTreeItem(treeView, path, true);
+
+	directoryList = addDirectoryList(path, 34, 3, 24, height - 6);
 
 	// Add text field
 	entryField = addField(1, 1, width - 4, false,
@@ -133,11 +140,11 @@ public class TFileOpenBox : TWindow {
 	dstring openLabel = "";
 	final switch (type) {
 	case Type.OPEN:
-	    openLabel = "Open ";
+	    openLabel = " Open ";
 	    title = "Open File...";
 	    break;
 	case Type.SAVE:
-	    openLabel = "Save";
+	    openLabel = " Save ";
 	    title = "Save File...";
 	    break;
 	}
@@ -166,6 +173,12 @@ public class TFileOpenBox : TWindow {
 	// Yield my fiber.  When I come back from the constructor
 	// response will already be set.
 	Fiber.yield();
+    }
+
+    /// Draw a static text
+    override public void draw() {
+	super.draw();
+	screen.vLineXY(33, 4, height - 6, GraphicsChars.WINDOW_SIDE, getBackground());
     }
 
     /**

@@ -62,6 +62,7 @@ calling this version 1.0:
 
 - [ ] Demo
 - [ ] TFileOpenDialog
+  - [ ] TDirectoryList
 - [ ] TEditor
   - [ ] Word wrap
   - [ ] Forward/backward word

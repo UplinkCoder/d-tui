@@ -40,6 +40,7 @@ public import base;
 public import tapplication;
 public import tbutton;
 public import tcheckbox;
+public import tdirlist;
 public import teditor;
 public import tfield;
 public import tfileopen;
