@@ -789,6 +789,40 @@ public class TWidget {
 	return new TTreeView(this, x, y, width, height);
     }
 
+    /**
+     * Convenience function to add a tree view to this container/window.
+     *
+     * Params:
+     *    parent = parent widget
+     *    x = column relative to parent
+     *    y = row relative to parent
+     *    width = width of tree view
+     *    height = height of tree view
+     *    actionFn = function to call when an item is selected
+     */
+    public TTreeView addTreeView(uint x, uint y, uint width, uint height,
+	void delegate(TTreeItem) actionFn) {
+
+	return new TTreeView(this, x, y, width, height, actionFn);
+    }
+
+    /**
+     * Convenience function to add a tree view to this container/window.
+     *
+     * Params:
+     *    parent = parent widget
+     *    x = column relative to parent
+     *    y = row relative to parent
+     *    width = width of tree view
+     *    height = height of tree view
+     *    actionFn = function to call when an item is selected
+     */
+    public TTreeView addTreeView(uint x, uint y, uint width, uint height,
+	void function(TTreeItem) actionFn) {
+
+	return new TTreeView(this, x, y, width, height, actionFn);
+    }
+
 }
 
 // Functions -----------------------------------------------------------------

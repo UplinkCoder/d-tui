@@ -37,6 +37,7 @@
 
 import core.thread;
 import std.file;
+import std.path;
 import std.string;
 import std.utf;
 import base;
@@ -101,11 +102,17 @@ public class TFileOpenBox : TWindow {
 	super(application, title, 0, 0, this.width, this.height, Flag.MODAL);
 
 	// Add treeview
-	treeView = addTreeView(1, 3, width - 16, height - 6);
+	treeView = addTreeView(1, 3, width - 46, height - 6,
+	    delegate(TTreeItem item) {
+		TDirTreeItem dirItem = cast(TDirTreeItem)item;
+		entryField.text = toUTF32(dirItem.dir.name) ~ "/";
+	    }
+	);
 	treeViewRoot = new TDirTreeItem(treeView, path, true);
 
 	// Add text field
-	entryField = addField(1, 1, width - 4, false, path,
+	entryField = addField(1, 1, width - 4, false,
+	    toUTF32(buildNormalizedPath(absolutePath(toUTF8(path)))),
 	    {
 		string newFilename = toUTF8(entryField.text);
 		if (exists(newFilename)) {
@@ -116,6 +123,8 @@ public class TFileOpenBox : TWindow {
 		    if (isDir(newFilename)) {
 			treeViewRoot = new TDirTreeItem(treeView,
 			    entryField.text, true);
+			treeView.setTreeRoot(treeViewRoot, true);
+			treeView.reflow();
 		    }
 		}
 	    }

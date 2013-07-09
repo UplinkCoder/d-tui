@@ -72,14 +72,21 @@ public class TDirTreeItem : TTreeItem {
 	}
 	children.length = 0;
 
-	if (dir.isDir()) {
-	    expandable = true;
+	// To be selectable, we must be both readable AND executable on Posix.
+	version (Posix) {
+	    selectable = true;
+	    if (dir.isDir()) {
+		if (core.sys.posix.unistd.access(toStringz(dir.name), core.sys.posix.unistd.X_OK) != 0) {
+		    selectable = false;
+		}
+	    }
+	    if (core.sys.posix.unistd.access(toStringz(dir.name), core.sys.posix.unistd.R_OK) != 0) {
+		selectable = false;
+	    }
 	}
 
-	if (!dir.isDir()) {
-	    expandable = false;
-	    expanded = false;
-	}
+	assert(dir.isDir());
+	expandable = true;
 
 	// http://d.puremagic.com/issues/show_bug.cgi?id=10463 -
 	// dirEntries will segfault if we do not have access to this
@@ -101,6 +108,10 @@ public class TDirTreeItem : TTreeItem {
 	    if (baseName(name)[0] == '.') {
 		continue;
 	    }
+	    if (!isDir(DirEntry(name))) {
+		continue;
+	    }
+
 	    TDirTreeItem item = new TDirTreeItem(view, toUTF32(name),
 		false, false);
 
@@ -173,7 +184,7 @@ public class TDirTreeItem : TTreeItem {
 		}
 	    }
 	    unselect();
-	    childPath.selected = true;
+	    view.setSelected(childPath);
 	    expanded = oldExpanded;
 	}
 	view.reflow();
@@ -213,6 +224,9 @@ public class TTreeItem : TWidget {
     /// True means selected
     public bool selected = false;
 
+    /// True means select-able
+    public bool selectable = true;
+
     /// Comparison operator sorts on text
     public override int opCmp(Object rhs) {
 	auto that = cast(TTreeItem)rhs;
@@ -242,7 +256,7 @@ public class TTreeItem : TWidget {
 	this.width = view.width - 3;
 
 	if (view.treeRoot is null) {
-	    view.treeRoot = this;
+	    view.setTreeRoot(this, true);
 	}
 
 	view.reflow();
@@ -338,7 +352,7 @@ public class TTreeItem : TWidget {
      *    mouse = mouse button release event
      */
     override protected void onMouseUp(TMouseEvent mouse) {
-	if ((mouse.x == getExpanderX()) &&
+	if ((mouse.x == (getExpanderX() - view.hScroller.value)) &&
 	    (mouse.y == 0)
 	) {
 	    // Flip expanded flag
@@ -351,6 +365,7 @@ public class TTreeItem : TWidget {
 	    onExpand();
 	} else if (mouse.y == 0) {
 	    view.setSelected(this);
+	    view.dispatch();
 	}
 
 	// Update the screen after any thing has expanded/contracted
@@ -384,8 +399,12 @@ public class TTreeItem : TWidget {
 	int offset = -view.hScroller.value;
 
 	CellAttributes color = window.application.theme.getColor("ttreeview");
+	CellAttributes textColor = window.application.theme.getColor("ttreeview");
 	CellAttributes expanderColor = window.application.theme.getColor("ttreeview.expandbutton");
 	CellAttributes selectedColor = window.application.theme.getColor("ttreeview.selected");
+	if (!selectable) {
+	    textColor = window.application.theme.getColor("ttreeview.unreadable");
+	}
 
 	// Blank out the background
 	window.hLineXY(0, 0, width, ' ', color);
@@ -407,7 +426,7 @@ public class TTreeItem : TWidget {
 	if (selected) {
 	    window.putStrXY(offset + cast(uint)line.length, 0, text, selectedColor);
 	} else {
-	    window.putStrXY(offset + cast(uint)line.length, 0, text, color);
+	    window.putStrXY(offset + cast(uint)line.length, 0, text, textColor);
 	}
 	if ((level > 0) && (expandable)) {
 	    if (expanded) {
@@ -432,13 +451,46 @@ public class TTreeView : TWidget {
     private THScroller hScroller;
 
     /// Root of the tree
-    public TTreeItem treeRoot;
+    private TTreeItem treeRoot;
 
     /// Maximum width of a single line
     private uint maxLineWidth;
 
     /// Only one of my children can be selected
     private TTreeItem selectedItem = null;
+
+    /// If true, move the window to put the selected item in view.  This
+    /// normally only happens once after setting treeRoot.
+    public bool centerWindow = false;
+
+    /// The action to perform when the user selects an item
+    private void delegate(TTreeItem) actionDelegate;
+    private void function(TTreeItem) actionFunction;
+
+    /// Dispatch to the action function/delegate.
+    private void dispatch() {
+	assert(selectedItem !is null);
+	if (actionFunction !is null) {
+	    actionFunction(selectedItem);
+	}
+	if (actionDelegate !is null) {
+	    actionDelegate(selectedItem);
+	}
+    }
+
+    /**
+     * Set treeRoot
+     *
+     * Params:
+     *    x = column relative to parent
+     *    y = row relative to parent
+     *    width = width of tree view
+     *    height = height of tree view
+     */
+    public void setTreeRoot(TTreeItem treeRoot, bool centerWindow = false) {
+	this.treeRoot = treeRoot;
+	this.centerWindow = centerWindow;
+    }
 
     /**
      * Public constructor
@@ -461,6 +513,44 @@ public class TTreeView : TWidget {
     }
 
     /**
+     * Public constructor
+     *
+     * Params:
+     *    parent = parent widget
+     *    x = column relative to parent
+     *    y = row relative to parent
+     *    width = width of tree view
+     *    height = height of tree view
+     *    actionFn = function to call when an item is selected
+     */
+    public this(TWidget parent, uint x, uint y, uint width, uint height,
+	void delegate(TTreeItem) actionFn) {
+
+	this.actionFunction = null;
+	this.actionDelegate = actionFn;
+	this(parent, x, y, width, height);
+    }
+
+    /**
+     * Public constructor
+     *
+     * Params:
+     *    parent = parent widget
+     *    x = column relative to parent
+     *    y = row relative to parent
+     *    width = width of tree view
+     *    height = height of tree view
+     *    actionFn = function to call when an item is selected
+     */
+    public this(TWidget parent, uint x, uint y, uint width, uint height,
+	void function(TTreeItem) actionFn) {
+
+	this.actionDelegate = null;
+	this.actionFunction = actionFn;
+	this(parent, x, y, width, height);
+    }
+
+    /**
      * Get the tree view item that was selected.
      *
      * Returns:
@@ -480,7 +570,7 @@ public class TTreeView : TWidget {
 	if (item !is null) {
 	    item.selected = true;
 	}
-	if (selectedItem !is null) {
+	if ((selectedItem !is null) && (selectedItem !is item)) {
 	    selectedItem.selected = false;
 	}
 	selectedItem = item;
@@ -495,28 +585,29 @@ public class TTreeView : TWidget {
 	    vScroller = new TVScroller(this, width - 1, 0, height - 1);
 	    vScroller.value = 0;
 	    vScroller.topValue = 0;
-	    vScroller.bigChange = height - 1;
-	} else {
-	    vScroller.x = width - 1;
-	    vScroller.height = height - 1;
 	}
+	vScroller.x = width - 1;
+	vScroller.height = height - 1;
+	vScroller.bigChange = height - 1;
 
 	// Setup horizontal scroller
 	if (hScroller is null) {
 	    hScroller = new THScroller(this, 0, height - 1, width - 1);
 	    hScroller.value = 0;
 	    hScroller.leftValue = 0;
-	    hScroller.bigChange = width - 1;
-	} else {
-	    hScroller.y = height - 1;
-	    hScroller.width = width - 1;
 	}
+	hScroller.y = height - 1;
+	hScroller.width = width - 1;
+	hScroller.bigChange = width - 1;
     }
 
     /**
      * Resize text and scrollbars for a new width/height
      */
     public void reflow() {
+	uint selectedRow = 0;
+	bool foundSelectedRow = false;
+
 	updateScrollers();
 	if (treeRoot is null) {
 	    return;
@@ -538,9 +629,25 @@ public class TTreeView : TWidget {
 	foreach (w; children) {
 	    TTreeItem item = cast(TTreeItem)w;
 	    assert(item);
+
+	    if (item is selectedItem) {
+		foundSelectedRow = true;
+	    }
+	    if (foundSelectedRow == false) {
+		selectedRow++;
+	    }
+
 	    uint lineWidth = cast(uint)(item.text.length + item.prefix.length + 4);
 	    if (lineWidth > maxLineWidth) {
 		maxLineWidth = lineWidth;
+	    }
+	}
+	if ((centerWindow) && (foundSelectedRow)) {
+	    if ((selectedRow < vScroller.value) ||
+		(selectedRow > vScroller.value + height - 2)
+	    ) {
+		vScroller.value = selectedRow;
+		centerWindow = false;
 	    }
 	}
 	updatePositions();
@@ -550,10 +657,20 @@ public class TTreeView : TWidget {
 	if (vScroller.bottomValue < 0) {
 	    vScroller.bottomValue = 0;
 	}
-	hScroller.rightValue = maxLineWidth - width + 1;
+	/+
+	if (vScroller.value > vScroller.bottomValue) {
+	    vScroller.value = vScroller.bottomValue;
+	}
+	+/
+	hScroller.rightValue = maxLineWidth - width + 3;
 	if (hScroller.rightValue < 0) {
 	    hScroller.rightValue = 0;
 	}
+	/+
+	if (hScroller.value > hScroller.rightValue) {
+	    hScroller.value = hScroller.rightValue;
+	}
+	+/
 	children ~= hScroller;
 	children ~= vScroller;
     }
@@ -655,6 +772,10 @@ public class TTreeView : TWidget {
 	    vScroller.toTop();
 	} else if (key == kbEnd) {
 	    vScroller.toBottom();
+	} else if (key == kbEnter) {
+	    if (selectedItem !is null) {
+		dispatch();
+	    }
 	} else {
 	    // Pass other keys (tab etc.) on
 	    super.onKeypress(keypress);

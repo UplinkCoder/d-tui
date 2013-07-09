@@ -1772,6 +1772,11 @@ public class ColorTheme {
 	color.backColor = Color.CYAN;
 	color.bold = false;
 	colors["ttreeview.selected"] = color;
+	color = new CellAttributes();
+	color.foreColor = Color.RED;
+	color.backColor = Color.BLUE;
+	color.bold = false;
+	colors["ttreeview.unreadable"] = color;
 
 	// TEditor
 	color = new CellAttributes();

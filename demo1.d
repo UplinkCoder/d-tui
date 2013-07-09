@@ -138,10 +138,10 @@ private class DemoTreeViewWindow : TWindow {
 
     /// Constructor
     this(TApplication parent) {
-	super(parent, "Tree View", 0, 0, 24, 16, TWindow.Flag.RESIZABLE);
+	super(parent, "Tree View", 0, 0, 44, 16, TWindow.Flag.RESIZABLE);
 
 	// Load the treeview with "stuff"
-	treeView = addTreeView(1, 1, 20, 12);
+	treeView = addTreeView(1, 1, 40, 12);
 	TDirTreeItem root = new TDirTreeItem(treeView, ".", true);
     }
 

@@ -62,8 +62,6 @@ calling this version 1.0:
 
 - [ ] Demo
 - [ ] TFileOpenDialog
-- [ ] TTreeView
-  - [ ] action on select
 - [ ] TEditor
   - [ ] Word wrap
   - [ ] Forward/backward word
