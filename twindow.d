@@ -521,11 +521,11 @@ public class TWindow : TWidget {
 		width = screen.getWidth() - x;
 	    }
 	    if (y + height > application.desktopBottom) {
-		y = height - application.desktopBottom;
-		// Don't cover up the menu bar
-		if (y < application.desktopTop) {
-		    y = application.desktopTop;
-		}
+		y = application.desktopBottom - height + 1;
+	    }
+	    // Don't cover up the menu bar
+	    if (y < application.desktopTop) {
+		y = application.desktopTop;
 	    }
 	    if (width < minimumWindowWidth) {
 		width = minimumWindowWidth;

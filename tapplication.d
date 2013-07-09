@@ -105,10 +105,10 @@ public class TApplication {
     public bool flush = false;
 
     /// Y coordinate of the top edge of the desktop.
-    public static immutable uint desktopTop = 1;
+    public static immutable int desktopTop = 1;
 
     /// Y coordinate of the bottom edge of the desktop.
-    public uint desktopBottom;
+    public int desktopBottom;
 
     /// Active keyboard accelerators
     private TCommand[TKeypress] accelerators;

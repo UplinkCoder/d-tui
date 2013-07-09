@@ -109,38 +109,37 @@ public class TEditorWidget : TWidget {
      * Resize text and scrollbars for a new width/height
      */
     public void reflow() {
-
-	resetTabStops();
-
-	// Start at the top
-	if (vScroller is null) {
-	    vScroller = new TVScroller(this, width - 1, 0, height - 1);
-	} else {
-	    vScroller.x = width - 1;
-	    vScroller.height = height - 1;
-	}
+	// Set vertical scroll bar
+	vScroller.x = width - 1;
+	vScroller.height = height - 1;
 	vScroller.bottomValue = cast(int)lines.length - height + 1;
-	vScroller.topValue = 0;
-	vScroller.value = 0;
 	if (vScroller.bottomValue < 0) {
 	    vScroller.bottomValue = 0;
 	}
 	vScroller.bigChange = height - 1;
 
-	// Start at the left
-	if (hScroller is null) {
-	    hScroller = new THScroller(this, 0, height - 1, width - 1);
-	} else {
-	    hScroller.y = height - 1;
-	    hScroller.width = width - 1;
-	}
+	// Set horizontal scroll bar
+	hScroller.y = height - 1;
+	hScroller.width = width - 1;
 	hScroller.rightValue = getLineWidth() - width + 2;
-	hScroller.leftValue = 0;
-	hScroller.value = 0;
 	if (hScroller.rightValue < 0) {
 	    hScroller.rightValue = 0;
 	}
 	hScroller.bigChange = width - 1;
+
+	// Update scroll bars
+	updateCursor();
+
+	// Move the edit position to keep it in the window
+	while (editingRow - vScroller.value > height - 2) {
+	    editingRow--;
+	    updateCursor();
+	}
+	while (editingColumn - hScroller.value > width - 2) {
+	    editingColumn--;
+	    updateCursor();
+	}
+
     }
 
     /**
@@ -178,10 +177,36 @@ public class TEditorWidget : TWidget {
 	this.height = height;
 	this.hasCursor = true;
 
-	// Start with one blank line
-	// lines ~= "";
-	lines ~= "12345678901234567890abcdefg1234567890abcdefgh1234567890zyxwvu0987654321hgfedbc-a-";
+	resetTabStops();
+	vScroller = new TVScroller(this, width - 1, 0, height - 1);
+	vScroller.topValue = 0;
+	vScroller.value = vScroller.topValue;
 
+	hScroller = new THScroller(this, 0, height - 1, width - 1);
+	hScroller.leftValue = 0;
+	hScroller.value = hScroller.leftValue;
+
+	// Start with one blank line
+	lines ~= "";
+	reflow();
+
+	// DEBUG
+	loadFile("README.md");
+    }
+
+    /**
+     * Open a file in this editor.
+     *
+     * Params:
+     *    filename = name of file to open
+     */
+    public void loadFile(string filename) {
+	string text = std.file.readText!(string)(filename);
+	foreach (line; splitLines!(string)(text)) {
+	    lines ~= toUTF32(line);
+	}
+	editingRow = 0;
+	editingColumn = 0;
 	reflow();
     }
 
@@ -212,6 +237,76 @@ public class TEditorWidget : TWidget {
     }
 
     /**
+     * Handle mouse events that go to the scroll bars.
+     *
+     * Params:
+     *    mouse = mouse button press event
+     *    fn = function to call
+     */
+    private void doScroll(TMouseEvent mouse, void delegate(TMouseEvent) fn) {
+	uint oldHValue = hScroller.value;
+	uint oldVValue = vScroller.value;
+
+	// Pass to children
+	fn(mouse);
+
+	// Update horizontal movement
+	if (hScroller.value > oldHValue) {
+	    editingColumn += hScroller.value - oldHValue;
+	} else if (hScroller.value < oldHValue) {
+	    if (oldHValue - hScroller.value > editingColumn) {
+		editingColumn = 0;
+	    } else {
+		editingColumn -= (oldHValue - hScroller.value);
+	    }
+	}
+
+	// Update vertical movement
+	if (vScroller.value > oldVValue) {
+	    editingRow += vScroller.value - oldVValue;
+	} else if (vScroller.value < oldVValue) {
+	    if (oldVValue - vScroller.value > editingRow) {
+		editingRow = 0;
+	    } else {
+		editingRow -= (oldVValue - vScroller.value);
+	    }
+	}
+
+	// Update visible window
+	updateCursor();
+    }
+
+    /// Clamp editingRow / editingColumn to the valid data range.
+    private void clampEditingVars() {
+	if (editingRow > lines.length - 1) {
+	    editingRow = cast(uint)lines.length - 1;
+	}
+	if (editingColumn > lines[editingRow].length) {
+	    editingColumn = cast(uint)lines[editingRow].length;
+	}
+    }
+
+    /**
+     * Move the cursor based on mouse position.
+     *
+     * Params:
+     *    mouse = mouse button press event
+     */
+    private void mouseMoveCursor(TMouseEvent mouse) {
+	if ((mouse.mouse1) &&
+	    (mouse.y >= 0) &&
+	    (mouse.y <= height - 2) &&
+	    (mouse.x >= 0) &&
+	    (mouse.x <= width - 2)
+	) {
+	    uint deltaX = mouse.x - cursorX;
+	    editingColumn += deltaX;
+	    uint deltaY = mouse.y - cursorY;
+	    editingRow += deltaY;
+	}
+    }
+
+    /**
      * Handle mouse press events.
      *
      * Params:
@@ -219,13 +314,22 @@ public class TEditorWidget : TWidget {
      */
     override protected void onMouseDown(TMouseEvent mouse) {
 	if (mouse.mouseWheelUp) {
-	    moveUp();
+	    if (vScroller.value > vScroller.topValue) {
+		vScroller.value--;
+		if (editingRow > 0) {
+		    editingRow--;
+		}
+	    }
 	}
 	if (mouse.mouseWheelDown) {
-	    moveDown();
+	    if (vScroller.value < vScroller.bottomValue) {
+		vScroller.value++;
+		if (editingRow < lines.length - 1) {
+		    editingRow++;
+		}
+	    }
 	}
-
-	// TODO: reposition cursor
+	mouseMoveCursor(mouse);
 
 	// Pass to children
 	super.onMouseDown(mouse);
@@ -241,11 +345,8 @@ public class TEditorWidget : TWidget {
      *    mouse = mouse button press event
      */
     override protected void onMouseMotion(TMouseEvent mouse) {
-	// Pass to children
-	super.onMouseDown(mouse);
-
-	// Update visible window
-	updateCursor();
+	mouseMoveCursor(mouse);
+	doScroll(mouse, &super.onMouseMotion);
     }
 
     /**
@@ -255,16 +356,15 @@ public class TEditorWidget : TWidget {
      *    mouse = mouse button release event
      */
     override protected void onMouseUp(TMouseEvent mouse) {
-	// Pass to children
-	super.onMouseDown(mouse);
-
-	// Update visible window
-	updateCursor();
+	mouseMoveCursor(mouse);
+	doScroll(mouse, &super.onMouseUp);
     }
 
     /// Update the cursor position
     private void updateCursor() {
 
+	clampEditingVars();
+	
 	// Update the scrollbar limit
 	hScroller.rightValue = getLineWidth() - width + 2;
 
@@ -278,9 +378,6 @@ public class TEditorWidget : TWidget {
 	    }
 	    hScroller.value = newLeft;
 	}
-	if (hScroller.value + (width - 2) > lines[editingRow].length - 1) {
-	    hScroller.value = cast(uint)lines[editingRow].length - (width/2);
-	}
 	if (hScroller.value > hScroller.rightValue) {
 	    hScroller.value = hScroller.rightValue;
 	}
@@ -290,6 +387,7 @@ public class TEditorWidget : TWidget {
 	if (editingColumn < hScroller.value) {
 	    editingColumn = hScroller.value;
 	}
+
 	cursorX = editingColumn - hScroller.value;
 
 	vScroller.bottomValue = cast(int)lines.length - height + 1;
@@ -376,7 +474,7 @@ public class TEditorWidget : TWidget {
 	if (editingRow > 0) {
 	    editingRow--;
 	    if (cursorY == 0) {
-		if (vScroller.value > 0) {
+		if (vScroller.value > vScroller.topValue) {
 		    vScroller.value--;
 		}
 	    }
@@ -405,14 +503,27 @@ public class TEditorWidget : TWidget {
      * Page up
      */
     private void pageUp() {
-	// TODO
+	if (editingRow < height - 2) {
+	    editingRow = 0;
+	    vScroller.value = vScroller.topValue;
+	} else {
+	    editingRow -= height - 2;
+	    vScroller.value -= height - 2;
+	    if (vScroller.value < vScroller.topValue) {
+		vScroller.value = vScroller.topValue;
+	    }
+	}
     }
 
     /**
      * Page down
      */
     private void pageDown() {
-	// TODO
+	editingRow += height - 2;
+	vScroller.value += height - 2;
+	if (vScroller.value > vScroller.bottomValue) {
+	    vScroller.value = vScroller.bottomValue;
+	}
     }
 
     /**
@@ -429,7 +540,7 @@ public class TEditorWidget : TWidget {
 	    vScroller.value++;
 	}
 	editingColumn = 0;
-	hScroller.value = 0;
+	hScroller.value = hScroller.leftValue;
     }
 
     /**

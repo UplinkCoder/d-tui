@@ -64,10 +64,6 @@ I am just beginning as a work in progress.  Many tasks remain before
 calling this version 1.0:
 
 - [ ] Demo
-- [ ] TEditor : TWindow
-  - [ ] Page up/down
-  - [ ] Scrollbar mouse clicks
-  - [ ] Move position with mouse
 - [ ] TTerminal
   - [ ] Horizontal scrollbar
   - [ ] Vertical scrollbar
@@ -94,7 +90,7 @@ Wishlist features:
 - [ ] Screen
   - [ ] allow complex characters in putCharXY() and detect them in putStrXY().
 - [ ] Drag and drop / copy and paste
-  - [ ] TTextArea
+  - [ ] TEditor
   - [ ] TField
   - [ ] TText
   - [ ] TTerminal
