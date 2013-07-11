@@ -192,15 +192,56 @@ public class TEditorWidget : TWidget {
     }
 
     /**
+     * Convert a text line to displayable printable characters.
+     *
+     * Params:
+     *    line = text line
+     *
+     * Returns:
+     *    displayable line
+     */
+    private dstring toDisplayableLine(dstring line) {
+	dstring newLine = "";
+	uint x = 0;
+	foreach (ch; line) {
+	    if (ch == 0x09) {
+		if (x == 0) {
+		    newLine ~= " ";
+		    x++;
+		}
+		while ((x % 8) != 0) {
+		    newLine ~= " ";
+		    x++;
+		}
+		continue;
+	    }
+	    if ((ch < 0x20) || (ch == 0x7F)) {
+		newLine ~= "^";
+		newLine ~= (ch + 'A');
+		x += 2;
+		continue;
+	    }
+	    newLine ~= ch;
+	    x++;
+	}
+	return newLine;
+    }
+
+    /**
      * Open a file in this editor.
      *
      * Params:
      *    filename = name of file to open
      */
     public void loadFile(dstring filename) {
-	string text = std.file.readText!(string)(toUTF8(filename));
-	foreach (line; splitLines!(string)(text)) {
-	    lines ~= toUTF32(line);
+	try {
+	    string text = std.file.readText!(string)(toUTF8(filename));
+	    foreach (line; splitLines!(string)(text)) {
+		lines ~= toDisplayableLine(toUTF32(line));
+	    }
+	} catch (UTFException e) {
+	    lines.length = 0;
+	    lines ~= "--- Binary File ---";
 	}
 	editingRow = 0;
 	editingColumn = 0;
@@ -709,7 +750,18 @@ public class TEditor : TWindow {
      *    filename = name of file to open
      */
     public void loadFile(dstring filename) {
+	title = filename;
 	editField.loadFile(filename);
+	width = editField.getLineWidth() + 3;
+	if (width > application.backend.screen.getWidth()) {
+	    width = application.backend.screen.getWidth();
+	}
+	// Resize the text field
+	editField.width = width - 2;
+	editField.reflow();
+
+	// Recenter
+	center();
     }
 
 }

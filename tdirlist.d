@@ -44,7 +44,6 @@ import std.utf;
 import base;
 import codepage;
 import tscroll;
-import ttext;
 import twidget;
 
 // Defines -------------------------------------------------------------------
@@ -56,18 +55,77 @@ import twidget;
 /**
  * TDirectoryList shows the files within a directory.
  */
-public class TDirectoryList : TText {
+public class TDirectoryList : TWidget {
+
+    /// Files in the directory
+    private DirEntry [] files;
+
+    /// Selected file
+    private int selectedFile = -1;
+
+    /// Root path containing files to display
+    public dstring path;
+
+    /// Vertical scrollbar
+    protected TVScroller vScroller;
+
+    /// Horizontal scrollbar
+    protected THScroller hScroller;
+
+    /// Maximum width of a single line
+    protected uint maxLineWidth;
+
+    /// The action to perform when the user selects an item
+    private void delegate() actionDelegate;
+    private void function() actionFunction;
+
+    /// Dispatch to the action function/delegate.
+    private void dispatch() {
+	assert(selectedFile >= 0);
+	assert(selectedFile < files.length);
+	if (actionFunction !is null) {
+	    actionFunction();
+	}
+	if (actionDelegate !is null) {
+	    actionDelegate();
+	}
+    }
 
     /**
-     * Resize text and scrollbars for a new width/height
+     * Format one of the entries for drawing on the screen.
+     *
+     * Params:
+     *    index = index into files
+     *
+     * Returns:
+     *    the line to draw
      */
-    override public void reflow() {
+    private dstring renderFile(uint index) {
+	DirEntry file = files[index];
+	auto writer = appender!dstring();
+	string name = baseName(file.name);
+	if (name.length > 20) {
+	    name = name[0 .. 17] ~ "...";
+	}
+	formattedWrite(writer, "%-20s %5uk", name, (file.size / 1024));
+	return writer.data;
+    }
+
+    /**
+     * Resize for a new width/height
+     */
+    public void reflow() {
+
+	// Convert to absolute path
+	path = toUTF32(buildNormalizedPath(absolutePath(toUTF8(path))));
+
 	// Reset the lines
-	lines.length = 0;
+	selectedFile = -1;
 	maxLineWidth = 0;
+	files.length = 0;
 
 	// Build a list of files in this directory
-	foreach (string name; dirEntries(toUTF8(text), SpanMode.shallow)) {
+	foreach (string name; dirEntries(toUTF8(path), SpanMode.shallow)) {
 	    if (baseName(name)[0] == '.') {
 		continue;
 	    }
@@ -75,15 +133,11 @@ public class TDirectoryList : TText {
 		continue;
 	    }
 	    DirEntry child = dirEntry(name);
-	    auto writer = appender!dstring();
-	    formattedWrite(writer, "%10u %s", child.size, baseName(name));
-	    lines ~= writer.data;
+	    files ~= child;
 	}
 
-	// TODO
-	lines ~= "";
-
-	foreach (line; lines) {
+	for (auto i = 0; i < files.length; i++) {
+	    dstring line = renderFile(i);
 	    if (line.length > maxLineWidth) {
 		maxLineWidth = cast(uint)line.length;
 	    }
@@ -96,7 +150,7 @@ public class TDirectoryList : TText {
 	    vScroller.x = width - 1;
 	    vScroller.height = height - 1;
 	}
-	vScroller.bottomValue = cast(int)lines.length - height - 1;
+	vScroller.bottomValue = cast(int)files.length - height - 1;
 	vScroller.topValue = 0;
 	vScroller.value = 0;
 	if (vScroller.bottomValue < 0) {
@@ -135,23 +189,82 @@ public class TDirectoryList : TText {
 	uint height) {
 
 	// Set parent and window
-	super(parent, path, x, y, width, height, "tdirectorylist");
+	super(parent);
+
+	this.x = x;
+	this.y = y;
+	this.width = width;
+	this.height = height;
+	this.path = path;
+
+	reflow();
+    }
+
+    /**
+     * Public constructor
+     *
+     * Params:
+     *    parent = parent widget
+     *    path = directory path, must be a directory
+     *    x = column relative to parent
+     *    y = row relative to parent
+     *    width = width of text area
+     *    height = height of text area
+     *    actionFn = function to call when an item is selected
+     */
+    public this(TWidget parent, dstring path, uint x, uint y, uint width,
+	uint height, void delegate() actionFn) {
+
+	this.actionFunction = null;
+	this.actionDelegate = actionFn;
+	this(parent, path, x, y, width, height);
+    }
+
+    /**
+     * Public constructor
+     *
+     * Params:
+     *    parent = parent widget
+     *    path = directory path, must be a directory
+     *    x = column relative to parent
+     *    y = row relative to parent
+     *    width = width of text area
+     *    height = height of text area
+     *    actionFn = function to call when an item is selected
+     */
+    public this(TWidget parent, dstring path, uint x, uint y, uint width,
+	uint height, void function() actionFn) {
+
+	this.actionDelegate = null;
+	this.actionFunction = actionFn;
+	this(parent, path, x, y, width, height);
     }
 
     /// Draw a static text
     override public void draw() {
+	CellAttributes color;
 	uint begin = vScroller.value;
 	uint topY = 0;
-	for (auto i = begin; i < lines.length - 1; i++) {
-	    dstring line = lines[i];
+	for (int i = begin; i < cast(int)files.length - 1; i++) {
+	    dstring line = renderFile(i);
 	    if (hScroller.value < line.length) {
 		line = line[hScroller.value .. $];
 	    } else {
 		line = "";
 	    }
-	    window.putStrXY(0, topY,
-		leftJustify!(dstring)(line, this.width - 1), color);
+	    if (i == selectedFile) {
+		color = window.application.theme.getColor("tdirectorylist.selected");
+	    } else if (getAbsoluteActive()) {
+		color = window.application.theme.getColor("tdirectorylist");
+	    } else {
+		color = window.application.theme.getColor("tdirectorylist.inactive");
+	    }
+	    window.putStrXY(0, topY, leftJustify!(dstring)(line, this.width - 1), color);
+
 	    topY++;
+	    if (topY >= height - 1) {
+		break;
+	    }
 	}
 
 	// Pad the rest with blank lines
@@ -176,6 +289,27 @@ public class TDirectoryList : TText {
 	    return;
 	}
 
+	if ((mouse.x < width - 1) &&
+	    (mouse.y < height - 1)) {
+	    if (vScroller.value + mouse.y < files.length) {
+		selectedFile = vScroller.value + mouse.y;
+	    }
+	    path = toUTF32(files[selectedFile].name);
+	    dispatch();
+	    return;
+	}
+
+	// Pass to children
+	super.onMouseDown(mouse);
+    }
+
+    /**
+     * Handle mouse release events.
+     *
+     * Params:
+     *    mouse = mouse button release event
+     */
+    override protected void onMouseUp(TMouseEvent mouse) {
 	// Pass to children
 	super.onMouseDown(mouse);
     }

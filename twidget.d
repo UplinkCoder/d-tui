@@ -684,7 +684,7 @@ public class TWidget {
      *    the new field
      */
     public TField addField(uint x, uint y, uint width, bool fixed,
-	dstring text, void delegate() actionFn) {
+	dstring text, void delegate(bool) actionFn) {
 
 	return new TField(this, x, y, width, fixed, text, actionFn);
     }
@@ -705,7 +705,7 @@ public class TWidget {
      *    the new field
      */
     public TField addField(uint x, uint y, uint width, bool fixed,
-	dstring text, void function() actionFn) {
+	dstring text, void function(bool) actionFn) {
 
 	return new TField(this, x, y, width, fixed, text, actionFn);
     }
@@ -838,6 +838,42 @@ public class TWidget {
     public TDirectoryList addDirectoryList(dstring path, uint x, uint y, uint width, uint height) {
 
 	return new TDirectoryList(this, path, x, y, width, height);
+    }    
+
+    /**
+     * Convenience function to add a directory list view to this
+     * container/window.
+     *
+     * Params:
+     *    path = directory path, must be a directory
+     *    x = column relative to parent
+     *    y = row relative to parent
+     *    width = width of text area
+     *    height = height of text area
+     *    actionFn = function to call when an item is selected
+     */
+    public TDirectoryList addDirectoryList(dstring path, uint x, uint y, uint width, uint height,
+	void function() actionFn) {
+
+	return new TDirectoryList(this, path, x, y, width, height, actionFn);
+    }    
+
+    /**
+     * Convenience function to add a directory list view to this
+     * container/window.
+     *
+     * Params:
+     *    path = directory path, must be a directory
+     *    x = column relative to parent
+     *    y = row relative to parent
+     *    width = width of text area
+     *    height = height of text area
+     *    actionFn = function to call when an item is selected
+     */
+    public TDirectoryList addDirectoryList(dstring path, uint x, uint y, uint width, uint height,
+	void delegate() actionFn) {
+
+	return new TDirectoryList(this, path, x, y, width, height, actionFn);
     }    
 
 }

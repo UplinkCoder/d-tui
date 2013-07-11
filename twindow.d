@@ -176,23 +176,28 @@ public class TWindow : TWidget {
 	}
 
 	// Center window if specified
-	if ((this.flags & Flag.CENTERED) != 0) {
-	    if (width < screen.getWidth()) {
-		this.x = (screen.getWidth() - width) / 2;
-	    } else {
-		this.x = 0;
-	    }
-	    this.y = (application.desktopBottom - application.desktopTop);
-	    this.y -= height;
-	    this.y /= 2;
-	    if (this.y < 0) {
-		this.y = 0;
-	    }
-	    this.y += application.desktopTop;
-	}
+	center();
 
 	// Add me to the application
 	application.addWindow(this);
+    }
+
+    /// Recenter the window on-screen
+    public void center() {
+	if ((flags & Flag.CENTERED) != 0) {
+	    if (width < screen.getWidth()) {
+		x = (screen.getWidth() - width) / 2;
+	    } else {
+		x = 0;
+	    }
+	    y = (application.desktopBottom - application.desktopTop);
+	    y -= height;
+	    y /= 2;
+	    if (y < 0) {
+		y = 0;
+	    }
+	    y += application.desktopTop;
+	}
     }
 
     /// Returns true if this window is modal

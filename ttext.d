@@ -157,7 +157,7 @@ public class TText : TWidget {
     override public void draw() {
 	uint begin = vScroller.value;
 	uint topY = 0;
-	for (auto i = begin; i < lines.length - 1; i++) {
+	for (auto i = begin; i < lines.length; i++) {
 	    dstring line = lines[i];
 	    if (hScroller.value < line.length) {
 		line = line[hScroller.value .. $];
@@ -167,7 +167,17 @@ public class TText : TWidget {
 	    window.putStrXY(0, topY,
 		leftJustify!(dstring)(line, this.width - 1), color);
 	    topY++;
+
+	    if (topY >= height - 1) {
+		break;
+	    }
 	}
+
+	// Pad the rest with blank lines
+	for (auto i = topY; i < height - 1; i++) {
+	    window.hLineXY(0, i, this.width - 1, ' ', color);
+	}
+
     }
 
     /**

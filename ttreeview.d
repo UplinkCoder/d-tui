@@ -286,7 +286,7 @@ public class TTreeItem : TWidget {
      *    prefix = vertical bar of parent levels and such that is set on each child
      *    last = if true, this is the "last" leaf node of a tree
      *
-     * Return:
+     * Returns:
      *    additional items to add to the array
      */
     public TTreeItem [] expandTree(dstring prefix, bool last) {
@@ -319,7 +319,7 @@ public class TTreeItem : TWidget {
     /**
      * Get the x spot for the + or - to expand/collapse
      *
-     * Return:
+     * Returns:
      *    column of the expand/collapse button
      */
     private uint getExpanderX() {
@@ -402,6 +402,12 @@ public class TTreeItem : TWidget {
 	CellAttributes textColor = window.application.theme.getColor("ttreeview");
 	CellAttributes expanderColor = window.application.theme.getColor("ttreeview.expandbutton");
 	CellAttributes selectedColor = window.application.theme.getColor("ttreeview.selected");
+
+	if (!parent.getAbsoluteActive()) {
+	    color = window.application.theme.getColor("ttreeview.inactive");
+	    textColor = window.application.theme.getColor("ttreeview.inactive");
+	}
+
 	if (!selectable) {
 	    textColor = window.application.theme.getColor("ttreeview.unreadable");
 	}

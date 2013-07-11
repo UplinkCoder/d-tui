@@ -89,6 +89,39 @@ public class TFileOpenBox : TWindow {
     private TButton openButton;
 
     /**
+     * Update the fields in response to other field updates.
+     *
+     * Params:
+     *    enter = if true, the user manually entered a filename
+     */
+    private void onUpdate(bool enter) {
+	string newFilename = toUTF8(entryField.text);
+	if (exists(newFilename)) {
+	    if (enter) {
+		if (isFile(newFilename)) {
+		    filename = entryField.text;
+		    application.closeWindow(this);
+		}
+		if (isDir(newFilename)) {
+		    treeViewRoot = new TDirTreeItem(treeView,
+			entryField.text, true);
+		    treeView.setTreeRoot(treeViewRoot, true);
+		    treeView.reflow();
+		}
+		openButton.enabled = false;
+	    } else {
+		if (isFile(newFilename)) {
+		    openButton.enabled = true;
+		} else {
+		    openButton.enabled = false;
+		}
+	    }
+	} else {
+	    openButton.enabled = false;
+	}
+    }
+
+    /**
      * Public constructor.  The file open box will be centered on
      * screen.
      *
@@ -100,40 +133,45 @@ public class TFileOpenBox : TWindow {
     public this(TApplication application, dstring path,
 	Type type = Type.OPEN) {
 
-	width = 72;
+	width = 76;
 	height = 22;
 
 	// Register with the TApplication
 	super(application, title, 0, 0, this.width, this.height, Flag.MODAL);
 
-	// Add treeview
+	// Add text field
+	entryField = addField(1, 1, width - 4, false,
+	    toUTF32(buildNormalizedPath(absolutePath(toUTF8(path)))),
+	    delegate(bool enter)
+	    {
+		string newFilename = toUTF8(entryField.text);
+		if (exists(newFilename) && isDir(newFilename) && enter) {
+		    directoryList.path = entryField.text;
+		    directoryList.reflow();
+		}
+		onUpdate(enter);
+	    }
+	);
+
+	// Add directory treeView
 	treeView = addTreeView(1, 3, 30, height - 6,
 	    delegate(TTreeItem item) {
 		TDirTreeItem dirItem = cast(TDirTreeItem)item;
 		entryField.text = toUTF32(dirItem.dir.name) ~ "/";
+		if (exists(dirItem.dir.name) && isDir(dirItem.dir.name)) {
+		    directoryList.path = entryField.text;
+		    directoryList.reflow();
+		}
+		onUpdate(false);
 	    }
 	);
 	treeViewRoot = new TDirTreeItem(treeView, path, true);
 
-	directoryList = addDirectoryList(path, 34, 3, 24, height - 6);
-
-	// Add text field
-	entryField = addField(1, 1, width - 4, false,
-	    toUTF32(buildNormalizedPath(absolutePath(toUTF8(path)))),
-	    {
-		string newFilename = toUTF8(entryField.text);
-		if (exists(newFilename)) {
-		    if (isFile(newFilename)) {
-			filename = entryField.text;
-			application.closeWindow(this);
-		    }
-		    if (isDir(newFilename)) {
-			treeViewRoot = new TDirTreeItem(treeView,
-			    entryField.text, true);
-			treeView.setTreeRoot(treeViewRoot, true);
-			treeView.reflow();
-		    }
-		}
+	// Add directory files list
+	directoryList = addDirectoryList(path, 34, 3, 28, height - 6,
+	    delegate() {
+		entryField.text = directoryList.path;
+		onUpdate(false);
 	    }
 	);
 
@@ -152,13 +190,10 @@ public class TFileOpenBox : TWindow {
 	// Setup button actions
 	openButton = addButton(openLabel, this.width - 12, 3,
 	    delegate void() {
-		// TODO: hang onto filename
-
-
-		application.closeWindow(this);
+		onUpdate(true);
 	    }
 	);
-	// openButton.enabled = false;
+	openButton.enabled = false;
 
 	addButton("Cancel", this.width - 12, 5,
 	    delegate void() {

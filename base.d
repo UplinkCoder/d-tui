@@ -1777,6 +1777,11 @@ public class ColorTheme {
 	color.backColor = Color.BLUE;
 	color.bold = false;
 	colors["ttreeview.unreadable"] = color;
+	color = new CellAttributes();
+	color.foreColor = Color.BLACK;
+	color.backColor = Color.BLUE;
+	color.bold = true;
+	colors["ttreeview.inactive"] = color;
 
 	// TText text
 	color = new CellAttributes();
@@ -1784,6 +1789,21 @@ public class ColorTheme {
 	color.backColor = Color.BLUE;
 	color.bold = false;
 	colors["tdirectorylist"] = color;
+	color = new CellAttributes();
+	color.foreColor = Color.BLACK;
+	color.backColor = Color.CYAN;
+	color.bold = false;
+	colors["tdirectorylist.selected"] = color;
+	color = new CellAttributes();
+	color.foreColor = Color.BLACK;
+	color.backColor = Color.CYAN;
+	color.bold = false;
+	colors["tdirectorylist.unreadable"] = color;
+	color = new CellAttributes();
+	color.foreColor = Color.BLACK;
+	color.backColor = Color.BLUE;
+	color.bold = true;
+	colors["tdirectorylist.inactive"] = color;
 
 	// TEditor
 	color = new CellAttributes();
@@ -1831,6 +1851,4 @@ public Color invertColor(Color color) {
     case Color.YELLOW:
 	return Color.BLUE;
     }
-    
-
 }

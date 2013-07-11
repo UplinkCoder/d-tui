@@ -71,8 +71,8 @@ public class TField : TWidget {
     private bool insertMode = true;
 
     /// The action to perform when the user presses Enter
-    private void delegate() actionDelegate;
-    private void function() actionFunction;
+    private void delegate(bool) actionDelegate;
+    private void function(bool) actionFunction;
 
     /**
      * Public constructor
@@ -114,7 +114,7 @@ public class TField : TWidget {
      *    actionFn = function to call when button is pressed
      */
     public this(TWidget parent, uint x, uint y, uint width, bool fixed,
-	dstring text, void delegate() actionFn) {
+	dstring text, void delegate(bool) actionFn) {
 
 	this.actionFunction = null;
 	this.actionDelegate = actionFn;
@@ -134,7 +134,7 @@ public class TField : TWidget {
      *    actionFn = function to call when button is pressed
      */
     public this(TWidget parent, uint x, uint y, uint width, bool fixed,
-	dstring text, void function() actionFn) {
+	dstring text, void function(bool) actionFn) {
 
 	this.actionDelegate = null;
 	this.actionFunction = actionFn;
@@ -154,13 +154,18 @@ public class TField : TWidget {
 	return false;
     }
 
-    /// Dispatch to the action function/delegate.
-    private void dispatch() {
+    /**
+     * Dispatch to the action function/delegate.
+     *
+     * Params:
+     *    enter = if true, the user pressed Enter, else this was an update to the text
+     */
+    private void dispatch(bool enter) {
 	if (actionFunction !is null) {
-	    actionFunction();
+	    actionFunction(enter);
 	}
 	if (actionDelegate !is null) {
-	    actionDelegate();
+	    actionDelegate(enter);
 	}
     }
 
@@ -323,7 +328,7 @@ public class TField : TWidget {
 	}
 
 	if (key == kbEnter) {
-	    dispatch();
+	    dispatch(true);
 	    return;
 	}
 
@@ -371,6 +376,7 @@ public class TField : TWidget {
 		    windowStart--;
 		}
 	    }
+	    dispatch(false);
 	    return;
 	}
 
@@ -424,6 +430,7 @@ public class TField : TWidget {
 		// Append this character
 		appendChar(key.ch);
 	    }
+	    dispatch(false);
 	    return;
 	}
 
