@@ -36,8 +36,9 @@
 // Imports -------------------------------------------------------------------
 
 import base;
-import twindow;
 import tmenu;
+import tscroll;
+import twindow;
 
 // Convenience constructors
 import tbutton;
@@ -207,8 +208,10 @@ public class TWidget {
 
 	int absoluteRightEdge = window.getAbsoluteX() + window.width;
 	int absoluteBottomEdge = window.getAbsoluteY() + window.height;
-	if (!cast(TWindow)this) {
+	if ((!cast(TWindow)this) && (!cast(TVScroller)this)) {
 	    absoluteRightEdge -= 1;
+	}
+	if ((!cast(TWindow)this) && (!cast(THScroller)this)) {
 	    absoluteBottomEdge -= 1;
 	}
 	int myRightEdge = getAbsoluteX() + width;

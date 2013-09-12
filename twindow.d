@@ -43,9 +43,6 @@ import codepage;
 import tapplication;
 import twidget;
 
-import std.stdio;
-
-
 // Defines -------------------------------------------------------------------
 
 // Globals -------------------------------------------------------------------
@@ -72,7 +69,7 @@ public class TWindow : TWidget {
     dstring title = "";
 
     enum Flag {
-	
+
 	/// Window is resizable (default yes)
 	RESIZABLE = 0x01,
 
@@ -115,6 +112,8 @@ public class TWindow : TWidget {
     private uint resizeWindowHeight;
     public uint minimumWindowWidth = 10;
     public uint minimumWindowHeight = 2;
+    public int maximumWindowWidth = -1;
+    public int maximumWindowHeight = -1;
 
     // For maximize/restore
     private uint restoreWindowWidth;
@@ -226,7 +225,7 @@ public class TWindow : TWidget {
 	    return true;
 	}
 	return false;
-    }    
+    }
 
     /// Returns true if the mouse is currently on the maximize/restore
     /// button
@@ -239,7 +238,7 @@ public class TWindow : TWidget {
 	    return true;
 	}
 	return false;
-    }    
+    }
 
     /// Returns true if the mouse is currently on the resizable lower
     /// right corner
@@ -254,7 +253,7 @@ public class TWindow : TWidget {
 	    return true;
 	}
 	return false;
-    }    
+    }
 
     /// Retrieve the background color
     public CellAttributes getBackground() {
@@ -366,7 +365,7 @@ public class TWindow : TWidget {
 
 	    // Draw the maximize button
 	    if (!isModal()) {
-		
+
 		putCharXY(width - 5, 0, '[', border);
 		putCharXY(width - 3, 0, ']', border);
 		if (mouseOnMaximize() && mouse.mouse1) {
@@ -532,6 +531,8 @@ public class TWindow : TWidget {
 	    if (y < application.desktopTop) {
 		y = application.desktopTop;
 	    }
+
+	    // Keep within min/max bounds
 	    if (width < minimumWindowWidth) {
 		width = minimumWindowWidth;
 		inWindowResize = false;
@@ -540,6 +541,15 @@ public class TWindow : TWidget {
 		height = minimumWindowHeight;
 		inWindowResize = false;
 	    }
+	    if ((maximumWindowWidth > 0) && (width > maximumWindowWidth)) {
+		width = maximumWindowWidth;
+		inWindowResize = false;
+	    }
+	    if ((maximumWindowHeight > 0) && (height > maximumWindowHeight)) {
+		height = maximumWindowHeight;
+		inWindowResize = false;
+	    }
+
 	    // Pass a resize event to my children
 	    onResize(new TResizeEvent(TResizeEvent.Type.Widget, width, height));
 	    return;

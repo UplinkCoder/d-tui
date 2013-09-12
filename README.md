@@ -67,9 +67,6 @@ calling this version 1.0:
   - [ ] Search
   - [ ] Replace
   - [ ] Cut/Copy/Paste
-- [ ] TTerminal
-  - [ ] Horizontal scrollbar
-  - [ ] Vertical scrollbar
 - [ ] TMenu / TMenuItem
   - [ ] TSubMenu
   - [ ] TMenuItem: enabled, disabled, checked, unchecked
@@ -85,6 +82,8 @@ Wishlist features:
 - [ ] Terminal
   - [ ] Mouse 1006 mode parsing
   - [ ] Win32 console support
+- [ ] TTerminal
+  - [ ] Handle resize events + pass to child process
 - [ ] TWindow
   - [ ] SMARTPLACE (use smart placement for x, y)
   - [ ] &Window menu with Cascade, Tile, Close, Switch, etc.

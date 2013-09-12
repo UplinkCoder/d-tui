@@ -54,6 +54,8 @@ import base;
 import ecma;
 import codepage;
 import tapplication;
+import tscroll;
+import twidget;
 import twindow;
 
 // Defines -------------------------------------------------------------------
@@ -372,7 +374,7 @@ private static immutable wchar vt52_special_graphics_chars[128] = [
  *
  * It currently implements VT100, VT102, VT220, and XTERM with the
  * following caveats:
- * 
+ *
  * - Smooth scrolling, printing, keyboard locking, keyboard leds, and
  *   tests from VT100 are not supported.
  *
@@ -482,7 +484,7 @@ private class ECMA48 {
 
     /// The type of emulator to be
     private DeviceType type = DeviceType.VT102;
-    
+
     /// This represents a single line of the display buffer
     private class DisplayLine {
 
@@ -515,6 +517,16 @@ private class ECMA48 {
 	    }
 	}
     };
+
+    /**
+     * Obtain a new blank display line for an external client.
+     *
+     * Returns:
+     *    new blank line
+     */
+    public DisplayLine getBlankDisplayLine() {
+	return new DisplayLine();
+    }
 
     /// The scrollback buffer characters + attributes
     private DisplayLine [] scrollback;
@@ -874,7 +886,7 @@ private class ECMA48 {
      * Wraps the current line
      */
     private void wrapCurrentLine() {
-	if (currentState.cursorY == height) {
+	if (currentState.cursorY == height - 1) {
 	    newDisplayLine();
 	}
 	if (currentState.cursorY < height - 1) {
@@ -963,7 +975,7 @@ private class ECMA48 {
 		 * This case happens when: the cursor was already on the
 		 * right margin (either through printing or by an explicit
 		 * placement command), and a character was printed.
-		 * 
+		 *
 		 * The line wraps only when a new character arrives AND the
 		 * cursor is already on the right margin AND has placed a
 		 * character in its cell.  Easier to see than to explain.
@@ -1100,7 +1112,7 @@ private class ECMA48 {
 		return "\033OC";
 	    }
 	}
-	
+
 	if (keystroke == kbUp) {
 	    final switch (arrowKeyMode) {
 	    case ArrowKeyMode.ANSI:
@@ -1111,7 +1123,7 @@ private class ECMA48 {
 		return "\033OA";
 	    }
 	}
-	
+
 	if (keystroke == kbDown) {
 	    final switch (arrowKeyMode) {
 	    case ArrowKeyMode.ANSI:
@@ -1122,7 +1134,7 @@ private class ECMA48 {
 		return "\033OB";
 	    }
 	}
-	
+
 	if (keystroke == kbHome) {
 	    final switch (arrowKeyMode) {
 	    case ArrowKeyMode.ANSI:
@@ -1133,7 +1145,7 @@ private class ECMA48 {
 		return "\033OH";
 	    }
 	}
-	
+
 	if (keystroke == kbEnd) {
 	    final switch (arrowKeyMode) {
 	    case ArrowKeyMode.ANSI:
@@ -1144,7 +1156,7 @@ private class ECMA48 {
 		return "\033OF";
 	    }
 	}
-	
+
 	if (keystroke == kbF1) {
 	    // PF1
 	    if (vt52Mode) {
@@ -1152,7 +1164,7 @@ private class ECMA48 {
 	    }
 	    return "\033OP";
 	}
-	
+
 	if (keystroke == kbF2) {
 	    // PF2
 	    if (vt52Mode) {
@@ -1160,7 +1172,7 @@ private class ECMA48 {
 	    }
 	    return "\033OQ";
 	}
-	
+
 	if (keystroke == kbF3) {
 	    // PF3
 	    if (vt52Mode) {
@@ -1168,7 +1180,7 @@ private class ECMA48 {
 	    }
 	    return "\033OR";
 	}
-	
+
 	if (keystroke == kbF4) {
 	    // PF4
 	    if (vt52Mode) {
@@ -1176,7 +1188,7 @@ private class ECMA48 {
 	    }
 	    return "\033OS";
 	}
-	
+
 	if (keystroke == kbF5) {
 	    final switch (type) {
 	    case DeviceType.VT100:
@@ -1189,7 +1201,7 @@ private class ECMA48 {
 		return "\033[15~";
 	    }
 	}
-	
+
 	if (keystroke == kbF6) {
 	    final switch (type) {
 	    case DeviceType.VT100:
@@ -1202,7 +1214,7 @@ private class ECMA48 {
 		return "\033[17~";
 	    }
 	}
-	
+
 	if (keystroke == kbF7) {
 	    final switch (type) {
 	    case DeviceType.VT100:
@@ -1215,7 +1227,7 @@ private class ECMA48 {
 		return "\033[18~";
 	    }
 	}
-	
+
 	if (keystroke == kbF8) {
 	    final switch (type) {
 	    case DeviceType.VT100:
@@ -1228,7 +1240,7 @@ private class ECMA48 {
 		return "\033[19~";
 	    }
 	}
-	
+
 	if (keystroke == kbF9) {
 	    final switch (type) {
 	    case DeviceType.VT100:
@@ -1241,7 +1253,7 @@ private class ECMA48 {
 		return "\033[20~";
 	    }
 	}
-	
+
 	if (keystroke == kbF10) {
 	    final switch (type) {
 	    case DeviceType.VT100:
@@ -1254,15 +1266,15 @@ private class ECMA48 {
 		return "\033[21~";
 	    }
 	}
-	
+
 	if (keystroke == kbF11) {
 	    return "\033[23~";
 	}
-	
+
 	if (keystroke == kbF12) {
 	    return "\033[24~";
 	}
-	
+
 	if (keystroke == kbShiftF1) {
 	    // Shifted PF1
 	    if (vt52Mode) {
@@ -1270,7 +1282,7 @@ private class ECMA48 {
 	    }
 	    return "\033O2P";
 	}
-	
+
 	if (keystroke == kbShiftF1) {
 	    // Shifted PF2
 	    if (vt52Mode) {
@@ -1286,7 +1298,7 @@ private class ECMA48 {
 	    }
 	    return "\033O2R";
 	}
-	
+
 	if (keystroke == kbShiftF1) {
 	    // Shifted PF4
 	    if (vt52Mode) {
@@ -1294,12 +1306,12 @@ private class ECMA48 {
 	    }
 	    return "\033O2S";
 	}
-	
+
 	if (keystroke == kbShiftF1) {
 	    // Shifted F5
 	    return "\033[15;2~";
 	}
-	
+
 	if (keystroke == kbShiftF1) {
 	    // Shifted F6
 	    return "\033[17;2~";
@@ -1309,32 +1321,32 @@ private class ECMA48 {
 	    // Shifted F7
 	    return "\033[18;2~";
 	}
-	
+
 	if (keystroke == kbShiftF1) {
 	    // Shifted F8
 	    return "\033[19;2~";
 	}
-	
+
 	if (keystroke == kbShiftF1) {
 	    // Shifted F9
 	    return "\033[20;2~";
 	}
-	
+
 	if (keystroke == kbShiftF1) {
 	    // Shifted F10
 	    return "\033[21;2~";
 	}
-	
+
 	if (keystroke == kbShiftF1) {
 	    // Shifted F11
 	    return "\033[23;2~";
 	}
-	
+
 	if (keystroke == kbShiftF1) {
 	    // Shifted F12
 	    return "\033[24;2~";
 	}
-	
+
 	if (keystroke == kbCtrlF1) {
 	    // Control PF1
 	    if (vt52Mode) {
@@ -1342,7 +1354,7 @@ private class ECMA48 {
 	    }
 	    return "\033O5P";
 	}
-	
+
 	if (keystroke == kbCtrlF1) {
 	    // Control PF2
 	    if (vt52Mode) {
@@ -1350,7 +1362,7 @@ private class ECMA48 {
 	    }
 	    return "\033O5Q";
 	}
-	
+
 	if (keystroke == kbCtrlF1) {
 	    // Control PF3
 	    if (vt52Mode) {
@@ -1358,7 +1370,7 @@ private class ECMA48 {
 	    }
 	    return "\033O5R";
 	}
-	
+
 	if (keystroke == kbCtrlF1) {
 	    // Control PF4
 	    if (vt52Mode) {
@@ -1366,62 +1378,62 @@ private class ECMA48 {
 	    }
 	    return "\033O5S";
 	}
-	
+
 	if (keystroke == kbCtrlF1) {
 	    // Control F5
 	    return "\033[15;5~";
 	}
-	
+
 	if (keystroke == kbCtrlF1) {
 	    // Control F6
 	    return "\033[17;5~";
 	}
-	
+
 	if (keystroke == kbCtrlF1) {
 	    // Control F7
 	    return "\033[18;5~";
 	}
-	
+
 	if (keystroke == kbCtrlF1) {
 	    // Control F8
 	    return "\033[19;5~";
 	}
-	
+
 	if (keystroke == kbCtrlF1) {
 	    // Control F9
 	    return "\033[20;5~";
 	}
-	
+
 	if (keystroke == kbCtrlF1) {
 	    // Control F10
 	    return "\033[21;5~";
 	}
-	
+
 	if (keystroke == kbCtrlF1) {
 	    // Control F11
 	    return "\033[23;5~";
 	}
-	
+
 	if (keystroke == kbCtrlF1) {
 	    // Control F12
 	    return "\033[24;5~";
 	}
-	
+
 	if (keystroke == kbPgUp) {
 	    // Page Up
 	    return "\033[5~";
 	}
-	
+
 	if (keystroke == kbPgDn) {
 	    // Page Down
 	    return "\033[6~";
 	}
-	
+
 	if (keystroke == kbIns) {
 	    // Ins
 	    return "\033[2~";
 	}
-	
+
 	if (keystroke == kbShiftIns) {
 	    // This is what xterm sends for SHIFT-INS
 	    return "\033[2;2~";
@@ -1441,7 +1453,7 @@ private class ECMA48 {
 	    return "\177";
 	    // return "\033[3~";
 	}
-	
+
 	if (keystroke == kbEnter) {
 	    return "\015";
 	}
@@ -3127,7 +3139,7 @@ private class ECMA48 {
 
 	/*
 	 * Request terminal parameters.
-	 * 
+	 *
 	 * Respond with:
 	 *
 	 *     Parity NONE, 8 bits, xmitspeed 38400, recvspeed 38400.
@@ -3472,13 +3484,13 @@ private class ECMA48 {
     public void consume(dchar ch) {
 
 	// DEBUG
-	// stderr.writef("%c", ch);
+	// std.stderr.writef("%c", ch);
 
 	// Special case for VT10x: 7-bit characters only
 	if ((type == DeviceType.VT100) || (type == DeviceType.VT102)) {
 	    ch = ch & 0x7F;
 	}
-	
+
 	// Special "anywhere" states
 
 	// 18, 1A                     --> execute, then switch to SCAN_GROUND
@@ -5356,6 +5368,9 @@ public class TTerminal : TWindow {
     /// shell process
     private bool utf8 = true;
 
+    /// Vertical scrollbar
+    private TVScroller vScroller;
+
     private import core.stdc.errno;
     private import core.stdc.string;
     private import core.sys.posix.sys.ioctl;
@@ -5446,9 +5461,11 @@ public class TTerminal : TWindow {
 		}
 	    });
 
+	// Spawn the shell process
 	makeShell();
 
-	readEmulatorState();
+	// Setup the scroll bars
+	onResize(new TResizeEvent(TResizeEvent.Type.Widget, width, height));
 
 	// Add a timer so that our onIdle() will get called frequently.
 	application.addTimer(100,
@@ -5460,12 +5477,45 @@ public class TTerminal : TWindow {
 
     /// Draw the display buffer
     override public void draw() {
+	// Update the scroll bars
+	reflow();
+
 	// Draw the box using my superclass
 	super.draw();
 
+	// Put together the visible rows
+	// std.stdio.stderr.writefln("----------------------------");
+	// std.stdio.stderr.writefln("vScroller.value %d", vScroller.value);
+	int visibleHeight = height - 2;
+	// std.stdio.stderr.writefln("visibleHeight %d", visibleHeight);
+	int visibleBottom = cast(int)(emulator.scrollback.length + emulator.display.length) + vScroller.value;
+	// std.stdio.stderr.writefln("visibleBottom %d", visibleBottom);
+	assert(visibleBottom >= 0);
+
+	ECMA48.DisplayLine [] preceedingBlankLines;
+	int visibleTop = visibleBottom - visibleHeight;
+	// std.stdio.stderr.writefln("visibleTop %d", visibleTop);
+	if (visibleTop < 0) {
+	    for (int i = visibleTop; i < 0; i++) {
+		preceedingBlankLines ~= emulator.getBlankDisplayLine();
+	    }
+	    visibleTop = 0;
+	}
+	assert(visibleTop >= 0);
+
+	auto displayLines = emulator.scrollback ~ emulator.display;
+	// std.stdio.stderr.writefln("displayLines.length %d", displayLines.length);
+
+	auto visibleLines = preceedingBlankLines ~ displayLines[visibleTop .. visibleBottom];
+	// std.stdio.stderr.writefln("visibleLines.length %d", visibleLines.length);
+
+	visibleHeight -= visibleLines.length;
+	// std.stdio.stderr.writefln("visibleHeight %d", visibleHeight);
+	assert(visibleHeight >= 0);
+
 	// Now draw the emulator screen
 	int row = 1;
-	foreach (line; emulator.display) {
+	foreach (line; visibleLines) {
 	    int widthMax = emulator.width;
 	    if (line.doubleWidth) {
 		widthMax /= 2;
@@ -5496,6 +5546,12 @@ public class TTerminal : TWindow {
 		break;
 	    }
 	}
+	CellAttributes background = new CellAttributes();
+	// Fill in the blank lines on bottom
+	for (auto i = 0; i < visibleHeight; i++) {
+	    screen.hLineXY(1, i + row, width - 2, ' ', background);
+	}
+
     }
 
     /**
@@ -5519,17 +5575,60 @@ public class TTerminal : TWindow {
      */
     private void readEmulatorState() {
 	cursorX = emulator.getCursorX() + 1;
-	cursorY = emulator.getCursorY() + 1;
+	cursorY = emulator.getCursorY() + 1 + (height - 2 - emulator.height);
+	if (vScroller !is null) {
+	    cursorY -= vScroller.value;
+	}
 	hasCursor = emulator.visibleCursor;
 	if (cursorX > width - 2) {
 	    hasCursor = false;
 	}
-	if (cursorY > height - 2) {
+	if ((cursorY > height - 2) || (cursorY < 0)) {
 	    hasCursor = false;
 	}
 	if (emulator.screenTitle.length > 0) {
 	    title = emulator.screenTitle;
 	}
+	maximumWindowWidth = emulator.width + 2;
+    }
+
+    /**
+     * Handle window/screen resize events.
+     *
+     * Params:
+     *    event = resize event
+     */
+    override protected void onResize(TResizeEvent event) {
+	if (event.type == TResizeEvent.Type.Widget) {
+	    // Resize the scroll bars
+	    reflow();
+
+	    // Get out of scrollback
+	    vScroller.value = 0;
+	}
+	return;
+    }
+
+    /**
+     * Resize scrollbars for a new width/height
+     */
+    public void reflow() {
+
+	// Pull cursor information
+	readEmulatorState();
+
+	// Vertical scrollbar
+	if (vScroller is null) {
+	    vScroller = new TVScroller(this, width - 2, 0, height - 2);
+	    vScroller.bottomValue = 0;
+	    vScroller.value = 0;
+	} else {
+	    vScroller.x = width - 2;
+	    vScroller.height = height - 2;
+	}
+	vScroller.topValue = height - 2 - cast(int)(emulator.scrollback.length + emulator.display.length);
+	vScroller.bigChange = height - 2;
+
     }
 
     /**
@@ -5586,9 +5685,24 @@ public class TTerminal : TWindow {
      * Params:
      *    event = keystroke event
      */
-    override protected void onKeypress(TKeypressEvent event) {
+    override protected void onKeypress(TKeypressEvent keypress) {
+	TKeypress key = keypress.key;
+
+	// Scrollback up/down
+	if ((key == kbShiftPgUp) || (key == kbCtrlPgUp) || (key == kbAltPgUp)) {
+	    vScroller.bigDecrement();
+	    return;
+	}
+	if ((key == kbShiftPgDn) || (key == kbCtrlPgDn) || (key == kbAltPgDn)) {
+	    vScroller.bigIncrement();
+	    return;
+	}
+
 	if (processRunning) {
-	    dstring response = emulator.keypress(event.key);
+	    // Get out of scrollback
+	    vScroller.value = 0;
+
+	    dstring response = emulator.keypress(key);
 	    ubyte [] utf8Buffer;
 	    foreach (ch; response) {
 		if (utf8) {
@@ -5605,7 +5719,40 @@ public class TTerminal : TWindow {
 	}
 
 	// Process is closed, honor "normal" TUI keystrokes
-	super.onKeypress(event);
+	super.onKeypress(keypress);
+    }
+
+    /**
+     * Handle mouse press events.
+     *
+     * Params:
+     *    mouse = mouse button press event
+     */
+    override protected void onMouseDown(TMouseEvent mouse) {
+
+	if (mouse.mouseWheelUp) {
+	    vScroller.decrement();
+	    return;
+	}
+	if (mouse.mouseWheelDown) {
+	    vScroller.increment();
+	    return;
+	}
+
+	// Pass to children
+	super.onMouseDown(mouse);
+    }
+
+    /**
+     * Returns my active widget.
+     *
+     * Returns:
+     *    widget that is active, or this if no children
+     */
+    override public TWidget getActiveChild() {
+	// Always return me so that the cursor will be here and not on the
+	// scrollbar.
+	return this;
     }
 
 }

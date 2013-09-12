@@ -417,27 +417,6 @@ private class DemoMainWindow : TWindow {
 	    }, true);
     }
 
-    /**
-     * Handle menu or posted command events.
-     *
-     * Params:
-     *    event = command event
-     */
-    override public void onCommand(TCommandEvent cmd) {
-	if (cmd.cmd == cmOpen) {
-	    dstring filename = application.fileOpenBox(".");
-	    if (filename !is null) {
-		application.addEditor(filename);
-	    }
-	}
-
-	// Do nothing, pass to children instead
-	foreach (w; children) {
-	    w.onCommand(cmd);
-	}
-    }
-
-
 }
 
 private class DemoApplication : TApplication {
@@ -456,6 +435,25 @@ private class DemoApplication : TApplication {
 	fileMenu.addItem("O&S Shell...", cmShell);
 	fileMenu.addItem("E&xit", cmExit, kbAltX);
     }
+
+    /**
+     * Handle menu or posted command events.
+     *
+     * Params:
+     *    event = command event
+     */
+    override protected bool onCommand(TCommandEvent cmd) {
+	if (cmd.cmd == cmOpen) {
+	    dstring filename = fileOpenBox(".");
+	    if (filename !is null) {
+		addEditor(filename);
+	    }
+	    return true;
+	}
+
+	return super.onCommand(cmd);
+    }
+
 }
 
 public void main(string [] args) {
