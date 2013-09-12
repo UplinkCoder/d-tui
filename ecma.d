@@ -91,7 +91,7 @@ public class ECMAScreen : Screen {
      *    y = row coordinate.  0 is the top-most row.
      *    writer = appender to write escape sequences to
      *    lastAttr = cell attributes from the last call to flushLine
-     */ 
+     */
     private void flushLine(int y, Appender!(string) writer, CellAttributes lastAttr) {
 	int lastX = -1;
 	int textEnd = 0;
@@ -174,7 +174,7 @@ public class ECMAScreen : Screen {
 		    if (debugToStderr) {
 			stderr.writefln("2 Set all attributes");
 		    }
-		    
+
 		    // Everything is different
 		    writer.put(terminal.color(lCell.foreColor,
 			    lCell.backColor,
@@ -403,17 +403,19 @@ public class ECMATerminal {
     static public dchar getByteFileno(int fileno) {
 	char[1] buffer;
 
-	auto rc = read(fileno, buffer.ptr, 1);
-	if (rc == 0) {
-	    // This is EOF
-	    throw new FileException("EOF");
-	}
-	if (rc < 0) {
-	    if (errno == EIO) {
-		// This is also EOF
-		throw new FileException("EIO");
+	version(Posix) {
+	    auto rc = read(fileno, buffer.ptr, 1);
+	    if (rc == 0) {
+		// This is EOF
+		throw new FileException("EOF");
 	    }
-	    throw new FileException(to!string(strerror(errno)));
+	    if (rc < 0) {
+		if (errno == EIO) {
+		    // This is also EOF
+		    throw new FileException("EIO");
+		}
+		throw new FileException(to!string(strerror(errno)));
+	    }
 	}
 	return buffer[0];
     }
@@ -430,32 +432,34 @@ public class ECMATerminal {
     static public dchar getCharFileno(int fileno) {
 	char[4] buffer;
 
-	auto rc = read(fileno, buffer.ptr, 1);
-	if (rc == 0) {
-	    // This is EOF
-	    throw new FileException("EOF");
-	}
-	if (rc < 0) {
-	    if (errno == EIO) {
-		// This is also EOF
-		throw new FileException("EIO");
+	version(Posix) {
+	    auto rc = read(fileno, buffer.ptr, 1);
+	    if (rc == 0) {
+		// This is EOF
+		throw new FileException("EOF");
 	    }
-	    throw new FileException(to!string(strerror(errno)));
-	}
-	assert(rc > 0);
+	    if (rc < 0) {
+		if (errno == EIO) {
+		    // This is also EOF
+		    throw new FileException("EIO");
+		}
+		throw new FileException(to!string(strerror(errno)));
+	    }
+	    assert(rc > 0);
 
-	size_t len = 0;
-	if ((buffer[0] & 0xF0) == 0xF0) {
-	    // 3 more bytes coming
-	    len = 3;
-	} else if ((buffer[0] & 0xE0) == 0xE0) {
-	    // 2 more bytes coming
-	    len = 2;
-	} else if ((buffer[0] & 0xC0) == 0xC0) {
-	    // 1 more byte coming
-	    len = 1;
+	    size_t len = 0;
+	    if ((buffer[0] & 0xF0) == 0xF0) {
+		// 3 more bytes coming
+		len = 3;
+	    } else if ((buffer[0] & 0xE0) == 0xE0) {
+		// 2 more bytes coming
+		len = 2;
+	    } else if ((buffer[0] & 0xC0) == 0xC0) {
+		// 1 more byte coming
+		len = 1;
+	    }
+	    rc = read(fileno, cast(void *)(buffer.ptr) + 1, len);
 	}
-	rc = read(fileno, cast(void *)(buffer.ptr) + 1, len);
 
 	size_t i;
 	return decode(buffer, i);
@@ -470,26 +474,28 @@ public class ECMATerminal {
     public dchar getCharStdin() {
 	try {
 	    char[4] buffer;
-	    read(stdin.fileno(), buffer.ptr, 1);
-	    if ((brokenTerminalUTFMouse == true) && (state == STATE.MOUSE)) {
-		// This terminal is sending non-UTF8 characters in its
-		// mouse reporting.  Do not decode stuff, just return
-		// buffer[0].
-		return buffer[0];
-	    }
+	    version(Posix) {
+		read(stdin.fileno(), buffer.ptr, 1);
+		if ((brokenTerminalUTFMouse == true) && (state == STATE.MOUSE)) {
+		    // This terminal is sending non-UTF8 characters in its
+		    // mouse reporting.  Do not decode stuff, just return
+		    // buffer[0].
+		    return buffer[0];
+		}
 
-	    size_t len = 0;
-	    if ((buffer[0] & 0xF0) == 0xF0) {
-		// 3 more bytes coming
-		len = 3;
-	    } else if ((buffer[0] & 0xE0) == 0xE0) {
-		// 2 more bytes coming
-		len = 2;
-	    } else if ((buffer[0] & 0xC0) == 0xC0) {
-		// 1 more byte coming
-		len = 1;
+		size_t len = 0;
+		if ((buffer[0] & 0xF0) == 0xF0) {
+		    // 3 more bytes coming
+		    len = 3;
+		} else if ((buffer[0] & 0xE0) == 0xE0) {
+		    // 2 more bytes coming
+		    len = 2;
+		} else if ((buffer[0] & 0xC0) == 0xC0) {
+		    // 1 more byte coming
+		    len = 1;
+		}
+		read(stdin.fileno(), cast(void *)(buffer.ptr) + 1, len);
 	    }
-	    read(stdin.fileno(), cast(void *)(buffer.ptr) + 1, len);
 	    size_t i;
 	    return decode(buffer, i);
 	} catch (UTFException e) {
@@ -510,8 +516,8 @@ public class ECMATerminal {
     version(Posix) {
 	private import core.sys.posix.sys.ioctl;
     }
-    
-    /** 
+
+    /**
      * Get the width of the physical console.
      *
      * Returns:
@@ -531,9 +537,12 @@ public class ECMATerminal {
 	    }
 	    return consoleSize.ws_col;
 	}
+	version(Windows) {
+	    return 25;
+	}
     }
 
-    /** 
+    /**
      * Get the height of the physical console.
      *
      * Returns:
@@ -553,9 +562,12 @@ public class ECMATerminal {
 	    }
 	    return consoleSize.ws_row;
 	}
+	version(Windows) {
+	    return 80;
+	}
     }
 
-    /** 
+    /**
      * Constructor sets up state for getEvent()
      *
      * Params:
@@ -605,7 +617,7 @@ public class ECMATerminal {
      *    ch = Unicode code point
      *
      * Returns:
-     * 
+     *
      *    one KEYPRESS event, either a control character (e.g. isKey == false, ch == 'A', ctrl == true), or a special key (e.g. isKey == true, fnKey == ESC)
      */
     private TKeypressEvent controlChar(dchar ch) {
@@ -984,7 +996,7 @@ public class ECMATerminal {
 	}
 	return event;
     }
-    
+
     /**
      * Parses the next character of input to see if an InputEvent is
      * fully here.
@@ -993,7 +1005,7 @@ public class ECMATerminal {
      *    ch = Unicode code point
      *    noChar = if true, ignore ch.  This is currently used to
      *    return a bare ESC and RESIZE events.
-     *    
+     *
      * Returns:
      *    list of new events (which may be empty)
      */
@@ -1203,7 +1215,7 @@ public class ECMATerminal {
 		    break;
 		}
 	    }
-	    
+
 	    // Unknown keystroke, ignore
 	    reset();
 	    return events;
@@ -1257,7 +1269,7 @@ public class ECMATerminal {
      *
      * Params:
      *    on = if true, enable metaSendsEscape
-     *    
+     *
      * Returns:
      *    the string to emit to xterm
      */
@@ -1275,7 +1287,7 @@ public class ECMATerminal {
      *
      * Params:
      *    str = string of parameters, e.g. "31;1;"
-     *    
+     *
      * Returns:
      *    the string to emit to an ANSI / ECMA-style terminal, e.g. "\033[31;1m"
      */
@@ -1297,7 +1309,7 @@ public class ECMATerminal {
      *    foreground = if true, this is a foreground color
      *    header = if true, make the full header, otherwise just emit
      *    the color parameter e.g. "42;"
-     *    
+     *
      * Returns:
      *    the string to emit to an ANSI / ECMA-style terminal, e.g. "\033[42m"
      */
@@ -1331,7 +1343,7 @@ public class ECMATerminal {
      *    backColor = one of the Color.WHITE, Color.BLUE, etc. constants
      *    header = if true, make the full header, otherwise just emit
      *    the color parameter e.g. "31;42;"
-     *    
+     *
      * Returns:
      *    the string to emit to an ANSI / ECMA-style terminal, e.g. "\033[31;42m"
      */
@@ -1417,13 +1429,13 @@ public class ECMATerminal {
 	formattedWrite(writer, "%d;%dm", ecmaForeColor, ecmaBackColor);
 	return writer.data;
     }
-    
+
     /**
      * Create a SGR parameter sequence for enabling reverse color.
      *
      * Params:
      *    on = if true, turn on reverse
-     *    
+     *
      * Returns:
      *    the string to emit to an ANSI / ECMA-style terminal, e.g. "\033[7m"
      */
@@ -1458,7 +1470,7 @@ public class ECMATerminal {
      *    on = if true, turn on bold
      *    header = if true, make the full header, otherwise just emit
      *    the bare parameter e.g. "1;"
-     *    
+     *
      * Returns:
      *    the string to emit to an ANSI / ECMA-style terminal, e.g. "\033[1m"
      */
@@ -1482,7 +1494,7 @@ public class ECMATerminal {
      *    on = if true, turn on blink
      *    header = if true, make the full header, otherwise just emit
      *    the bare parameter e.g. "5;"
-     *    
+     *
      * Returns:
      *    the string to emit to an ANSI / ECMA-style terminal, e.g. "\033[5m"
      */
@@ -1505,7 +1517,7 @@ public class ECMATerminal {
      *
      * Params:
      *    on = if true, turn on underline
-     *    
+     *
      * Returns:
      *    the string to emit to an ANSI / ECMA-style terminal, e.g. "\033[4m"
      */
@@ -1521,7 +1533,7 @@ public class ECMATerminal {
      *
      * Params:
      *    on = if true, turn on cursor
-     *    
+     *
      * Returns:
      *    the string to emit to an ANSI / ECMA-style terminal
      */
@@ -1540,7 +1552,7 @@ public class ECMATerminal {
     /**
      * Clear the entire screen.  Because some terminals use back-color-erase,
      * set the color to white-on-black beforehand.
-     * 
+     *
      * Returns:
      *    the string to emit to an ANSI / ECMA-style terminal
      */
@@ -1552,7 +1564,7 @@ public class ECMATerminal {
      * Clear the line from the cursor (inclusive) to the end of the screen.
      * Because some terminals use back-color-erase, set the color to
      * white-on-black beforehand.
-     * 
+     *
      * Returns:
      *    the string to emit to an ANSI / ECMA-style terminal
      */
@@ -1563,7 +1575,7 @@ public class ECMATerminal {
     /**
      * Clear the line up the cursor (inclusive).  Because some terminals use
      * back-color-erase, set the color to white-on-black beforehand.
-     * 
+     *
      * Returns:
      *    the string to emit to an ANSI / ECMA-style terminal
      */
@@ -1574,7 +1586,7 @@ public class ECMATerminal {
     /**
      * Clear the line.  Because some terminals use back-color-erase, set the
      * color to white-on-black beforehand.
-     * 
+     *
      * Returns:
      *    the string to emit to an ANSI / ECMA-style terminal
      */
@@ -1584,7 +1596,7 @@ public class ECMATerminal {
 
     /**
      * Move the cursor to the top-left corner.
-     * 
+     *
      * Returns:
      *    the string to emit to an ANSI / ECMA-style terminal
      */
@@ -1598,7 +1610,7 @@ public class ECMATerminal {
      * Params:
      *    x = column coordinate.  0 is the left-most column.
      *    y = row coordinate.  0 is the top-most row.
-     * 
+     *
      * Returns:
      *    the string to emit to an ANSI / ECMA-style terminal
      */
@@ -1616,11 +1628,11 @@ public class ECMATerminal {
      * This also sends the sequence to hide the X11 pointer in the
      * window, but they don't seem to work.
      *
-     * Finally, this sets the alternate screen buffer. 
+     * Finally, this sets the alternate screen buffer.
      *
      * Params:
      *    on = if true, enable mouse report
-     *    
+     *
      * Returns:
      *    the string to emit to xterm
      */
@@ -1681,16 +1693,18 @@ public class ECMABackend : Backend {
      *    events received, or an empty list if the timeout was reached
      */
     override public TInputEvent [] getEvents(uint timeout) {
-	// Poll on stdin.
-	pollfd pfd;
-	pfd.fd = stdin.fileno();
-	pfd.events = POLLIN;
-	pfd.revents = 0;
-	auto poll_rc = poll(&pfd, 1, timeout);
-	if (poll_rc > 0) {
-	    // We have something to read
-	    dchar ch = terminal.getCharStdin();
-	    return terminal.getEvents(ch);
+	version(Posix) {
+	    // Poll on stdin.
+	    pollfd pfd;
+	    pfd.fd = stdin.fileno();
+	    pfd.events = POLLIN;
+	    pfd.revents = 0;
+	    auto poll_rc = poll(&pfd, 1, timeout);
+	    if (poll_rc > 0) {
+		// We have something to read
+		dchar ch = terminal.getCharStdin();
+		return terminal.getEvents(ch);
+	    }
 	}
 	return terminal.getEvents(0, true);
     }

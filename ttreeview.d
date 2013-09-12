@@ -88,14 +88,16 @@ public class TDirTreeItem : TTreeItem {
 	assert(dir.isDir());
 	expandable = true;
 
-	// http://d.puremagic.com/issues/show_bug.cgi?id=10463 -
-	// dirEntries will segfault if we do not have access to this
-	// path.  As a workaround, try to opendir() it first.
-	core.sys.posix.dirent.DIR * pDIR;
-	pDIR = core.sys.posix.dirent.opendir(toStringz(dir.name));
-	if (pDIR is null) {
-	    expandable = false;
-	    expanded = false;
+	version (Posix) {
+	    // http://d.puremagic.com/issues/show_bug.cgi?id=10463 -
+	    // dirEntries will segfault if we do not have access to this
+	    // path.  As a workaround, try to opendir() it first.
+	    core.sys.posix.dirent.DIR * pDIR;
+	    pDIR = core.sys.posix.dirent.opendir(toStringz(dir.name));
+	    if (pDIR is null) {
+		expandable = false;
+		expanded = false;
+	    }
 	}
 
 	if ((expanded == false) || (expandable == false)) {

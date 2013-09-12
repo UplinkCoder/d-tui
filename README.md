@@ -70,9 +70,6 @@ calling this version 1.0:
 - [ ] TMenu / TMenuItem
   - [ ] TSubMenu
   - [ ] TMenuItem: enabled, disabled, checked, unchecked
-- [ ] TWindow
-  - [ ] Horizontal scrollbar
-  - [ ] Vertical scrollbar
 - [ ] TApplicationSocket - socket that knows about environment variables and
         rows X cols
       - [ ] this(TApplication application)

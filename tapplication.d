@@ -273,7 +273,7 @@ public class TApplication {
 
 	// Swap z/active between active window and the next in the
 	// list
-	int activeWindowI = -1;
+	ptrdiff_t activeWindowI = -1;
 	for (auto i = 0; i < windows.length; i++) {
 	    if (windows[i].active) {
 		activeWindowI = i;
@@ -287,7 +287,7 @@ public class TApplication {
 	    return;
 	}
 
-	ulong nextWindowI = (activeWindowI + 1) % windows.length;
+	size_t nextWindowI = (activeWindowI + 1) % windows.length;
 	windows[activeWindowI].active = false;
 	windows[activeWindowI].z = windows[nextWindowI].z;
 	windows[nextWindowI].z = 0;

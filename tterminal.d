@@ -5377,57 +5377,61 @@ public class TTerminal : TWindow {
 
     private void makeShell() {
 
-	shellPid = forkpty(&shellFD, null, null, null);
+	version(Posix) {
 
-	if (shellPid == 0) {
-	    // This is the child, exec bash
-	    string [] args = ["/bin/bash", "--login"];
+	    shellPid = forkpty(&shellFD, null, null, null);
 
-	    // Convert program name and arguments to C-style strings.
-	    auto argz = new const(char)*[args.length + 1];
-	    argz[0] = toStringz(args[0]);
-	    foreach (i; 1 .. args.length) {
-		argz[i] = toStringz(args[i]);
+	    if (shellPid == 0) {
+		// This is the child, exec bash
+		string [] args = ["/bin/bash", "--login"];
+
+		// Convert program name and arguments to C-style strings.
+		auto argz = new const(char)*[args.length + 1];
+		argz[0] = toStringz(args[0]);
+		foreach (i; 1 .. args.length) {
+		    argz[i] = toStringz(args[i]);
+		}
+		argz[$ - 1] = null;
+
+		// Set TERM
+		string termString = emulator.deviceTypeTerm();
+		core.sys.posix.stdlib.putenv(cast(char *)toStringz(termString));
+
+		// We set LANG, but lots of shells don't honor it
+		string langString = emulator.deviceTypeLang("en_US");
+		core.sys.posix.stdlib.putenv(cast(char *)toStringz(langString));
+
+		// Set COLUMNS
+		auto writer = appender!string();
+		formattedWrite(writer, "COLUMNS=%d", emulator.width);
+		core.sys.posix.stdlib.putenv(cast(char *)toStringz(writer.data));
+		writer.clear();
+
+		// Set LINES
+		formattedWrite(writer, "LINES=%d", emulator.height);
+		core.sys.posix.stdlib.putenv(cast(char *)toStringz(writer.data));
+		writer.clear();
+
+		// Set window size
+		winsize terminalSize;
+		if (ioctl(std.stdio.stdin.fileno(), TIOCGWINSZ, &terminalSize) >= 0) {
+		    terminalSize.ws_col = cast(ushort)emulator.width;
+		    terminalSize.ws_row = cast(ushort)emulator.height;
+		    ioctl(std.stdio.stdin.fileno(), TIOCSWINSZ, &terminalSize);
+		}
+
+		// Execute the shell
+		core.sys.posix.unistd.execvp(argz[0], argz.ptr);
+
+		// Should never get here
+		std.stdio.stderr.writefln("exec() failed: %d (%s)", errno,
+		    to!string(strerror(errno)));
+		std.stdio.stderr.flush();
+		exit(-1);
 	    }
-	    argz[$ - 1] = null;
-
-	    // Set TERM
-	    string termString = emulator.deviceTypeTerm();
-	    core.sys.posix.stdlib.putenv(cast(char *)toStringz(termString));
-
-	    // We set LANG, but lots of shells don't honor it
-	    string langString = emulator.deviceTypeLang("en_US");
-	    core.sys.posix.stdlib.putenv(cast(char *)toStringz(langString));
-
-	    // Set COLUMNS
-	    auto writer = appender!string();
-	    formattedWrite(writer, "COLUMNS=%d", emulator.width);
-	    core.sys.posix.stdlib.putenv(cast(char *)toStringz(writer.data));
-	    writer.clear();
-
-	    // Set LINES
-	    formattedWrite(writer, "LINES=%d", emulator.height);
-	    core.sys.posix.stdlib.putenv(cast(char *)toStringz(writer.data));
-	    writer.clear();
-
-	    // Set window size
-	    winsize terminalSize;
-	    if (ioctl(std.stdio.stdin.fileno(), TIOCGWINSZ, &terminalSize) >= 0) {
-		terminalSize.ws_col = cast(ushort)emulator.width;
-		terminalSize.ws_row = cast(ushort)emulator.height;
-		ioctl(std.stdio.stdin.fileno(), TIOCSWINSZ, &terminalSize);
-	    }
-
-	    // Execute the shell
-	    core.sys.posix.unistd.execvp(argz[0], argz.ptr);
-
-	    // Should never get here
-	    std.stdio.stderr.writefln("exec() failed: %d (%s)", errno,
-		to!string(strerror(errno)));
-	    std.stdio.stderr.flush();
-	    exit(-1);
+	    processRunning = true;
 	}
-	processRunning = true;
+
     }
 
     /**
@@ -5446,18 +5450,20 @@ public class TTerminal : TWindow {
 
 	emulator = new ECMA48(ECMA48.DeviceType.XTERM,
 	    delegate(dstring str) {
-		if (processRunning) {
-		    ubyte [] utf8Buffer;
-		    foreach (ch; str) {
-			if (utf8) {
-			    encodeUTF8(ch, utf8Buffer);
-			} else {
-			    utf8Buffer ~= ch & 0xFF;
+		version(Posix) {
+		    if (processRunning) {
+			ubyte [] utf8Buffer;
+			foreach (ch; str) {
+			    if (utf8) {
+				encodeUTF8(ch, utf8Buffer);
+			    } else {
+				utf8Buffer ~= ch & 0xFF;
+			    }
 			}
+			core.sys.posix.unistd.write(shellFD, utf8Buffer.ptr,
+			    utf8Buffer.length);
+			core.sys.posix.unistd.fsync(shellFD);
 		    }
-		    core.sys.posix.unistd.write(shellFD, utf8Buffer.ptr,
-			utf8Buffer.length);
-		    core.sys.posix.unistd.fsync(shellFD);
 		}
 	    });
 
@@ -5559,7 +5565,9 @@ public class TTerminal : TWindow {
      */
     override public void onClose() {
 	if (processRunning) {
-	    kill(shellPid, SIGTERM);
+	    version(Posix) {
+		kill(shellPid, SIGTERM);
+	    }
 	    processRunning = false;
 	}
     }
@@ -5638,45 +5646,48 @@ public class TTerminal : TWindow {
 	if (!processRunning) {
 	    return;
 	}
-	pollfd pfd;
-	int i = 0;
-	int poll_rc = -1;
-	do {
-	    assert(shellFD > 0);
 
-	    pfd.fd = shellFD;
-	    pfd.events = POLLIN;
-	    pfd.revents = 0;
-	    poll_rc = poll(&pfd, 1, 0);
-	    if (poll_rc > 0) {
-		application.repaint = true;
+	version(Posix) {
+	    pollfd pfd;
+	    int i = 0;
+	    int poll_rc = -1;
+	    do {
+		assert(shellFD > 0);
 
-		// We have data, read it
-		try {
-		    if (utf8) {
-			try {
-			    emulator.consume(ECMATerminal.getCharFileno(shellFD));
-			} catch (UTFException e) {
-			    // The remote side is sending non-UTF, so
-			    // stop trying to decode UTF8 from here on
-			    // out.
-			    utf8 = false;
+		pfd.fd = shellFD;
+		pfd.events = POLLIN;
+		pfd.revents = 0;
+		poll_rc = poll(&pfd, 1, 0);
+		if (poll_rc > 0) {
+		    application.repaint = true;
+
+		    // We have data, read it
+		    try {
+			if (utf8) {
+			    try {
+				emulator.consume(ECMATerminal.getCharFileno(shellFD));
+			    } catch (UTFException e) {
+				// The remote side is sending non-UTF, so
+				// stop trying to decode UTF8 from here on
+				// out.
+				utf8 = false;
+			    }
+			} else {
+			    emulator.consume(ECMATerminal.getByteFileno(shellFD));
 			}
-		    } else {
-			emulator.consume(ECMATerminal.getByteFileno(shellFD));
+			readEmulatorState();
+		    } catch (FileException e) {
+			// We got EOF, close the file
+			title = title ~ " (Offline)";
+			processRunning = false;
+			int status;
+			waitpid(shellPid, &status, WNOHANG);
+			return;
 		    }
-		    readEmulatorState();
-		} catch (FileException e) {
-		    // We got EOF, close the file
-		    title = title ~ " (Offline)";
-		    processRunning = false;
-		    int status;
-		    waitpid(shellPid, &status, WNOHANG);
-		    return;
 		}
-	    }
-	    i++;
-	} while ((poll_rc > 0) && (i < 1024)) ;
+		i++;
+	    } while ((poll_rc > 0) && (i < 1024)) ;
+	}
     }
 
     /**
@@ -5702,18 +5713,20 @@ public class TTerminal : TWindow {
 	    // Get out of scrollback
 	    vScroller.value = 0;
 
-	    dstring response = emulator.keypress(key);
-	    ubyte [] utf8Buffer;
-	    foreach (ch; response) {
-		if (utf8) {
-		    encodeUTF8(ch, utf8Buffer);
-		} else {
-		    utf8Buffer ~= ch & 0xFF;
+	    version(Posix) {
+		dstring response = emulator.keypress(key);
+		ubyte [] utf8Buffer;
+		foreach (ch; response) {
+		    if (utf8) {
+			encodeUTF8(ch, utf8Buffer);
+		    } else {
+			utf8Buffer ~= ch & 0xFF;
+		    }
 		}
+		core.sys.posix.unistd.write(shellFD, utf8Buffer.ptr,
+		    utf8Buffer.length);
+		core.sys.posix.unistd.fsync(shellFD);
 	    }
-	    core.sys.posix.unistd.write(shellFD, utf8Buffer.ptr,
-		utf8Buffer.length);
-	    core.sys.posix.unistd.fsync(shellFD);
 	    readEmulatorState();
 	    return;
 	}
