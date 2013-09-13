@@ -113,6 +113,31 @@ public class TMenu : TWindow {
     /// The shortcut and title
     public AcceleratorString accelerator;
 
+    /// Reserved menu item IDs
+    public static immutable short MID_UNUSED		= -1;
+
+    // File menu
+    public static immutable short MID_EXIT		= 1;
+    public static immutable short MID_QUIT		= MID_EXIT;
+    public static immutable short MID_OPEN_FILE		= 2;
+    public static immutable short MID_SHELL		= 3;
+
+    // Edit menu
+    public static immutable short MID_CUT		= 10;
+    public static immutable short MID_COPY		= 11;
+    public static immutable short MID_PASTE		= 12;
+    public static immutable short MID_CLEAR		= 13;
+
+    // Window menu
+    public static immutable short MID_TILE		= 20;
+    public static immutable short MID_CASCADE		= 21;
+    public static immutable short MID_CLOSE_ALL		= 22;
+    public static immutable short MID_WINDOW_MOVE	= 23;
+    public static immutable short MID_WINDOW_ZOOM	= 24;
+    public static immutable short MID_WINDOW_NEXT	= 25;
+    public static immutable short MID_WINDOW_PREVIOUS	= 26;
+    public static immutable short MID_WINDOW_CLOSE	= 27;
+
     /**
      * Public constructor
      *
@@ -314,9 +339,10 @@ public class TMenu : TWindow {
     }
 
     /**
-     * Convenience function to add a menu item.
+     * Convenience function to add a custom menu item.
      *
      * Params:
+     *    id = menu item ID.  Must be greater than 1024.
      *    label = menu item label
      *    cmd = command to dispatch when this item is selected
      *    key = global keyboard accelerator
@@ -324,11 +350,28 @@ public class TMenu : TWindow {
      * Returns:
      *    the new menu item
      */
-    public TMenuItem addItem(dstring label, TCommand cmd, TKeypress key) {
+    public TMenuItem addItem(short id, dstring label, TCommand cmd, TKeypress key) {
+	assert(id >= 1024);
+	return addItemInternal(id, label, cmd, key);
+    }
+
+    /**
+     * Convenience function to add a custom menu item.
+     *
+     * Params:
+     *    id = menu item ID.  Must be greater than 1024.
+     *    label = menu item label
+     *    cmd = command to dispatch when this item is selected
+     *    key = global keyboard accelerator
+     *
+     * Returns:
+     *    the new menu item
+     */
+    private TMenuItem addItemInternal(short id, dstring label, TCommand cmd, TKeypress key) {
 	uint y = cast(uint)children.length + 1;
-	
+
 	assert(y < height);
-	TMenuItem menuItem = new TMenuItem(this, 1, y, label);
+	TMenuItem menuItem = new TMenuItem(this, id, 1, y, label);
 	menuItem.setCommand(cmd, key);
 	height++;
 	if (menuItem.width + 2 > width) {
@@ -347,17 +390,34 @@ public class TMenu : TWindow {
      * Convenience function to add a menu item.
      *
      * Params:
+     *    id = menu item ID.  Must be greater than 1024.
      *    label = menu item label
      *    cmd = command to dispatch when this item is selected
      *
      * Returns:
      *    the new menu item
      */
-    public TMenuItem addItem(dstring label, TCommand cmd) {
+    public TMenuItem addItem(short id, dstring label, TCommand cmd) {
+	assert(id >= 1024);
+	return addItemInternal(id, label, cmd);
+    }
+
+    /**
+     * Convenience function to add a menu item.
+     *
+     * Params:
+     *    id = menu item ID
+     *    label = menu item label
+     *    cmd = command to dispatch when this item is selected
+     *
+     * Returns:
+     *    the new menu item
+     */
+    private TMenuItem addItemInternal(short id, dstring label, TCommand cmd) {
 	uint y = cast(uint)children.length + 1;
-	
+
 	assert(y < height);
-	TMenuItem menuItem = new TMenuItem(this, 1, y, label);
+	TMenuItem menuItem = new TMenuItem(this, id, 1, y, label);
 	menuItem.setCommand(cmd);
 	height++;
 	if (menuItem.width + 2 > width) {
@@ -369,6 +429,132 @@ public class TMenu : TWindow {
 	application.recomputeMenuX();
 	activate(0);
 	return menuItem;
+    }
+
+    /**
+     * Convenience function to add a menu item.
+     *
+     * Params:
+     *    id = menu item ID.  Must be greater than 1024.
+     *    label = menu item label
+     *
+     * Returns:
+     *    the new menu item
+     */
+    public TMenuItem addItem(short id, dstring label) {
+	assert(id >= 1024);
+	return addItemInternal(id, label);
+    }
+
+    /**
+     * Convenience function to add a menu item.
+     *
+     * Params:
+     *    id = menu item ID
+     *    label = menu item label
+     *
+     * Returns:
+     *    the new menu item
+     */
+    private TMenuItem addItemInternal(short id, dstring label) {
+	uint y = cast(uint)children.length + 1;
+
+	assert(y < height);
+	TMenuItem menuItem = new TMenuItem(this, id, 1, y, label);
+	height++;
+	if (menuItem.width + 2 > width) {
+	    width = menuItem.width + 2;
+	}
+	foreach (i; children) {
+	    i.width = width - 2;
+	}
+	application.recomputeMenuX();
+	activate(0);
+	return menuItem;
+    }
+
+    /**
+     * Convenience function to add one of the default menu items.
+     *
+     * Params:
+     *    id = menu item ID.  Must be between 0 (inclusive) and 1023 (inclusive).
+     *
+     * Returns:
+     *    the new menu item
+     */
+    public TMenuItem addDefaultItem(short id) {
+	assert(id >= 0);
+	assert(id < 1024);
+
+	dstring label;
+	TCommand cmd;
+	TKeypress key;
+	bool hasKey = true;
+
+	final switch (id) {
+
+	case MID_EXIT:
+	    label = "E&xit";
+	    cmd = cmExit;
+	    key = kbAltX;
+	    break;
+
+	case MID_SHELL:
+	    label = "O&S Shell";
+	    cmd = cmShell;
+	    hasKey = false;
+	    break;
+
+	case MID_OPEN_FILE:
+	    label = "&Open";
+	    cmd = cmOpen;
+	    key = kbAltO;
+	    break;
+
+	case MID_CUT:
+	    label = "Cu&t";
+	    cmd = cmCut;
+	    key = kbCtrlX;
+	    break;
+	case MID_COPY:
+	    label = "&Copy";
+	    cmd = cmCopy;
+	    key = kbCtrlC;
+	    break;
+	case MID_PASTE:
+	    label = "&Paste";
+	    cmd = cmPaste;
+	    key = kbCtrlV;
+	    break;
+	case MID_CLEAR:
+	    label = "C&lear";
+	    cmd = cmClear;
+	    key = kbDel;
+	    break;
+
+	case MID_TILE:
+	    break;
+	case MID_CASCADE:
+	    break;
+	case MID_CLOSE_ALL:
+	    break;
+	case MID_WINDOW_MOVE:
+	    break;
+	case MID_WINDOW_ZOOM:
+	    break;
+	case MID_WINDOW_NEXT:
+	    break;
+	case MID_WINDOW_PREVIOUS:
+	    break;
+	case MID_WINDOW_CLOSE:
+	    break;
+
+	}
+
+	if (hasKey) {
+	    return addItemInternal(id, label, cmd, key);
+	}
+	return addItemInternal(id, label, cmd);
     }
 
     /**
@@ -391,13 +577,31 @@ public class TMenuItem : TWidget {
     /// Label for this menu item
     private dstring label;
 
+    /// Menu ID.  IDs less than 1024 are reserved for common system
+    /// functions.  Existing ones are defined in TMenu, i.e. TMenu.MID_EXIT.
+    public short id = TMenu.MID_UNUSED;
+
+    /// When true, this item can be checked or unchecked
+    public bool checkable = false;
+
+    /// When true, this item is checked
+    public bool checked = false;
+
     /// Optional command this item executes
     private TCommand cmd;
-    private TKeypress key;
+
+    /// When true, selecting this menu item causes a TCommandEvent to be
+    /// fired IN ADDITION TO the TMenuEvent.
     private bool hasCommand = false;
+
+    /// Highlighted shortcut key (also called a menu mnenomic)
+    private TKeypress key;
+
+    /// When true, accelerator (mnenomic) can be used to select this item
     private bool hasKey = false;
 
-    /// The shortcut and title
+    /// The title string.  Use '&' to specify a mnemonic, i.e. "&File" will
+    /// highlight the 'F' and allow 'f' or 'F' to select it.
     public AcceleratorString accelerator;
 
     /**
@@ -436,23 +640,65 @@ public class TMenuItem : TWidget {
      *
      * Params:
      *    parent = parent widget
+     *    id = menu id
      *    x = column relative to parent
      *    y = row relative to parent
      *    label = menu item title
      */
-    public this(TMenu parent, uint x, uint y, dstring label) {
-
+    private this(TMenu parent, short id, uint x, uint y, dstring label) {
 	// Set parent and window
 	super(parent);
 
 	accelerator = new AcceleratorString(label);
-	// assert(accelerator.shortcutIdx >= 0);
 
 	this.x = x;
 	this.y = y;
 	this.height = 1;
 	this.label = accelerator.rawTitle;
 	this.width = cast(uint)label.length + 4;
+	this.id = id;
+
+	// Save for the application
+	if (id != TMenu.MID_UNUSED) {
+	    window.application.addMenuItem(this);
+	}
+
+	// Default state for some known menu items
+	switch (id) {
+
+	case TMenu.MID_CUT:
+	    enabled = false;
+	    break;
+	case TMenu.MID_COPY:
+	    enabled = false;
+	    break;
+	case TMenu.MID_PASTE:
+	    enabled = false;
+	    break;
+	case TMenu.MID_CLEAR:
+	    enabled = false;
+	    break;
+
+	case TMenu.MID_TILE:
+	    break;
+	case TMenu.MID_CASCADE:
+	    break;
+	case TMenu.MID_CLOSE_ALL:
+	    break;
+	case TMenu.MID_WINDOW_MOVE:
+	    break;
+	case TMenu.MID_WINDOW_ZOOM:
+	    break;
+	case TMenu.MID_WINDOW_NEXT:
+	    break;
+	case TMenu.MID_WINDOW_PREVIOUS:
+	    break;
+	case TMenu.MID_WINDOW_CLOSE:
+	    break;
+	default:
+	    break;
+	}
+
     }
 
     /**
@@ -480,8 +726,13 @@ public class TMenuItem : TWidget {
 	    menuColor = window.application.theme.getColor("tmenu.highlighted");
 	    menuAcceleratorColor = window.application.theme.getColor("tmenu.accelerator.highlighted");
 	} else {
-	    menuColor = window.application.theme.getColor("tmenu");
-	    menuAcceleratorColor = window.application.theme.getColor("tmenu.accelerator");
+	    if (enabled) {
+		menuColor = window.application.theme.getColor("tmenu");
+		menuAcceleratorColor = window.application.theme.getColor("tmenu.accelerator");
+	    } else {
+		menuColor = window.application.theme.getColor("tmenu.disabled");
+		menuAcceleratorColor = window.application.theme.getColor("tmenu.disabled");
+	    }
 	}
 
 	dchar cVSide = GraphicsChars.WINDOW_SIDE;
@@ -498,6 +749,24 @@ public class TMenuItem : TWidget {
 	    window.putCharXY(2 + accelerator.shortcutIdx, 0,
 		accelerator.shortcut, menuAcceleratorColor);
 	}
+	if (checked) {
+	    assert(checkable);
+	    window.putCharXY(1, 0, GraphicsChars.CHECK, menuColor);
+	}
+
+    }
+
+    /// Dispatch event(s) due to selection or click
+    private void dispatch() {
+	assert(enabled == true);
+
+	window.application.addMenuEvent(new TMenuEvent(id));
+	if (hasCommand) {
+	    window.application.addMenuEvent(new TCommandEvent(cmd));
+	}
+	if (checkable) {
+	    checked = !checked;
+	}
     }
 
     /+
@@ -509,9 +778,7 @@ public class TMenuItem : TWidget {
      */
     override protected void onMouseDown(TMouseEvent event) {
 	if ((mouseOnMenuItem(event)) && (event.mouse1)) {
-	    if (hasCommand) {
-		window.application.addMenuEvent(new TCommandEvent(cmd));
-	    }
+	    dispatch();
 	    return;
 	}
     }
@@ -525,9 +792,7 @@ public class TMenuItem : TWidget {
      */
     override protected void onMouseUp(TMouseEvent event) {
 	if ((mouseOnMenuItem(event)) && (event.mouse1)) {
-	    if (hasCommand) {
-		window.application.addMenuEvent(new TCommandEvent(cmd));
-	    }
+	    dispatch();
 	    return;
 	}
     }
@@ -542,10 +807,7 @@ public class TMenuItem : TWidget {
 	TKeypress key = event.key;
 
 	if (key == kbEnter) {
-	    // Dispatch
-	    if (hasCommand) {
-		window.application.addMenuEvent(new TCommandEvent(cmd));
-	    }
+	    dispatch();
 	    return;
 	}
 
@@ -567,8 +829,8 @@ public class TMenuSeparator : TMenuItem {
      *    x = column relative to parent
      *    y = row relative to parent
      */
-    public this(TMenu parent, uint x, uint y) {
-	super(parent, x, y, "");
+    private this(TMenu parent, uint x, uint y) {
+	super(parent, TMenu.MID_UNUSED, x, y, "");
 	enabled = false;
 	active = false;
 	width = parent.width - 2;

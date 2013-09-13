@@ -72,7 +72,7 @@ public class TApplication {
 
     /// Fiber for main handleEvent loop
     private Fiber primaryEventFiber;
-    
+
     /// Fiber for scondary handleEvent loop
     private Fiber secondaryEventFiber;
 
@@ -87,6 +87,9 @@ public class TApplication {
 
     /// Top-level menus in this application.
     private TMenu [] menus;
+
+    /// MenuItem IDs in this application.
+    private TMenuItem[short] menuItems;
 
     /// Timers that are being ticked.
     private TTimer [] timers;
@@ -221,13 +224,26 @@ public class TApplication {
     }
 
     /**
-     * Add a keyboard accelerator to the global list
+     * Add a menu item to the global hash
+     *
+     * Params:
+     *    command = command to send to the active widget
+     *    keypress = keypress that will activate the command
+     */
+    final public void addMenuItem(TMenuItem item) {
+	assert((item.id in menuItems) is null);
+	menuItems[item.id] = item;
+    }
+
+    /**
+     * Add a keyboard accelerator to the global hash
      *
      * Params:
      *    command = command to send to the active widget
      *    keypress = keypress that will activate the command
      */
     final public void addAccelerator(TCommand command, TKeypress keypress) {
+	assert((keypress in accelerators) is null);
 	accelerators[keypress] = command;
     }
 
@@ -263,7 +279,7 @@ public class TApplication {
 	}
 	return windows[$ - 1].isModal();
     }
-    
+
     /// Switch to the next window
     final public void switchWindow() {
 	// Only switch if there are multiple windows
@@ -499,9 +515,10 @@ public class TApplication {
      * Turn off the menu
      */
     final public void closeMenu() {
-	assert(activeMenu !is null);
-	activeMenu.active = false;
-	activeMenu = null;
+	if (activeMenu !is null) {
+	    activeMenu.active = false;
+	    activeMenu = null;
+	}
 	repaint = true;
     }
 
@@ -542,7 +559,7 @@ public class TApplication {
 	foreach (event; events) {
 
 	    // stderr.writefln("metaHandleEvents event: %s", event);
-	    
+
 	    // Special application-wide events -------------------------------
 
 	    // Screen resize
@@ -719,7 +736,7 @@ public class TApplication {
 	// Default: handle cmExit
 	if (cmd.cmd == cmExit) {
 	    if (messageBox("Confirmation", "Exit application?",
-		    TMessageBox.Type.YESNO).result == TMessageBox.Result.YES) {	
+		    TMessageBox.Type.YESNO).result == TMessageBox.Result.YES) {
 		quit = true;
 	    }
 	    repaint = true;
@@ -1019,6 +1036,47 @@ public class TApplication {
 	menus ~= menu;
 	recomputeMenuX();
 	return menu;
+    }
+
+    /**
+     * Convenience function to add a default "File" menu.
+     *
+     * Returns:
+     *    the new menu
+     */
+    final public TMenu addFileMenu() {
+	TMenu fileMenu = addMenu("&File");
+	fileMenu.addDefaultItem(TMenu.MID_OPEN_FILE);
+	fileMenu.addSeparator();
+	fileMenu.addDefaultItem(TMenu.MID_SHELL);
+	fileMenu.addDefaultItem(TMenu.MID_EXIT);
+	return fileMenu;
+    }
+
+    /**
+     * Convenience function to add a default "Edit" menu.
+     *
+     * Returns:
+     *    the new menu
+     */
+    final public TMenu addEditMenu() {
+	TMenu editMenu = addMenu("&Edit");
+	editMenu.addDefaultItem(TMenu.MID_CUT);
+	editMenu.addDefaultItem(TMenu.MID_COPY);
+	editMenu.addDefaultItem(TMenu.MID_PASTE);
+	editMenu.addDefaultItem(TMenu.MID_CLEAR);
+	return editMenu;
+    }
+
+    /**
+     * Convenience function to add a default "Window" menu.
+     *
+     * Returns:
+     *    the new menu
+     */
+    final public TMenu addWindowMenu() {
+	TMenu windowMenu = addMenu("&Window");
+	return windowMenu;
     }
 
     /**

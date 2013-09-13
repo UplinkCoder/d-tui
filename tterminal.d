@@ -34,7 +34,6 @@
 /*
  * TODO:
  *
- *     handle resizable window
  *     xterm mouse reporting
  *     split state machine into ECMA48 and VT52
  *

@@ -96,7 +96,34 @@ public class TWidget {
     private int tabOrder = 0;
 
     /// If true, this widget can be tabbed to or receive events
-    public bool enabled = true;
+    private bool _enabled = true;
+
+    /// If true, this widget can be tabbed to or receive events
+    @property public bool enabled() {
+	return _enabled;
+    }
+    /// If true, this widget can be tabbed to or receive events
+    @property public bool enabled(bool value) {
+	_enabled = value;
+	if (value == false) {
+	    active = false;
+	    // See if there are any active siblings to switch to
+	    bool foundSibling = false;
+	    if (parent !is null) {
+		foreach (w; parent.children) {
+		    if (w.enabled) {
+			parent.activate(w);
+			foundSibling = true;
+			break;
+		    }
+		}
+		if (!foundSibling) {
+		    parent.activeChild = null;
+		}
+	    }
+	}
+	return _enabled;
+    }
 
     /// If true, this widget has a cursor
     public bool hasCursor = false;
@@ -284,9 +311,10 @@ public class TWidget {
      * Switch the active child
      *
      * Params:
-     *    child = TWidget to add
+     *    child = TWidget to activate
      */
     public void activate(TWidget child) {
+	assert(child.enabled);
 	if (child !is activeChild) {
 	    activeChild.active = false;
 	    child.active = true;
@@ -315,6 +343,7 @@ public class TWidget {
 	}
 	if ((child !is null) && (child !is activeChild)) {
 	    activeChild.active = false;
+	    assert(child.enabled);
 	    child.active = true;
 	    activeChild = child;
 	}
@@ -525,6 +554,20 @@ public class TWidget {
     }
 
     /**
+     * Method that subclasses can override to handle menu or posted menu
+     * events.
+     *
+     * Params:
+     *    menu = menu event
+     */
+    public void onMenu(TMenuEvent menu) {
+	// Default: do nothing, pass to children instead
+	foreach (w; children) {
+	    w.onMenu(menu);
+	}
+    }
+
+    /**
      * Method that subclasses can override to do processing when the UI is
      * idle.
      */
@@ -568,6 +611,8 @@ public class TWidget {
 	    onResize(resize);
 	} else if (auto cmd = cast(TCommandEvent)event) {
 	    onCommand(cmd);
+	} else if (auto cmd = cast(TMenuEvent)event) {
+	    onMenu(cmd);
 	}
 
 	// Do nothing else
@@ -763,7 +808,7 @@ public class TWidget {
 	string colorKey = "ttext") {
 
 	return new TText(this, text, x, y, width, height, colorKey);
-    }    
+    }
 
     /**
      * Convenience function to add a progress bar to this container/window.
@@ -841,7 +886,7 @@ public class TWidget {
     public TDirectoryList addDirectoryList(dstring path, uint x, uint y, uint width, uint height) {
 
 	return new TDirectoryList(this, path, x, y, width, height);
-    }    
+    }
 
     /**
      * Convenience function to add a directory list view to this
@@ -859,7 +904,7 @@ public class TWidget {
 	void function() actionFn) {
 
 	return new TDirectoryList(this, path, x, y, width, height, actionFn);
-    }    
+    }
 
     /**
      * Convenience function to add a directory list view to this
@@ -877,7 +922,7 @@ public class TWidget {
 	void delegate() actionFn) {
 
 	return new TDirectoryList(this, path, x, y, width, height, actionFn);
-    }    
+    }
 
 }
 

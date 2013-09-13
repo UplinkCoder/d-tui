@@ -33,23 +33,23 @@ applications somewhat as follows:
     import tui;
 
     public class MyApplication : TApplication {
-        this() {
-            super();
-            // Create an editor window that has support for
-            // copy/paste, search text, arrow keys, horizontal
-            // and vertical scrollbar, etc.
-            addEditor();
+	this() {
+	    super();
+	    // Create an editor window that has support for
+	    // copy/paste, search text, arrow keys, horizontal
+	    // and vertical scrollbar, etc.
+	    addEditor();
 
-            // Create a menu with Open and Exit actions
-            TMenu menu = addMenu("&File");
-            menu.addItem("&Open", cmOpen, kbAltO);
-            menu.addItem("E&xit", cmExit, kbAltX);
-        }
+	    // Create a menu with Open and Exit actions
+	    TMenu menu = addMenu("&File");
+	    menu.addItem("&Open", cmOpen, kbAltO);
+	    menu.addItem("E&xit", cmExit, kbAltX);
+	}
     }
 
     void main(string [] args) {
-        MyApplication app = new MyApplication();
-        app.run();
+	MyApplication app = new MyApplication();
+	app.run();
     }
 
 See the file demo1.d for example usages.
@@ -69,13 +69,16 @@ calling this version 1.0:
   - [ ] Cut/Copy/Paste
 - [ ] TMenu / TMenuItem
   - [ ] TSubMenu
-  - [ ] TMenuItem: enabled, disabled, checked, unchecked
+- [ ] TWindow
+  - [ ] &Window menu with Cascade, Tile, Close, Switch, etc.
 - [ ] TApplicationSocket - socket that knows about environment variables and
-        rows X cols
+	rows X cols
       - [ ] this(TApplication application)
 
 Wishlist features:
 
+- [ ] TButton
+  - [ ] Accelerator / mnemonic keys
 - [ ] Terminal
   - [ ] Mouse 1006 mode parsing
   - [ ] Win32 console support
@@ -83,7 +86,6 @@ Wishlist features:
   - [ ] Handle resize events + pass to child process
 - [ ] TWindow
   - [ ] SMARTPLACE (use smart placement for x, y)
-  - [ ] &Window menu with Cascade, Tile, Close, Switch, etc.
 - [ ] Screen
   - [ ] allow complex characters in putCharXY() and detect them in putStrXY().
 - [ ] Drag and drop / copy and paste

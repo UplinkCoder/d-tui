@@ -296,7 +296,7 @@ public class Screen {
     /// If true, the cursor is visible and should be placed onscreen at
     /// (cursorX, cursorY) during a call to flushPhysical()
     protected bool cursorVisible;
-    
+
     /// Cursor X position if visible
     protected uint cursorX;
 
@@ -312,7 +312,7 @@ public class Screen {
      *
      * Returns:
      *    attributes at (x, y)
-     */ 
+     */
     public CellAttributes getAttrXY(int x, int y) {
 	CellAttributes attr = new CellAttributes();
 	attr.setTo(logical[x][y]);
@@ -327,7 +327,7 @@ public class Screen {
      *    y = row coordinate.  0 is the top-most row.
      *    attr = attributes to use (bold, foreColor, backColor)
      *    clip = if true, honor clipping/offset
-     */ 
+     */
     public void putAttrXY(int x, int y, CellAttributes attr, bool clip = true) {
 
 	int X = x;
@@ -359,7 +359,7 @@ public class Screen {
      * Params:
      *    ch = character to draw
      *    attr = attributes to use (bold, foreColor, backColor)
-     */ 
+     */
     public void putAll(dchar ch, CellAttributes attr) {
 	for (auto x = 0; x < width; x++) {
 	    for (auto y = 0; y < height; y++) {
@@ -375,7 +375,7 @@ public class Screen {
      *    x = column coordinate.  0 is the left-most column.
      *    y = row coordinate.  0 is the top-most row.
      *    ch = character + attributes to draw
-     */ 
+     */
     public void putCharXY(int x, int y, Cell ch) {
 	putCharXY(x, y, ch.ch, ch);
     }
@@ -388,7 +388,7 @@ public class Screen {
      *    y = row coordinate.  0 is the top-most row.
      *    ch = character to draw
      *    attr = attributes to use (bold, foreColor, backColor)
-     */ 
+     */
     public void putCharXY(int x, int y, dchar ch, CellAttributes attr) {
 	if ((x < clipLeft) || (x >= clipRight) || (y < clipTop) || (y >= clipBottom)) {
 	    return;
@@ -398,7 +398,7 @@ public class Screen {
 	int Y = y + offsetY;
 
 	// stderr.writefln("putCharXY: %d, %d, %c", X, Y, ch);
-	
+
 	if ((X >= 0) && (X < width) && (Y >= 0) && (Y < height)) {
 	    dirty = true;
 
@@ -425,7 +425,7 @@ public class Screen {
      *    x = column coordinate.  0 is the left-most column.
      *    y = row coordinate.  0 is the top-most row.
      *    ch = character to draw
-     */ 
+     */
     public void putCharXY(int x, int y, dchar ch) {
 	if ((x < clipLeft) || (x >= clipRight) || (y < clipTop) || (y >= clipBottom)) {
 	    return;
@@ -435,7 +435,7 @@ public class Screen {
 	int Y = y + offsetY;
 
 	// stderr.writefln("putCharXY: %d, %d, %c", X, Y, ch);
-	
+
 	if ((X >= 0) && (X < width) && (Y >= 0) && (Y < height)) {
 	    dirty = true;
 	    logical[X][Y].ch = ch;
@@ -516,7 +516,7 @@ public class Screen {
 
     /**
      * Reallocate screen buffers.
-     * 
+     *
      * Params:
      *    width = new width
      *    height = new height
@@ -705,7 +705,7 @@ public class Screen {
 	    cHSide = GraphicsChars.DOUBLE_BAR;
 	    cVSide = GraphicsChars.WINDOW_SIDE_DOUBLE;
 	    break;
-	    
+
 	case 3:
 	    cTopLeft = GraphicsChars.WINDOW_LEFT_TOP;
 	    cTopRight = GraphicsChars.WINDOW_RIGHT_TOP;
@@ -1303,8 +1303,18 @@ public struct TCommand {
 	/// Exit application
 	EXIT,
 	/// Spawn OS shell window
-	SHELL, };
-    
+	SHELL,
+	/// Cut selected text and copy to the clipboard
+	CUT,
+	/// Copy selected text to clipboard
+	COPY,
+	/// Paste from clipboard
+	PASTE,
+	/// Clear selected text without copying it to the clipboard
+	CLEAR,
+
+    };
+
     /// Type of command, one of EXIT, etc.
     public Type type;
 
@@ -1324,6 +1334,10 @@ public immutable TCommand cmExit = TCommand(TCommand.Type.EXIT);
 public immutable TCommand cmQuit = TCommand(TCommand.Type.EXIT);
 public immutable TCommand cmOpen = TCommand(TCommand.Type.OPEN);
 public immutable TCommand cmShell = TCommand(TCommand.Type.SHELL);
+public immutable TCommand cmCut = TCommand(TCommand.Type.CUT);
+public immutable TCommand cmCopy = TCommand(TCommand.Type.COPY);
+public immutable TCommand cmPaste = TCommand(TCommand.Type.PASTE);
+public immutable TCommand cmClear = TCommand(TCommand.Type.CLEAR);
 
 /**
  * This is the parent class of all events received from the Terminal.
@@ -1353,7 +1367,7 @@ public class TMouseEvent : TInputEvent {
 
 	/// Mouse button up.  X and Y will have screen coordinates.
 	MOUSE_UP, };
-    
+
     /// Type of event, one of MOUSE_MOTION, MOUSE_UP, or MOUSE_DOWN, or KEYPRESS
     public Type type;
 
@@ -1419,7 +1433,7 @@ public class TResizeEvent : TInputEvent {
 
     /// The type of resize
     public Type type;
-   
+
     /// New width
     public uint width;
 
@@ -1490,6 +1504,29 @@ public class TCommandEvent : TInputEvent {
 }
 
 /**
+ * This class encapsulates a menu selection event.
+ * TApplication.getMenuItem(id) can be used to obtain the TMenuItem itself,
+ * say for setting enabled/disabled/checked/etc.
+ */
+public class TMenuEvent : TInputEvent {
+
+    /// MenuItem ID
+    public short id;
+
+    /// Contructor
+    public this(short id) {
+	this.id = id;
+    }
+
+    /// Make human-readable description of this event
+    override public string toString() {
+	auto writer = appender!string();
+	formattedWrite(writer, "MenuEvent: %d", id);
+	return writer.data;
+    }
+}
+
+/**
  * This abstract class provides a screen, keyboard, and mouse to
  * TApplication.
  */
@@ -1536,7 +1573,7 @@ public class ColorTheme {
      *
      * Throws:
      *    RangeException if no color associated with key
-     */ 
+     */
     public CellAttributes getColor(string name) {
 	CellAttributes attr = colors[name];
 	return attr;
@@ -1660,7 +1697,7 @@ public class ColorTheme {
 	color.backColor = Color.BLACK;
 	color.bold = false;
 	colors["ttext"] = color;
-	
+
 	// TField text
 	color = new CellAttributes();
 	color.foreColor = Color.WHITE;
@@ -1731,6 +1768,11 @@ public class ColorTheme {
 	color.backColor = Color.GREEN;
 	color.bold = false;
 	colors["tmenu.accelerator.highlighted"] = color;
+	color = new CellAttributes();
+	color.foreColor = Color.BLACK;
+	color.backColor = Color.WHITE;
+	color.bold = true;
+	colors["tmenu.disabled"] = color;
 
 	// TProgressBar
 	color = new CellAttributes();

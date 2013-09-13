@@ -1625,9 +1625,6 @@ public class ECMATerminal {
      * "Any event tracking" and UTF-8 coordinates.  See
      * http://invisible-island.net/xterm/ctlseqs/ctlseqs.html#Mouse%20Tracking
      *
-     * This also sends the sequence to hide the X11 pointer in the
-     * window, but they don't seem to work.
-     *
      * Finally, this sets the alternate screen buffer.
      *
      * Params:

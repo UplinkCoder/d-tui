@@ -42,7 +42,7 @@ private class DemoCheckboxWindow : TWindow {
     this(TApplication parent) {
 	this(parent, TWindow.Flag.CENTERED | TWindow.Flag.RESIZABLE);
     }
-    
+
     /// Constructor
     this(TApplication parent, Flag flags) {
 	// Construct a demo window.  X and Y don't matter because it
@@ -57,7 +57,7 @@ private class DemoCheckboxWindow : TWindow {
 	addLabel("Check box example 2", 1, row);
 	addCheckbox(35, row++, "Checkbox 2", true);
 	row += 2;
-	
+
 	auto group = addRadioGroup(1, row, "Group 1");
 	group.addRadioButton("Radio option 1");
 	group.addRadioButton("Radio option 2");
@@ -67,7 +67,7 @@ private class DemoCheckboxWindow : TWindow {
 	    {
 		application.closeWindow(this);
 	    }
-	    
+
 	);
     }
 
@@ -232,7 +232,7 @@ EOS",
     this(TApplication parent) {
 	this(parent, TWindow.Flag.CENTERED | TWindow.Flag.RESIZABLE);
     }
-    
+
     /// Constructor
     this(TApplication parent, Flag flags) {
 	// Construct a demo window.  X and Y don't matter because it
@@ -311,6 +311,12 @@ private class DemoMainWindow : TWindow {
     /// unaware of the rest of the UI classes.
     override public void onClose() {
 	application.removeTimer(timer);
+    }
+
+    /// Handle menu events
+    override public void onMenu(TMenuEvent menu) {
+	// TODO
+
     }
 
     /// Constructor
@@ -427,13 +433,17 @@ private class DemoApplication : TApplication {
 	new DemoMainWindow(this);
 
 	// Add the menus
-	TMenu fileMenu = addMenu("&File");
-	TMenu editMenu = addMenu("&Edit");
-	TMenu viewMenu = addMenu("&View");
-	fileMenu.addItem("&Open", cmOpen, kbAltO);
-	fileMenu.addSeparator();
-	fileMenu.addItem("O&S Shell...", cmShell);
-	fileMenu.addItem("E&xit", cmExit, kbAltX);
+	addFileMenu();
+	addEditMenu();
+
+	TMenu demoMenu = addMenu("&Demo");
+	TMenuItem item = demoMenu.addItem(2000, "&Checkable");
+	item.checkable = true;
+	item = demoMenu.addItem(2001, "Disabled");
+	item.enabled = false;
+	item = demoMenu.addItem(2002, "&Normal");
+
+	addWindowMenu();
     }
 
     /**
@@ -460,4 +470,3 @@ public void main(string [] args) {
     DemoApplication app = new DemoApplication();
     app.run();
 }
-

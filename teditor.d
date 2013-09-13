@@ -402,7 +402,7 @@ public class TEditorWidget : TWidget {
     private void updateCursor() {
 
 	clampEditingVars();
-	
+
 	// Update the scrollbar limit
 	hScroller.rightValue = getLineWidth() - width + 2;
 
@@ -499,7 +499,7 @@ public class TEditorWidget : TWidget {
 	    editingColumn = 0;
 	    return;
 	}
-	    
+
 	if (editingColumn < lines[editingRow].length) {
 	    editingColumn++;
 	}
