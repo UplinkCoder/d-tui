@@ -316,7 +316,9 @@ public class TWidget {
     public void activate(TWidget child) {
 	assert(child.enabled);
 	if (child !is activeChild) {
-	    activeChild.active = false;
+	    if (activeChild !is null) {
+		activeChild.active = false;
+	    }
 	    child.active = true;
 	    activeChild = child;
 	}
@@ -585,9 +587,12 @@ public class TWidget {
      * Params:
      *    event = keyboard or mouse event
      */
-    public void handleEvent(TInputEvent event) {
+    final public void handleEvent(TInputEvent event) {
+	// std.stdio.stderr.writefln("TWidget (%s) event: %s", this.classinfo.name, event);
+
 	if (!enabled) {
 	    // Discard event
+	    // std.stdio.stderr.writefln("   -- discard --");
 	    return;
 	}
 	if (auto keypress = cast(TKeypressEvent)event) {
@@ -611,8 +616,8 @@ public class TWidget {
 	    onResize(resize);
 	} else if (auto cmd = cast(TCommandEvent)event) {
 	    onCommand(cmd);
-	} else if (auto cmd = cast(TMenuEvent)event) {
-	    onMenu(cmd);
+	} else if (auto menu = cast(TMenuEvent)event) {
+	    onMenu(menu);
 	}
 
 	// Do nothing else

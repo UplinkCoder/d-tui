@@ -41,6 +41,7 @@ import std.utf;
 import base;
 import codepage;
 import tapplication;
+import tmenu;
 import twidget;
 
 // Defines -------------------------------------------------------------------
@@ -438,6 +439,32 @@ public class TWindow : TWidget {
     }
 
     /**
+     * Maximize window
+     */
+    private void maximize() {
+	restoreWindowWidth = width;
+	restoreWindowHeight = height;
+	restoreWindowX = x;
+	restoreWindowY = y;
+	width = screen.getWidth();
+	height = application.desktopBottom - 1;
+	x = 0;
+	y = 1;
+	maximized = true;
+    }
+
+    /**
+     * Restote (unmaximize) window
+     */
+    private void restore() {
+	width = restoreWindowWidth;
+	height = restoreWindowHeight;
+	x = restoreWindowX;
+	y = restoreWindowY;
+	maximized = false;
+    }
+
+    /**
      * Handle mouse button releases.
      *
      * Params:
@@ -467,25 +494,12 @@ public class TWindow : TWidget {
 
 	if ((mouse.absoluteY == y) && mouse.mouse1 &&
 	    mouseOnMaximize()) {
-
 	    if (maximized) {
 		// Restore
-		width = restoreWindowWidth;
-		height = restoreWindowHeight;
-		x = restoreWindowX;
-		y = restoreWindowY;
-		maximized = false;
+		restore();
 	    } else {
 		// Maximize
-		restoreWindowWidth = width;
-		restoreWindowHeight = height;
-		restoreWindowX = x;
-		restoreWindowY = y;
-		width = screen.getWidth();
-		height = application.desktopBottom - 1;
-		x = 0;
-		y = 1;
-		maximized = true;
+		maximize();
 	    }
 	    // Pass a resize event to my children
 	    onResize(new TResizeEvent(TResizeEvent.Type.Widget, width, height));
@@ -566,9 +580,12 @@ public class TWindow : TWidget {
      *    keypress = keystroke event
      */
     override protected void onKeypress(TKeypressEvent keypress) {
+	// These keystrokes will typically not be seen unless a
+	// subclass overrides onCommand() due to how TApplication
+	// dispatches accelerators.
+
 	// Ctrl-W - close window
 	if (keypress.key == kbCtrlW) {
-	    // Close window
 	    application.closeWindow(this);
 	    return;
 	}
@@ -579,8 +596,66 @@ public class TWindow : TWidget {
 	    return;
 	}
 
+	// F5 - zoom
+	if (keypress.key == kbF5) {
+	    if (maximized) {
+		restore();
+	    } else {
+		maximize();
+	    }
+	}
+
 	// I didn't take it, pass it on to my children
 	super.onKeypress(keypress);
+    }
+
+    /**
+     * Handle posted command events.
+     *
+     * Params:
+     *    cmd = command event
+     */
+    override public void onCommand(TCommandEvent cmd) {
+
+	if (cmd.cmd == cmWindowClose) {
+	    application.closeWindow(this);
+	    return;
+	}
+
+	if (cmd.cmd == cmWindowZoom) {
+	    if (maximized) {
+		restore();
+	    } else {
+		maximize();
+	    }
+	}
+
+	// I didn't take it, pass it on to my children
+	super.onCommand(cmd);
+    }
+
+    /**
+     * Handle posted menu events.
+     *
+     * Params:
+     *    menu = menu event
+     */
+    override public void onMenu(TMenuEvent menu) {
+	if (menu.id == TMenu.MID_WINDOW_CLOSE) {
+	    application.closeWindow(this);
+	    return;
+	}
+
+	if (menu.id == TMenu.MID_WINDOW_ZOOM) {
+	    if (maximized) {
+		restore();
+	    } else {
+		maximize();
+	    }
+	}
+
+	// I didn't take it, pass it on to my children
+	super.onMenu(menu);
     }
 
 }

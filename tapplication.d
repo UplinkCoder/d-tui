@@ -37,7 +37,6 @@
 
 import core.thread;
 import std.datetime;
-import std.stdio;
 import base;
 import codepage;
 import ecma;
@@ -558,7 +557,7 @@ public class TApplication {
 
 	foreach (event; events) {
 
-	    // stderr.writefln("metaHandleEvents event: %s", event);
+	    // std.stdio.stderr.writefln("metaHandleEvents event: %s", event);
 
 	    // Special application-wide events -------------------------------
 
@@ -660,7 +659,7 @@ public class TApplication {
      */
     private void handleEvent(TInputEvent event) {
 
-	// stderr.writefln("Handle event: %s", event);
+	// std.stdio.stderr.writefln("Handle event: %s", event);
 
 	// Special application-wide events -----------------------------------
 
@@ -716,6 +715,7 @@ public class TApplication {
 		    mouse.x -= w.x;
 		    mouse.y -= w.y;
 		}
+		// std.stdio.stderr.writefln("TApplication dispatch event: %s", event);
 		w.handleEvent(event);
 		break;
 	    }
@@ -844,7 +844,7 @@ public class TApplication {
 	    // Timeout is in milliseconds, so default timeout after 1
 	    // second of inactivity.
 	    uint timeout = getSleepTime(1000);
-	    // stderr.writefln("poll() timeout: %d", timeout);
+	    // std.stdio.stderr.writefln("poll() timeout: %d", timeout);
 
 	    if (eventQueue.length > 0) {
 		// Do not wait if there are definitely events waiting to be
@@ -1076,6 +1076,8 @@ public class TApplication {
      */
     final public TMenu addWindowMenu() {
 	TMenu windowMenu = addMenu("&Window");
+	windowMenu.addDefaultItem(TMenu.MID_WINDOW_CLOSE);
+	windowMenu.addDefaultItem(TMenu.MID_WINDOW_ZOOM);
 	return windowMenu;
     }
 

@@ -313,12 +313,6 @@ private class DemoMainWindow : TWindow {
 	application.removeTimer(timer);
     }
 
-    /// Handle menu events
-    override public void onMenu(TMenuEvent menu) {
-	// TODO
-
-    }
-
     /// Constructor
     this(TApplication parent) {
 	this(parent, TWindow.Flag.CENTERED | TWindow.Flag.RESIZABLE);

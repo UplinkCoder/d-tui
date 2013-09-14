@@ -541,12 +541,18 @@ public class TMenu : TWindow {
 	case MID_WINDOW_MOVE:
 	    break;
 	case MID_WINDOW_ZOOM:
+	    label = "&Zoom";
+	    cmd = cmWindowZoom;
+	    key = kbF5;
 	    break;
 	case MID_WINDOW_NEXT:
 	    break;
 	case MID_WINDOW_PREVIOUS:
 	    break;
 	case MID_WINDOW_CLOSE:
+	    label = "&Close";
+	    cmd = cmWindowClose;
+	    key = kbCtrlW;
 	    break;
 
 	}

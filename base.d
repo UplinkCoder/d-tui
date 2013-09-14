@@ -1312,6 +1312,10 @@ public struct TCommand {
 	PASTE,
 	/// Clear selected text without copying it to the clipboard
 	CLEAR,
+	/// Close window
+	WINDOW_CLOSE,
+	/// Zoom (maximize/restore) window
+	WINDOW_ZOOM,
 
     };
 
@@ -1338,6 +1342,8 @@ public immutable TCommand cmCut = TCommand(TCommand.Type.CUT);
 public immutable TCommand cmCopy = TCommand(TCommand.Type.COPY);
 public immutable TCommand cmPaste = TCommand(TCommand.Type.PASTE);
 public immutable TCommand cmClear = TCommand(TCommand.Type.CLEAR);
+public immutable TCommand cmWindowClose = TCommand(TCommand.Type.WINDOW_CLOSE);
+public immutable TCommand cmWindowZoom = TCommand(TCommand.Type.WINDOW_ZOOM);
 
 /**
  * This is the parent class of all events received from the Terminal.

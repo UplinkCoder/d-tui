@@ -60,7 +60,6 @@ Roadmap
 I am just beginning as a work in progress.  Many tasks remain before
 calling this version 1.0:
 
-- [ ] Demo
 - [ ] TEditor
   - [ ] Word wrap
   - [ ] Forward/backward word
@@ -70,26 +69,35 @@ calling this version 1.0:
 - [ ] TMenu / TMenuItem
   - [ ] TSubMenu
 - [ ] TWindow
-  - [ ] &Window menu with Cascade, Tile, Close, Switch, etc.
+  - [ ] Keyboard support for Move
+  - [ ] &Window menu with Cascade, Tile, Next, Previous, Move
+- [ ] TButton
+  - [ ] Accelerator / mnemonic keys
 - [ ] TApplicationSocket - socket that knows about environment variables and
 	rows X cols
       - [ ] this(TApplication application)
-
-Wishlist features:
-
-- [ ] TButton
-  - [ ] Accelerator / mnemonic keys
 - [ ] Terminal
   - [ ] Mouse 1006 mode parsing
   - [ ] Win32 console support
+- [ ] Read/write color themes
+
+Wishlist features (2.0):
+
 - [ ] TTerminal
-  - [ ] Handle resize events + pass to child process
+  - [ ] Handle resize events (pass to child process)
+  - [ ] xterm mouse handling
 - [ ] TWindow
-  - [ ] SMARTPLACE (use smart placement for x, y)
+  - [ ] "Smart placement" for new windows
 - [ ] Screen
   - [ ] allow complex characters in putCharXY() and detect them in putStrXY().
-- [ ] Drag and drop / copy and paste
+- [ ] TComboBox
+- [ ] TListBox
+- [ ] TSpinner
+- [ ] TCalendar widget
+- [ ] TColorPicker widget
+- [ ] Drag and drop
   - [ ] TEditor
   - [ ] TField
   - [ ] TText
   - [ ] TTerminal
+  - [ ] TComboBox
