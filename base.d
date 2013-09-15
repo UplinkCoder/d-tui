@@ -882,7 +882,7 @@ public struct TKeypress {
     }
 
     /// Comparison.  All fields must match to return true.
-    bool opEquals(ref const TKeypress that) {
+    const bool opEquals(ref const TKeypress that) {
 	return ((isKey == that.isKey) &&
 	    (fnKey == that.fnKey) &&
 	    (ch == that.ch) &&
@@ -893,87 +893,165 @@ public struct TKeypress {
     }
 
     /// Make human-readable description of this Keystroke.
-    public dstring toString() {
+    public const dstring toString() {
 	auto writer = appender!dstring();
 	if (isKey) {
 	    switch (fnKey) {
 	    case F1:
-		formattedWrite(writer, "F1");
+		formattedWrite(writer, "%s%s%sF1",
+		    ctrl ? "Ctrl+" : "",
+		    alt ? "Alt+" : "",
+		    shift ? "Shift+" : "");
 		break;
 	    case F2:
-		formattedWrite(writer, "F2");
+		formattedWrite(writer, "%s%s%sF2",
+		    ctrl ? "Ctrl+" : "",
+		    alt ? "Alt+" : "",
+		    shift ? "Shift+" : "");
 		break;
 	    case F3:
-		formattedWrite(writer, "F3");
+		formattedWrite(writer, "%s%s%sF3",
+		    ctrl ? "Ctrl+" : "",
+		    alt ? "Alt+" : "",
+		    shift ? "Shift+" : "");
 		break;
 	    case F4:
-		formattedWrite(writer, "F4");
+		formattedWrite(writer, "%s%s%sF4",
+		    ctrl ? "Ctrl+" : "",
+		    alt ? "Alt+" : "",
+		    shift ? "Shift+" : "");
 		break;
 	    case F5:
-		formattedWrite(writer, "F5");
+		formattedWrite(writer, "%s%s%sF5",
+		    ctrl ? "Ctrl+" : "",
+		    alt ? "Alt+" : "",
+		    shift ? "Shift+" : "");
 		break;
 	    case F6:
-		formattedWrite(writer, "F6");
+		formattedWrite(writer, "%s%s%sF6",
+		    ctrl ? "Ctrl+" : "",
+		    alt ? "Alt+" : "",
+		    shift ? "Shift+" : "");
 		break;
 	    case F7:
-		formattedWrite(writer, "F7");
+		formattedWrite(writer, "%s%s%sF7",
+		    ctrl ? "Ctrl+" : "",
+		    alt ? "Alt+" : "",
+		    shift ? "Shift+" : "");
 		break;
 	    case F8:
-		formattedWrite(writer, "F8");
+		formattedWrite(writer, "%s%s%sF8",
+		    ctrl ? "Ctrl+" : "",
+		    alt ? "Alt+" : "",
+		    shift ? "Shift+" : "");
 		break;
 	    case F9:
-		formattedWrite(writer, "F9");
+		formattedWrite(writer, "%s%s%sF9",
+		    ctrl ? "Ctrl+" : "",
+		    alt ? "Alt+" : "",
+		    shift ? "Shift+" : "");
 		break;
 	    case F10:
-		formattedWrite(writer, "F10");
+		formattedWrite(writer, "%s%s%sF10",
+		    ctrl ? "Ctrl+" : "",
+		    alt ? "Alt+" : "",
+		    shift ? "Shift+" : "");
 		break;
 	    case F11:
-		formattedWrite(writer, "F11");
+		formattedWrite(writer, "%s%s%sF11",
+		    ctrl ? "Ctrl+" : "",
+		    alt ? "Alt+" : "",
+		    shift ? "Shift+" : "");
 		break;
 	    case F12:
-		formattedWrite(writer, "F12");
+		formattedWrite(writer, "%s%s%sF12",
+		    ctrl ? "Ctrl+" : "",
+		    alt ? "Alt+" : "",
+		    shift ? "Shift+" : "");
 		break;
 	    case HOME:
-		formattedWrite(writer, "HOME");
+		formattedWrite(writer, "%s%s%sHOME",
+		    ctrl ? "Ctrl+" : "",
+		    alt ? "Alt+" : "",
+		    shift ? "Shift+" : "");
 		break;
 	    case END:
-		formattedWrite(writer, "END");
+		formattedWrite(writer, "%s%s%sEND",
+		    ctrl ? "Ctrl+" : "",
+		    alt ? "Alt+" : "",
+		    shift ? "Shift+" : "");
 		break;
 	    case PGUP:
-		formattedWrite(writer, "PGUP");
+		formattedWrite(writer, "%s%s%sPGUP",
+		    ctrl ? "Ctrl+" : "",
+		    alt ? "Alt+" : "",
+		    shift ? "Shift+" : "");
 		break;
 	    case PGDN:
-		formattedWrite(writer, "PGDN");
+		formattedWrite(writer, "%s%s%sPGDN",
+		    ctrl ? "Ctrl+" : "",
+		    alt ? "Alt+" : "",
+		    shift ? "Shift+" : "");
 		break;
 	    case INS:
-		formattedWrite(writer, "INS");
+		formattedWrite(writer, "%s%s%sINS",
+		    ctrl ? "Ctrl+" : "",
+		    alt ? "Alt+" : "",
+		    shift ? "Shift+" : "");
 		break;
 	    case DEL:
-		formattedWrite(writer, "DEL");
+		formattedWrite(writer, "%s%s%sDEL",
+		    ctrl ? "Ctrl+" : "",
+		    alt ? "Alt+" : "",
+		    shift ? "Shift+" : "");
 		break;
 	    case RIGHT:
-		formattedWrite(writer, "RIGHT");
+		formattedWrite(writer, "%s%s%sRIGHT",
+		    ctrl ? "Ctrl+" : "",
+		    alt ? "Alt+" : "",
+		    shift ? "Shift+" : "");
 		break;
 	    case LEFT:
-		formattedWrite(writer, "LEFT");
+		formattedWrite(writer, "%s%s%sLEFT",
+		    ctrl ? "Ctrl+" : "",
+		    alt ? "Alt+" : "",
+		    shift ? "Shift+" : "");
 		break;
 	    case UP:
-		formattedWrite(writer, "UP");
+		formattedWrite(writer, "%s%s%sUP",
+		    ctrl ? "Ctrl+" : "",
+		    alt ? "Alt+" : "",
+		    shift ? "Shift+" : "");
 		break;
 	    case DOWN:
-		formattedWrite(writer, "DOWN");
+		formattedWrite(writer, "%s%s%sDOWN",
+		    ctrl ? "Ctrl+" : "",
+		    alt ? "Alt+" : "",
+		    shift ? "Shift+" : "");
 		break;
 	    case TAB:
-		formattedWrite(writer, "TAB");
+		formattedWrite(writer, "%s%s%sTAB",
+		    ctrl ? "Ctrl+" : "",
+		    alt ? "Alt+" : "",
+		    shift ? "Shift+" : "");
 		break;
 	    case BTAB:
-		formattedWrite(writer, "BTAB");
+		formattedWrite(writer, "%s%s%sBTAB",
+		    ctrl ? "Ctrl+" : "",
+		    alt ? "Alt+" : "",
+		    shift ? "Shift+" : "");
 		break;
 	    case ENTER:
-		formattedWrite(writer, "ENTER");
+		formattedWrite(writer, "%s%s%sENTER",
+		    ctrl ? "Ctrl+" : "",
+		    alt ? "Alt+" : "",
+		    shift ? "Shift+" : "");
 		break;
 	    case ESC:
-		formattedWrite(writer, "ESC");
+		formattedWrite(writer, "%s%s%sESC",
+		    ctrl ? "Ctrl+" : "",
+		    alt ? "Alt+" : "",
+		    shift ? "Shift+" : "");
 		break;
 	    default:
 		formattedWrite(writer, "--UNKNOWN--");
@@ -982,25 +1060,25 @@ public struct TKeypress {
 	} else {
 	    if (alt && !shift && !ctrl) {
 		// Alt-X
-		formattedWrite(writer, "Alt-%c", toUppercase(ch));
+		formattedWrite(writer, "Alt+%c", toUppercase(ch));
 	    } else if (!alt && shift && !ctrl) {
 		// Shift-X
 		formattedWrite(writer, "%c", ch);
 	    } else if (!alt && !shift && ctrl) {
 		// Ctrl-X
-		formattedWrite(writer, "Ctrl-%c", ch);
+		formattedWrite(writer, "Ctrl+%c", ch);
 	    } else if (alt && shift && !ctrl) {
 		// Alt-Shift-X
-		formattedWrite(writer, "Alt-Shift-%c", ch);
+		formattedWrite(writer, "Alt+Shift+%c", ch);
 	    } else if (!alt && shift && ctrl) {
 		// Ctrl-Shift-X
-		formattedWrite(writer, "Ctrl-Shift-%c", ch);
+		formattedWrite(writer, "Ctrl+Shift+%c", ch);
 	    } else if (alt && !shift && ctrl) {
 		// Ctrl-Alt-X
-		formattedWrite(writer, "Ctrl-Alt-%c", toUppercase(ch));
+		formattedWrite(writer, "Ctrl+Alt+%c", toUppercase(ch));
 	    } else if (alt && shift && ctrl) {
 		// Ctrl-Alt-Shift-X
-		formattedWrite(writer, "Ctrl-Alt-Shift-%c", toUppercase(ch));
+		formattedWrite(writer, "Ctrl+Alt+Shift+%c", toUppercase(ch));
 	    } else {
 		// X
 		formattedWrite(writer, "%c", ch);
@@ -1021,9 +1099,9 @@ public struct TKeypress {
  */
 public TKeypress toLower(TKeypress key) {
     TKeypress newKey = TKeypress(key.isKey, key.fnKey, key.ch, key.alt, key.ctrl, key.shift);
-    newKey.shift = false;
     if (!(key.isKey) && (key.ch >= 'A') && (key.ch <= 'Z')) {
-	newKey.ch -= 32;
+	newKey.shift = false;
+	newKey.ch += 32;
     }
     return newKey;
 }
@@ -1039,9 +1117,9 @@ public TKeypress toLower(TKeypress key) {
  */
 public TKeypress toUpper(TKeypress key) {
     TKeypress newKey = TKeypress(key.isKey, key.fnKey, key.ch, key.alt, key.ctrl, key.shift);
-    newKey.shift = false;
     if (!(key.isKey) && (key.ch >= 'a') && (key.ch <= 'z')) {
-	newKey.ch += 32;
+	newKey.shift = true;
+	newKey.ch -= 32;
     }
     return newKey;
 }
@@ -1312,10 +1390,22 @@ public struct TCommand {
 	PASTE,
 	/// Clear selected text without copying it to the clipboard
 	CLEAR,
-	/// Close window
-	WINDOW_CLOSE,
+	/// Tile windows
+	TILE,
+	/// Cascade windows
+	CASCADE,
+	/// Close all windows
+	CLOSE_ALL,
+	/// Move (move/resize) window
+	WINDOW_MOVE,
 	/// Zoom (maximize/restore) window
 	WINDOW_ZOOM,
+	/// Next window (like Alt-TAB)
+	WINDOW_NEXT,
+	/// Previous window (like Shift-Alt-TAB)
+	WINDOW_PREVIOUS,
+	/// Close window
+	WINDOW_CLOSE,
 
     };
 
@@ -1342,8 +1432,14 @@ public immutable TCommand cmCut = TCommand(TCommand.Type.CUT);
 public immutable TCommand cmCopy = TCommand(TCommand.Type.COPY);
 public immutable TCommand cmPaste = TCommand(TCommand.Type.PASTE);
 public immutable TCommand cmClear = TCommand(TCommand.Type.CLEAR);
-public immutable TCommand cmWindowClose = TCommand(TCommand.Type.WINDOW_CLOSE);
+public immutable TCommand cmTile = TCommand(TCommand.Type.TILE);
+public immutable TCommand cmCascade = TCommand(TCommand.Type.CASCADE);
+public immutable TCommand cmCloseAll = TCommand(TCommand.Type.CLOSE_ALL);
+public immutable TCommand cmWindowMove = TCommand(TCommand.Type.WINDOW_MOVE);
 public immutable TCommand cmWindowZoom = TCommand(TCommand.Type.WINDOW_ZOOM);
+public immutable TCommand cmWindowNext = TCommand(TCommand.Type.WINDOW_NEXT);
+public immutable TCommand cmWindowPrevious = TCommand(TCommand.Type.WINDOW_PREVIOUS);
+public immutable TCommand cmWindowClose = TCommand(TCommand.Type.WINDOW_CLOSE);
 
 /**
  * This is the parent class of all events received from the Terminal.

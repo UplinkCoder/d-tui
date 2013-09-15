@@ -580,8 +580,9 @@ public class TWindow : TWidget {
      *    keypress = keystroke event
      */
     override protected void onKeypress(TKeypressEvent keypress) {
+
 	// These keystrokes will typically not be seen unless a
-	// subclass overrides onCommand() due to how TApplication
+	// subclass overrides onMenu() due to how TApplication
 	// dispatches accelerators.
 
 	// Ctrl-W - close window
@@ -617,8 +618,17 @@ public class TWindow : TWidget {
      */
     override public void onCommand(TCommandEvent cmd) {
 
+	// These commands will typically not be seen unless a subclass
+	// overrides onMenu() due to how TApplication dispatches
+	// accelerators.
+
 	if (cmd.cmd == cmWindowClose) {
 	    application.closeWindow(this);
+	    return;
+	}
+
+	if (cmd.cmd == cmWindowNext) {
+	    application.switchWindow();
 	    return;
 	}
 
@@ -646,12 +656,18 @@ public class TWindow : TWidget {
 	    return;
 	}
 
+	if (menu.id == TMenu.MID_WINDOW_NEXT) {
+	    application.switchWindow();
+	    return;
+	}
+
 	if (menu.id == TMenu.MID_WINDOW_ZOOM) {
 	    if (maximized) {
 		restore();
 	    } else {
 		maximize();
 	    }
+	    return;
 	}
 
 	// I didn't take it, pass it on to my children

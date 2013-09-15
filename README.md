@@ -70,7 +70,7 @@ calling this version 1.0:
   - [ ] TSubMenu
 - [ ] TWindow
   - [ ] Keyboard support for Move
-  - [ ] &Window menu with Cascade, Tile, Next, Previous, Move
+  - [ ] &Window menu with Cascade, Tile, Previous, Move
 - [ ] TButton
   - [ ] Accelerator / mnemonic keys
 - [ ] TApplicationSocket - socket that knows about environment variables and

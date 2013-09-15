@@ -115,7 +115,7 @@ public class TApplication {
     public int desktopBottom;
 
     /// Active keyboard accelerators
-    private TCommand[TKeypress] accelerators;
+    private TMenuItem[TKeypress] accelerators;
 
     /// Public constructor.
     public this() {
@@ -238,12 +238,12 @@ public class TApplication {
      * Add a keyboard accelerator to the global hash
      *
      * Params:
-     *    command = command to send to the active widget
-     *    keypress = keypress that will activate the command
+     *    item = menu item this accelerator relates to
+     *    keypress = keypress that will dispatch a TMenuEvent
      */
-    final public void addAccelerator(TCommand command, TKeypress keypress) {
+    final public void addAccelerator(TMenuItem item, TKeypress keypress) {
 	assert((keypress in accelerators) is null);
-	accelerators[keypress] = command;
+	accelerators[keypress] = item;
     }
 
     /**
@@ -684,12 +684,12 @@ public class TApplication {
 
 	if (auto keypress = cast(TKeypressEvent)event) {
 	    // See if this key matches an accelerator, and if so dispatch the
-	    // command.
+	    // menu event.
 	    TKeypress keypressLowercase = toLower(keypress.key);
-	    TCommand *cmd = (keypressLowercase in accelerators);
-	    if (cmd !is null) {
-		// Dispatch this command
-		addEvent(new TCommandEvent(*cmd));
+	    TMenuItem *item = (keypressLowercase in accelerators);
+	    if (item !is null) {
+		// Let the menu item dispatch
+		item.dispatch();
 		return;
 	    } else {
 		// Handle the keypress
@@ -701,6 +701,12 @@ public class TApplication {
 
 	if (auto cmd = cast(TCommandEvent)event) {
 	    if (onCommand(cmd)) {
+		return;
+	    }
+	}
+
+	if (auto menu = cast(TMenuEvent)event) {
+	    if (onMenu(menu)) {
 		return;
 	    }
 	}
@@ -751,6 +757,34 @@ public class TApplication {
     }
 
     /**
+     * Method that TApplication subclasses can override to handle menu
+     * events.
+     *
+     * Params:
+     *    menu = menu event
+     *
+     * Returns:
+     *    if true, this event was consumed
+     */
+    protected bool onMenu(TMenuEvent menu) {
+	// Default: handle MID_EXIT
+	if (menu.id == TMenu.MID_EXIT) {
+	    if (messageBox("Confirmation", "Exit application?",
+		    TMessageBox.Type.YESNO).result == TMessageBox.Result.YES) {
+		quit = true;
+	    }
+	    repaint = true;
+	    return true;
+	}
+	if (menu.id == TMenu.MID_SHELL) {
+	    openTerminal(0, 0, TWindow.Flag.RESIZABLE);
+	    repaint = true;
+	    return true;
+	}
+	return false;
+    }
+
+    /**
      * Method that TApplication subclasses can override to handle keystrokes.
      *
      * Params:
@@ -760,13 +794,7 @@ public class TApplication {
      *    if true, this event was consumed
      */
     protected bool onKeypress(TKeypressEvent keypress) {
-	// Default: handle Alt-TAB and menu shortcuts
-
-	// Alt-TAB
-	if (keypress.key == kbAltTab) {
-	    switchWindow();
-	    return true;
-	}
+	// Default: only menu shortcuts
 
 	// Process Alt-F, Alt-E, etc. menu shortcut keys
 	if (!keypress.key.isKey &&
@@ -1076,8 +1104,15 @@ public class TApplication {
      */
     final public TMenu addWindowMenu() {
 	TMenu windowMenu = addMenu("&Window");
-	windowMenu.addDefaultItem(TMenu.MID_WINDOW_CLOSE);
+	windowMenu.addDefaultItem(TMenu.MID_TILE);
+	windowMenu.addDefaultItem(TMenu.MID_CASCADE);
+	windowMenu.addDefaultItem(TMenu.MID_CLOSE_ALL);
+	windowMenu.addSeparator();
+	windowMenu.addDefaultItem(TMenu.MID_WINDOW_MOVE);
 	windowMenu.addDefaultItem(TMenu.MID_WINDOW_ZOOM);
+	windowMenu.addDefaultItem(TMenu.MID_WINDOW_NEXT);
+	windowMenu.addDefaultItem(TMenu.MID_WINDOW_PREVIOUS);
+	windowMenu.addDefaultItem(TMenu.MID_WINDOW_CLOSE);
 	return windowMenu;
     }
 

@@ -344,15 +344,14 @@ public class TMenu : TWindow {
      * Params:
      *    id = menu item ID.  Must be greater than 1024.
      *    label = menu item label
-     *    cmd = command to dispatch when this item is selected
      *    key = global keyboard accelerator
      *
      * Returns:
      *    the new menu item
      */
-    public TMenuItem addItem(short id, dstring label, TCommand cmd, TKeypress key) {
+    public TMenuItem addItem(short id, dstring label, TKeypress key) {
 	assert(id >= 1024);
-	return addItemInternal(id, label, cmd, key);
+	return addItemInternal(id, label, key);
     }
 
     /**
@@ -361,18 +360,17 @@ public class TMenu : TWindow {
      * Params:
      *    id = menu item ID.  Must be greater than 1024.
      *    label = menu item label
-     *    cmd = command to dispatch when this item is selected
      *    key = global keyboard accelerator
      *
      * Returns:
      *    the new menu item
      */
-    private TMenuItem addItemInternal(short id, dstring label, TCommand cmd, TKeypress key) {
+    private TMenuItem addItemInternal(short id, dstring label, TKeypress key) {
 	uint y = cast(uint)children.length + 1;
 
 	assert(y < height);
 	TMenuItem menuItem = new TMenuItem(this, id, 1, y, label);
-	menuItem.setCommand(cmd, key);
+	menuItem.setKey(key);
 	height++;
 	if (menuItem.width + 2 > width) {
 	    width = menuItem.width + 2;
@@ -380,52 +378,7 @@ public class TMenu : TWindow {
 	foreach (i; children) {
 	    i.width = width - 2;
 	}
-	application.addAccelerator(cmd, toLower(key));
-	application.recomputeMenuX();
-	activate(0);
-	return menuItem;
-    }
-
-    /**
-     * Convenience function to add a menu item.
-     *
-     * Params:
-     *    id = menu item ID.  Must be greater than 1024.
-     *    label = menu item label
-     *    cmd = command to dispatch when this item is selected
-     *
-     * Returns:
-     *    the new menu item
-     */
-    public TMenuItem addItem(short id, dstring label, TCommand cmd) {
-	assert(id >= 1024);
-	return addItemInternal(id, label, cmd);
-    }
-
-    /**
-     * Convenience function to add a menu item.
-     *
-     * Params:
-     *    id = menu item ID
-     *    label = menu item label
-     *    cmd = command to dispatch when this item is selected
-     *
-     * Returns:
-     *    the new menu item
-     */
-    private TMenuItem addItemInternal(short id, dstring label, TCommand cmd) {
-	uint y = cast(uint)children.length + 1;
-
-	assert(y < height);
-	TMenuItem menuItem = new TMenuItem(this, id, 1, y, label);
-	menuItem.setCommand(cmd);
-	height++;
-	if (menuItem.width + 2 > width) {
-	    width = menuItem.width + 2;
-	}
-	foreach (i; children) {
-	    i.width = width - 2;
-	}
+	application.addAccelerator(menuItem, toLower(key));
 	application.recomputeMenuX();
 	activate(0);
 	return menuItem;
@@ -487,7 +440,6 @@ public class TMenu : TWindow {
 	assert(id < 1024);
 
 	dstring label;
-	TCommand cmd;
 	TKeypress key;
 	bool hasKey = true;
 
@@ -495,72 +447,75 @@ public class TMenu : TWindow {
 
 	case MID_EXIT:
 	    label = "E&xit";
-	    cmd = cmExit;
 	    key = kbAltX;
 	    break;
 
 	case MID_SHELL:
 	    label = "O&S Shell";
-	    cmd = cmShell;
 	    hasKey = false;
 	    break;
 
 	case MID_OPEN_FILE:
 	    label = "&Open";
-	    cmd = cmOpen;
 	    key = kbAltO;
 	    break;
 
 	case MID_CUT:
 	    label = "Cu&t";
-	    cmd = cmCut;
 	    key = kbCtrlX;
 	    break;
 	case MID_COPY:
 	    label = "&Copy";
-	    cmd = cmCopy;
 	    key = kbCtrlC;
 	    break;
 	case MID_PASTE:
 	    label = "&Paste";
-	    cmd = cmPaste;
 	    key = kbCtrlV;
 	    break;
 	case MID_CLEAR:
 	    label = "C&lear";
-	    cmd = cmClear;
 	    key = kbDel;
 	    break;
 
 	case MID_TILE:
+	    label = "&Tile";
+	    hasKey = false;
 	    break;
 	case MID_CASCADE:
+	    label = "C&ascade";
+	    hasKey = false;
 	    break;
 	case MID_CLOSE_ALL:
+	    label = "Cl&ose All";
+	    hasKey = false;
 	    break;
 	case MID_WINDOW_MOVE:
+	    label = "&Size/Move";
+	    key = kbCtrlF5;
 	    break;
 	case MID_WINDOW_ZOOM:
 	    label = "&Zoom";
-	    cmd = cmWindowZoom;
 	    key = kbF5;
 	    break;
 	case MID_WINDOW_NEXT:
+	    label = "&Next";
+	    key = kbF6;
 	    break;
 	case MID_WINDOW_PREVIOUS:
+	    label = "&Previous";
+	    key = kbShiftF6;
 	    break;
 	case MID_WINDOW_CLOSE:
 	    label = "&Close";
-	    cmd = cmWindowClose;
 	    key = kbCtrlW;
 	    break;
 
 	}
 
 	if (hasKey) {
-	    return addItemInternal(id, label, cmd, key);
+	    return addItemInternal(id, label, key);
 	}
-	return addItemInternal(id, label, cmd);
+	return addItemInternal(id, label);
     }
 
     /**
@@ -593,17 +548,10 @@ public class TMenuItem : TWidget {
     /// When true, this item is checked
     public bool checked = false;
 
-    /// Optional command this item executes
-    private TCommand cmd;
-
-    /// When true, selecting this menu item causes a TCommandEvent to be
-    /// fired IN ADDITION TO the TMenuEvent.
-    private bool hasCommand = false;
-
-    /// Highlighted shortcut key (also called a menu mnenomic)
+    /// Global shortcut key
     private TKeypress key;
 
-    /// When true, accelerator (mnenomic) can be used to select this item
+    /// When true, a global accelerator can be used to select this item
     private bool hasKey = false;
 
     /// The title string.  Use '&' to specify a mnemonic, i.e. "&File" will
@@ -611,15 +559,12 @@ public class TMenuItem : TWidget {
     public AcceleratorString accelerator;
 
     /**
-     * Set a command for this menu to execute
+     * Set a global accelerator key for this menu item
      *
      * Params:
-     *    cmd = command to execute on Enter
      *    key = global keyboard accelerator
      */
-    public void setCommand(TCommand cmd, TKeypress key) {
-	hasCommand = true;
-	this.cmd = cmd;
+    public void setKey(TKeypress key) {
 	hasKey = true;
 	this.key = key;
 
@@ -627,18 +572,6 @@ public class TMenuItem : TWidget {
 	if (newWidth > width) {
 	    width = newWidth;
 	}
-    }
-
-    /**
-     * Set a command for this menu to execute
-     *
-     * Params:
-     *    cmd = command to execute on Enter
-     */
-    public void setCommand(TCommand cmd) {
-	hasCommand = true;
-	this.cmd = cmd;
-	hasKey = false;
     }
 
     /**
@@ -763,13 +696,10 @@ public class TMenuItem : TWidget {
     }
 
     /// Dispatch event(s) due to selection or click
-    private void dispatch() {
+    public void dispatch() {
 	assert(enabled == true);
 
 	window.application.addMenuEvent(new TMenuEvent(id));
-	if (hasCommand) {
-	    window.application.addMenuEvent(new TCommandEvent(cmd));
-	}
 	if (checkable) {
 	    checked = !checked;
 	}

@@ -441,13 +441,13 @@ private class DemoApplication : TApplication {
     }
 
     /**
-     * Handle menu or posted command events.
+     * Handle menu events.
      *
      * Params:
-     *    event = command event
+     *    menu = menu event
      */
-    override protected bool onCommand(TCommandEvent cmd) {
-	if (cmd.cmd == cmOpen) {
+    override protected bool onMenu(TMenuEvent menu) {
+	if (menu.id == TMenu.MID_OPEN_FILE) {
 	    dstring filename = fileOpenBox(".");
 	    if (filename !is null) {
 		addEditor(filename);
@@ -455,7 +455,7 @@ private class DemoApplication : TApplication {
 	    return true;
 	}
 
-	return super.onCommand(cmd);
+	return super.onMenu(menu);
     }
 
 }
