@@ -1156,6 +1156,17 @@ public class ECMATerminal {
 		    TKeypressEvent keypress = new TKeypressEvent();
 		    keypress.key.isKey = true;
 		    keypress.key.fnKey = TKeypress.UP;
+		    if (params.length > 1) {
+			if (params[1] == "2") {
+			    keypress.key.shift = true;
+			}
+			if (params[1] == "5") {
+			    keypress.key.ctrl = true;
+			}
+			if (params[1] == "3") {
+			    keypress.key.alt = true;
+			}
+		    }
 		    events ~= keypress;
 		    reset();
 		    return events;
@@ -1164,6 +1175,17 @@ public class ECMATerminal {
 		    TKeypressEvent keypress = new TKeypressEvent();
 		    keypress.key.isKey = true;
 		    keypress.key.fnKey = TKeypress.DOWN;
+		    if (params.length > 1) {
+			if (params[1] == "2") {
+			    keypress.key.shift = true;
+			}
+			if (params[1] == "5") {
+			    keypress.key.ctrl = true;
+			}
+			if (params[1] == "3") {
+			    keypress.key.alt = true;
+			}
+		    }
 		    events ~= keypress;
 		    reset();
 		    return events;
@@ -1172,6 +1194,17 @@ public class ECMATerminal {
 		    TKeypressEvent keypress = new TKeypressEvent();
 		    keypress.key.isKey = true;
 		    keypress.key.fnKey = TKeypress.RIGHT;
+		    if (params.length > 1) {
+			if (params[1] == "2") {
+			    keypress.key.shift = true;
+			}
+			if (params[1] == "5") {
+			    keypress.key.ctrl = true;
+			}
+			if (params[1] == "3") {
+			    keypress.key.alt = true;
+			}
+		    }
 		    events ~= keypress;
 		    reset();
 		    return events;
@@ -1180,6 +1213,17 @@ public class ECMATerminal {
 		    TKeypressEvent keypress = new TKeypressEvent();
 		    keypress.key.isKey = true;
 		    keypress.key.fnKey = TKeypress.LEFT;
+		    if (params.length > 1) {
+			if (params[1] == "2") {
+			    keypress.key.shift = true;
+			}
+			if (params[1] == "5") {
+			    keypress.key.ctrl = true;
+			}
+			if (params[1] == "3") {
+			    keypress.key.alt = true;
+			}
+		    }
 		    events ~= keypress;
 		    reset();
 		    return events;
@@ -1239,6 +1283,89 @@ public class ECMATerminal {
 		events ~= csiFnKey();
 		reset();
 		return events;
+	    }
+
+	    if ((ch >= 0x30) && (ch <= 0x7E)) {
+		switch (ch) {
+		case 'A':
+		    // Up
+		    TKeypressEvent keypress = new TKeypressEvent();
+		    keypress.key.isKey = true;
+		    keypress.key.fnKey = TKeypress.UP;
+		    if (params.length > 1) {
+			if (params[1] == "2") {
+			    keypress.key.shift = true;
+			}
+			if (params[1] == "5") {
+			    keypress.key.ctrl = true;
+			}
+			if (params[1] == "3") {
+			    keypress.key.alt = true;
+			}
+		    }
+		    events ~= keypress;
+		    reset();
+		    return events;
+		case 'B':
+		    // Down
+		    TKeypressEvent keypress = new TKeypressEvent();
+		    keypress.key.isKey = true;
+		    keypress.key.fnKey = TKeypress.DOWN;
+		    if (params.length > 1) {
+			if (params[1] == "2") {
+			    keypress.key.shift = true;
+			}
+			if (params[1] == "5") {
+			    keypress.key.ctrl = true;
+			}
+			if (params[1] == "3") {
+			    keypress.key.alt = true;
+			}
+		    }
+		    events ~= keypress;
+		    reset();
+		    return events;
+		case 'C':
+		    // Right
+		    TKeypressEvent keypress = new TKeypressEvent();
+		    keypress.key.isKey = true;
+		    keypress.key.fnKey = TKeypress.RIGHT;
+		    if (params.length > 1) {
+			if (params[1] == "2") {
+			    keypress.key.shift = true;
+			}
+			if (params[1] == "5") {
+			    keypress.key.ctrl = true;
+			}
+			if (params[1] == "3") {
+			    keypress.key.alt = true;
+			}
+		    }
+		    events ~= keypress;
+		    reset();
+		    return events;
+		case 'D':
+		    // Left
+		    TKeypressEvent keypress = new TKeypressEvent();
+		    keypress.key.isKey = true;
+		    keypress.key.fnKey = TKeypress.LEFT;
+		    if (params.length > 1) {
+			if (params[1] == "2") {
+			    keypress.key.shift = true;
+			}
+			if (params[1] == "5") {
+			    keypress.key.ctrl = true;
+			}
+			if (params[1] == "3") {
+			    keypress.key.alt = true;
+			}
+		    }
+		    events ~= keypress;
+		    reset();
+		    return events;
+		default:
+		    break;
+		}
 	    }
 
 	    // Unknown keystroke, ignore

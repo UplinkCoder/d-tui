@@ -68,9 +68,6 @@ calling this version 1.0:
   - [ ] Cut/Copy/Paste
 - [ ] TMenu / TMenuItem
   - [ ] TSubMenu
-- [ ] TWindow
-  - [ ] Keyboard support for Move
-  - [ ] &Window menu with Previous, Move
 - [ ] TButton
   - [ ] Accelerator / mnemonic keys
 - [ ] TApplicationSocket - socket that knows about environment variables and

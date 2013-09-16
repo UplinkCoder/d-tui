@@ -96,6 +96,10 @@ public class TWindow : TWidget {
     /// is resizing the window
     private bool inWindowResize = false;
 
+    /// If true, then the user selected "Size/Move" (or hit Ctrl-F5) and is
+    /// resizing/moving the window via the keyboard
+    private bool inKeyboardResize = false;
+
     /// If true, this window is maximized
     public bool maximized = false;
 
@@ -258,7 +262,7 @@ public class TWindow : TWidget {
 
     /// Retrieve the background color
     public CellAttributes getBackground() {
-	if (!isModal() && (inWindowMove || inWindowResize)) {
+	if (!isModal() && (inWindowMove || inWindowResize || inKeyboardResize)) {
 	    assert(active == 1);
 	    return application.theme.getColor("twindow.background.windowmove");
 	} else if (isModal() && inWindowMove) {
@@ -280,7 +284,7 @@ public class TWindow : TWidget {
 
     /// Retrieve the border color
     public CellAttributes getBorder() {
-	if (!isModal() && (inWindowMove || inWindowResize)) {
+	if (!isModal() && (inWindowMove || inWindowResize || inKeyboardResize)) {
 	    assert(active == 1);
 	    return application.theme.getColor("twindow.border.windowmove");
 	} else if (isModal() && inWindowMove) {
@@ -303,7 +307,7 @@ public class TWindow : TWidget {
 
     /// Retrieve the border line type
     public uint getBorderType() {
-	if (!isModal() && (inWindowMove || inWindowResize)) {
+	if (!isModal() && (inWindowMove || inWindowResize || inKeyboardResize)) {
 	    assert(active == 1);
 	    return 1;
 	} else if (isModal() && inWindowMove) {
@@ -339,15 +343,13 @@ public class TWindow : TWidget {
 
 	drawBox(0, 0, width, height, border, background, borderType, true);
 
-	if (!inWindowMove) {
-	    // Draw the title
-	    uint titleLeft = (width - cast(uint)title.length - 2)/2;
-	    putCharXY(titleLeft, 0, ' ', border);
-	    putStrXY(titleLeft + 1, 0, title);
-	    putCharXY(titleLeft + cast(uint)title.length + 1, 0, ' ', border);
-	}
+	// Draw the title
+	uint titleLeft = (width - cast(uint)title.length - 2)/2;
+	putCharXY(titleLeft, 0, ' ', border);
+	putStrXY(titleLeft + 1, 0, title);
+	putCharXY(titleLeft + cast(uint)title.length + 1, 0, ' ', border);
 
-	if (active && !inWindowMove) {
+	if (active) {
 
 	    // Draw the close button
 	    putCharXY(2, 0, '[', border);
@@ -383,7 +385,7 @@ public class TWindow : TWidget {
 		}
 
 		// Draw the resize corner
-		if (!inWindowResize && ((flags & Flag.RESIZABLE) != 0)) {
+		if ((flags & Flag.RESIZABLE) != 0) {
 		    putCharXY(width - 2, height - 1, GraphicsChars.SINGLE_BAR,
 			application.theme.getColor("twindow.border.windowmove"));
 		    putCharXY(width - 1, height - 1, GraphicsChars.LRCORNER,
@@ -402,6 +404,8 @@ public class TWindow : TWidget {
     override protected void onMouseDown(TMouseEvent event) {
 	mouse = event;
 	application.repaint = true;
+
+	inKeyboardResize = false;
 
 	if ((mouse.absoluteY == y) &&
 	    mouse.mouse1 &&
@@ -581,6 +585,57 @@ public class TWindow : TWidget {
      */
     override protected void onKeypress(TKeypressEvent keypress) {
 
+	if (inKeyboardResize) {
+
+	    // ESC - Exit size/move
+	    if (keypress.key == kbEsc) {
+		inKeyboardResize = false;
+	    }
+
+	    if (keypress.key == kbLeft) {
+		if (x > 0) {
+		    x--;
+		}
+	    }
+	    if (keypress.key == kbRight) {
+		if (x < screen.getWidth() - 1) {
+		    x++;
+		}
+	    }
+	    if (keypress.key == kbDown) {
+		if (y < application.desktopBottom - 1) {
+		    y++;
+		}
+	    }
+	    if (keypress.key == kbUp) {
+		if (y > 1) {
+		    y--;
+		}
+	    }
+	    if (keypress.key == kbShiftLeft) {
+		if (width > minimumWindowWidth) {
+		    width--;
+		}
+	    }
+	    if (keypress.key == kbShiftRight) {
+		if (width < maximumWindowWidth) {
+		    width++;
+		}
+	    }
+	    if (keypress.key == kbShiftUp) {
+		if (height > minimumWindowHeight) {
+		    height--;
+		}
+	    }
+	    if (keypress.key == kbShiftDown) {
+		if (height < maximumWindowHeight) {
+		    height++;
+		}
+	    }
+
+	    return;
+	}
+
 	// These keystrokes will typically not be seen unless a
 	// subclass overrides onMenu() due to how TApplication
 	// dispatches accelerators.
@@ -606,6 +661,11 @@ public class TWindow : TWidget {
 	    }
 	}
 
+	// Ctrl-F5 - size/move
+	if (keypress.key == kbCtrlF5) {
+	    inKeyboardResize = !inKeyboardResize;
+	}
+
 	// I didn't take it, pass it on to my children
 	super.onKeypress(keypress);
     }
@@ -629,6 +689,11 @@ public class TWindow : TWidget {
 
 	if (cmd.cmd == cmWindowNext) {
 	    application.switchWindow();
+	    return;
+	}
+
+	if (cmd.cmd == cmWindowMove) {
+	    inKeyboardResize = true;
 	    return;
 	}
 
@@ -658,6 +723,11 @@ public class TWindow : TWidget {
 
 	if (menu.id == TMenu.MID_WINDOW_NEXT) {
 	    application.switchWindow();
+	    return;
+	}
+
+	if (menu.id == TMenu.MID_WINDOW_MOVE) {
+	    inKeyboardResize = true;
 	    return;
 	}
 
