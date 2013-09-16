@@ -36,7 +36,9 @@
 // Imports -------------------------------------------------------------------
 
 import core.thread;
+import std.conv;
 import std.datetime;
+import std.math;
 import base;
 import codepage;
 import ecma;
@@ -729,6 +731,94 @@ public class TApplication {
     }
 
     /**
+     * Close all open windows
+     */
+    private void closeAllWindows() {
+	// Don't do anything if we are in the menu
+	if (activeMenu !is null) {
+	    return;
+	}
+	foreach (w; windows) {
+	    closeWindow(w);
+	}
+    }
+
+    /**
+     * Re-layout the open windows as non-overlapping tiles.  This produces
+     * almost the same results as Turbo Pascal 7.0's IDE.
+     */
+    private void tileWindows() {
+	// Don't do anything if we are in the menu
+	if (activeMenu !is null) {
+	    return;
+	}
+	size_t z = windows.length;
+	if (z == 0) {
+	    return;
+	}
+	size_t a, b;
+	a = to!size_t(sqrt(to!float(z)));
+	size_t c = 0;
+	while (c < a) {
+	    b = (z - c) / a;
+	    if (((a * b) + c) == z) {
+		break;
+	    }
+	    c++;
+	}
+	assert(a > 0);
+	assert(b > 0);
+	assert(c < a);
+	auto newWidth = (backend.screen.getWidth() / a);
+	auto newHeight1 = ((backend.screen.getHeight() - 1) / b);
+	auto newHeight2 = ((backend.screen.getHeight() - 1) / (b + c));
+	// std.stdio.stderr.writefln("Z %s a %s b %s c %s newWidth %s newHeight1 %s newHeight2 %s",
+	//     z, a, b, c, newWidth, newHeight1, newHeight2);
+
+	TWindow [] sorted = windows.dup;
+	sorted.sort.reverse;
+	for (auto i = 0; i < sorted.length; i++) {
+	    auto logicalX = i / b;
+	    auto logicalY = i % b;
+	    if (i >= ((a - 1) * b)) {
+		logicalX = a - 1;
+		logicalY = i - ((a - 1) * b);
+	    }
+
+	    TWindow w = sorted[i];
+	    w.x = to!int(logicalX * newWidth);
+	    w.width = to!uint(newWidth);
+	    if (i >= ((a - 1) * b)) {
+		w.y = to!int(logicalY * newHeight2) + 1;
+		w.height = to!uint(newHeight2);
+	    } else {
+		w.y = to!int(logicalY * newHeight1) + 1;
+		w.height = to!uint(newHeight1);
+	    }
+	}
+    }
+
+    /**
+     * Re-layout the open windows as overlapping cascaded windows.
+     */
+    private void cascadeWindows() {
+	// Don't do anything if we are in the menu
+	if (activeMenu !is null) {
+	    return;
+	}
+	uint x = 0;
+	uint y = 1;
+	TWindow [] sorted = windows.dup;
+	sorted.sort.reverse;
+	foreach (w; sorted) {
+	    w.x = x;
+	    w.y = y;
+	    x++;
+	    y++;
+	}
+    }
+
+    /**
      * Method that TApplication subclasses can override to handle menu or
      * posted command events.
      *
@@ -750,6 +840,21 @@ public class TApplication {
 	}
 	if (cmd.cmd == cmShell) {
 	    openTerminal(0, 0, TWindow.Flag.RESIZABLE);
+	    repaint = true;
+	    return true;
+	}
+	if (cmd.cmd == cmTile) {
+	    tileWindows();
+	    repaint = true;
+	    return true;
+	}
+	if (cmd.cmd == cmCascade) {
+	    cascadeWindows();
+	    repaint = true;
+	    return true;
+	}
+	if (cmd.cmd == cmCloseAll) {
+	    closeAllWindows();
 	    repaint = true;
 	    return true;
 	}
@@ -778,6 +883,21 @@ public class TApplication {
 	}
 	if (menu.id == TMenu.MID_SHELL) {
 	    openTerminal(0, 0, TWindow.Flag.RESIZABLE);
+	    repaint = true;
+	    return true;
+	}
+	if (menu.id == TMenu.MID_TILE) {
+	    tileWindows();
+	    repaint = true;
+	    return true;
+	}
+	if (menu.id == TMenu.MID_CASCADE) {
+	    cascadeWindows();
+	    repaint = true;
+	    return true;
+	}
+	if (menu.id == TMenu.MID_CLOSE_ALL) {
+	    closeAllWindows();
 	    repaint = true;
 	    return true;
 	}
