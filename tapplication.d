@@ -815,6 +815,12 @@ public class TApplication {
 	    w.y = y;
 	    x++;
 	    y++;
+	    if (x > backend.screen.getWidth()) {
+		x = 0;
+	    }
+	    if (y >= backend.screen.getHeight()) {
+		y = 1;
+	    }
 	}
     }
 
