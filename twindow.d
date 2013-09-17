@@ -648,7 +648,13 @@ public class TWindow : TWidget {
 
 	// F6 - behave like Alt-TAB
 	if (keypress.key == kbF6) {
-	    application.switchWindow();
+	    application.switchWindow(true);
+	    return;
+	}
+
+	// Shift-F6 - behave like Shift-Alt-TAB
+	if (keypress.key == kbShiftF6) {
+	    application.switchWindow(false);
 	    return;
 	}
 
@@ -688,7 +694,12 @@ public class TWindow : TWidget {
 	}
 
 	if (cmd.cmd == cmWindowNext) {
-	    application.switchWindow();
+	    application.switchWindow(true);
+	    return;
+	}
+
+	if (cmd.cmd == cmWindowPrevious) {
+	    application.switchWindow(false);
 	    return;
 	}
 
@@ -722,7 +733,12 @@ public class TWindow : TWidget {
 	}
 
 	if (menu.id == TMenu.MID_WINDOW_NEXT) {
-	    application.switchWindow();
+	    application.switchWindow(true);
+	    return;
+	}
+
+	if (menu.id == TMenu.MID_WINDOW_PREVIOUS) {
+	    application.switchWindow(false);
 	    return;
 	}
 

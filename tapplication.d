@@ -281,8 +281,13 @@ public class TApplication {
 	return windows[$ - 1].isModal();
     }
 
-    /// Switch to the next window
-    final public void switchWindow() {
+    /**
+     * Switch to the next window
+     *
+     * Params:
+     *    forward = switch to the next window in the list
+     */ 
+    final public void switchWindow(bool forward) {
 	// Only switch if there are multiple windows
 	if (windows.length < 2) {
 	    return;
@@ -304,7 +309,16 @@ public class TApplication {
 	    return;
 	}
 
-	size_t nextWindowI = (activeWindowI + 1) % windows.length;
+	size_t nextWindowI;
+	if (forward) {
+	    nextWindowI = (activeWindowI + 1) % windows.length;
+	} else {
+	    if (activeWindowI == 0) {
+		nextWindowI = windows.length - 1;
+	    } else {
+		nextWindowI = activeWindowI - 1;
+	    }
+	}
 	windows[activeWindowI].active = false;
 	windows[activeWindowI].z = windows[nextWindowI].z;
 	windows[nextWindowI].z = 0;
