@@ -68,15 +68,19 @@ calling this version 1.0:
   - [ ] Cut/Copy/Paste
 - [ ] TMenu / TMenuItem
   - [ ] TSubMenu
-- [ ] TButton
-  - [ ] Accelerator / mnemonic keys
 - [ ] TApplicationSocket - socket that knows about environment variables and
 	rows X cols
       - [ ] this(TApplication application)
-- [ ] Terminal
+- [ ] ECMATerminal
   - [ ] Mouse 1006 mode parsing
-  - [ ] Win32 console support
+  - [ ] Win32 support (used for reading/writing sockets)
+- [ ] Win32Terminal
+- [ ] Win32Screen
+- [ ] Win32Backend
 - [ ] Read/write color themes
+- [ ] Bugs
+  - [ ] TDirectoryList cannot be navigated only with keyboard
+  - [ ] TTreeView cannot be navigated only with keyboard
 
 Wishlist features (2.0):
 

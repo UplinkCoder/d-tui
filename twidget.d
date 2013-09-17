@@ -425,9 +425,9 @@ public class TWidget {
      * Method that subclasses can override to handle keystrokes.
      *
      * Params:
-     *    event = keystroke event
+     *    keypress = keystroke event
      */
-    public void onKeypress(TKeypressEvent event) {
+    public void onKeypress(TKeypressEvent keypress) {
 
 	if ((children.length == 0) ||
 	    (cast(TTreeView)this) ||
@@ -438,19 +438,35 @@ public class TWidget {
 	    //   tab / shift-tab - switch to next/previous widget
 	    //   right-arrow or down-arrow: same as tab
 	    //   left-arrow or up-arrow: same as shift-tab
-	    if ((event.key == kbTab) ||
-		(event.key == kbRight) ||
-		(event.key == kbDown)
+	    if ((keypress.key == kbTab) ||
+		(keypress.key == kbRight) ||
+		(keypress.key == kbDown)
 	    ) {
 		parent.switchWidget(true);
 		return;
-	    } else if ((event.key == kbShiftTab) ||
-		(event.key == kbBackTab) ||
-		(event.key == kbLeft) ||
-		(event.key == kbUp)
+	    } else if ((keypress.key == kbShiftTab) ||
+		(keypress.key == kbBackTab) ||
+		(keypress.key == kbLeft) ||
+		(keypress.key == kbUp)
 	    ) {
 		parent.switchWidget(false);
 		return;
+	    }
+	}
+
+	// If I have any buttons on me AND this is an Alt-key that matches
+	// its mnemonic, send it an Enter keystroke
+	foreach (w; children) {
+	    if (TButton button = cast(TButton)w) {
+		if (button.enabled &&
+		    !keypress.key.isKey &&
+		    keypress.key.alt &&
+		    !keypress.key.ctrl &&
+		    (toLowercase(button.mnemonic.shortcut) == toLowercase(keypress.key.ch))) {
+
+		    w.handleEvent(new TKeypressEvent(kbEnter));
+		    return;
+		}
 	    }
 	}
 
@@ -458,7 +474,7 @@ public class TWidget {
 	foreach (w; children) {
 	    if (w.active) {
 		window.application.repaint = true;
-		w.handleEvent(event);
+		w.handleEvent(keypress);
 		return;
 	    }
 	}

@@ -180,21 +180,21 @@ public class TApplication {
 	uint x = 1;
 	foreach (m; menus) {
 	    CellAttributes menuColor;
-	    CellAttributes menuAcceleratorColor;
+	    CellAttributes menuMnemonicColor;
 	    if (m.active) {
 		menuColor = theme.getColor("tmenu.highlighted");
-		menuAcceleratorColor = theme.getColor("tmenu.accelerator.highlighted");
+		menuMnemonicColor = theme.getColor("tmenu.mnemonic.highlighted");
 	    } else {
 		menuColor = theme.getColor("tmenu");
-		menuAcceleratorColor = theme.getColor("tmenu.accelerator");
+		menuMnemonicColor = theme.getColor("tmenu.mnemonic");
 	    }
 	    // Draw the menu title
 	    backend.screen.hLineXY(x, 0, cast(uint)m.title.length + 2, ' ',
 		menuColor);
 	    backend.screen.putStrXY(x + 1, 0, m.title, menuColor);
 	    // Draw the highlight character
-	    backend.screen.putCharXY(x + 1 + m.accelerator.shortcutIdx, 0,
-		m.accelerator.shortcut, menuAcceleratorColor);
+	    backend.screen.putCharXY(x + 1 + m.mnemonic.shortcutIdx, 0,
+		m.mnemonic.shortcut, menuMnemonicColor);
 
 	    if (m.active) {
 		m.drawChildren();
@@ -943,7 +943,7 @@ public class TApplication {
 	    (activeMenu is null)) {
 
 	    foreach (m; menus) {
-		if (toLowercase(m.accelerator.shortcut) == toLowercase(keypress.key.ch)) {
+		if (toLowercase(m.mnemonic.shortcut) == toLowercase(keypress.key.ch)) {
 		    activeMenu = m;
 		    m.active = true;
 		    repaint = true;

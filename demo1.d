@@ -63,7 +63,7 @@ private class DemoCheckboxWindow : TWindow {
 	group.addRadioButton("Radio option 2");
 	group.addRadioButton("Radio option 3");
 
-	addButton("Close Window", (width - 14) / 2, height - 4,
+	addButton("&Close Window", (width - 14) / 2, height - 4,
 	    {
 		application.closeWindow(this);
 	    }
@@ -243,23 +243,23 @@ EOS",
 
 	// Add some widgets
 	addLabel("Default OK message box", 1, row);
-	addButton("Open OK MB", 35, row, &openOKMessageBox);
+	addButton("Open O&K MB", 35, row, &openOKMessageBox);
 	row += 2;
 
 	addLabel("OK/Cancel message box", 1, row);
-	addButton("Open OKC MB", 35, row, &openOKCMessageBox);
+	addButton("O&pen OKC MB", 35, row, &openOKCMessageBox);
 	row += 2;
 
 	addLabel("Yes/No message box", 1, row);
-	addButton("Open YN MB", 35, row, &openYNMessageBox);
+	addButton("Open &YN MB", 35, row, &openYNMessageBox);
 	row += 2;
 
 	addLabel("Yes/No/Cancel message box", 1, row);
-	addButton("Open YNC MB", 35, row, &openYNCMessageBox);
+	addButton("Ope&n YNC MB", 35, row, &openYNCMessageBox);
 	row += 2;
 
 	addLabel("Input box", 1, row);
-	addButton("Open input box", 35, row,
+	addButton("Open &input box", 35, row,
 	    {
 		application.inputBox("Input Box",
 	    q"EOS
@@ -272,7 +272,7 @@ EOS",
 	    }
 	);
 
-	addButton("Close Window", (width - 14) / 2, height - 4,
+	addButton("&Close Window", (width - 14) / 2, height - 4,
 	    {
 		application.closeWindow(this);
 	    }
@@ -294,7 +294,7 @@ private class DemoMainWindow : TWindow {
 	    58, 15, TWindow.Flag.MODAL);
 	modalWindow.addLabel("This is an example of a very braindead modal window.", 1, 1);
 	modalWindow.addLabel("Modal windows are centered by default.", 1, 2);
-	modalWindow.addButton("Close", (modalWindow.width - 8)/2,
+	modalWindow.addButton("&Close", (modalWindow.width - 8)/2,
 	    modalWindow.height - 4, &modalWindowClose);
     }
     private void modalWindowClose() {
@@ -329,7 +329,7 @@ private class DemoMainWindow : TWindow {
 	// Add some widgets
 	if (!isModal) {
 	    addLabel("Message Boxes", 1, row);
-	    addButton("MessageBoxes", 35, row,
+	    addButton("&MessageBoxes", 35, row,
 		{
 		    new DemoMsgBoxWindow(application);
 		}
@@ -338,7 +338,7 @@ private class DemoMainWindow : TWindow {
 	row += 2;
 
 	addLabel("Open me as modal", 1, row);
-	addButton("Window", 35, row,
+	addButton("W&indow", 35, row,
 	    {
 		new DemoMainWindow(application, Flag.MODAL);
 	    }
@@ -355,13 +355,13 @@ private class DemoMainWindow : TWindow {
 
 	if (!isModal) {
 	    addLabel("Radio buttons and checkboxes", 1, row);
-	    addButton("Checkboxes", 35, row, &openCheckboxWindow);
+	    addButton("&Checkboxes", 35, row, &openCheckboxWindow);
 	}
 	row += 2;
 
 	if (!isModal) {
 	    addLabel("Editor window", 1, row);
-	    addButton("Editor", 35, row,
+	    addButton("Edito&r", 35, row,
 		{
 		    new TEditor(application, 0, 0, 60, 15);
 		}
@@ -371,7 +371,7 @@ private class DemoMainWindow : TWindow {
 
 	if (!isModal) {
 	    addLabel("Text areas", 1, row);
-	    addButton("Text", 35, row,
+	    addButton("&Text", 35, row,
 		{
 		    new DemoTextWindow(application);
 		}
@@ -381,7 +381,7 @@ private class DemoMainWindow : TWindow {
 
 	if (!isModal) {
 	    addLabel("Tree views", 1, row);
-	    addButton("TreeView", 35, row,
+	    addButton("Tree&View", 35, row,
 		{
 		    new DemoTreeViewWindow(application);
 		}
@@ -391,7 +391,7 @@ private class DemoMainWindow : TWindow {
 
 	if (!isModal) {
 	    addLabel("Terminal", 1, row);
-	    addButton("Terminal", 35, row,
+	    addButton("Termi&nal", 35, row,
 		{
 		    application.openTerminal(0, 0);
 		}

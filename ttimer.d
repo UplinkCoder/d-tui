@@ -104,13 +104,13 @@ public class TTimer {
 	nextTick = Clock.currTime();
 	nextTick += dur!("msecs")(duration);
     }
-    
+
     /**
      * Public constructor
      *
      * Params:
      *    duration = number of milliseconds to wait between ticks
-     *    actionFn = function to call when button is pressed
+     *    actionFn = function to call when time runs out
      *    recurring = if true, re-schedule this timer after every tick
      */
     public this(uint duration, void function() actionFn, bool recurring = false) {
@@ -123,7 +123,7 @@ public class TTimer {
      *
      * Params:
      *    duration = number of milliseconds to wait between ticks
-     *    actionFn = function to call when button is pressed
+     *    actionFn = function to call when time runs out
      *    recurring = if true, re-schedule this timer after every tick
      */
     public this(uint duration, void delegate() actionFn, bool recurring = false) {

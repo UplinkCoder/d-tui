@@ -1657,6 +1657,62 @@ public class Backend {
 }
 
 /**
+ * MnemonicString is used to render a string like "&File" into a highlighted
+ * 'F' and the rest of 'ile'.  To insert a literal '&', use two '&&'
+ * characters, e.g. "&File && Stuff" would be "File & Stuff" with the first
+ * 'F' highlighted.
+ */
+public class MnemonicString {
+
+    /// Keyboard shortcut to activate this item
+    public dchar shortcut;
+
+    /// Location of the highlighted character
+    public int shortcutIdx = -1;
+
+    /// The raw (uncolored) string
+    public dstring rawLabel;
+
+    /**
+     * Public constructor
+     *
+     * Params:
+     *    label = widget label or title.  Label must contain a keyboard shortcut, denoted by prefixing a letter with "&", e.g. "&File"
+     */
+    public this(dstring label) {
+
+	// Setup the menu shortcut
+	dstring newLabel = "";
+	bool foundAmp = false;
+	bool foundShortcut = false;
+	uint shortcutIdx = 0;
+	foreach (c; label) {
+	    if (c == '&') {
+		if (foundAmp == true) {
+		    newLabel ~= '&';
+		    shortcutIdx++;
+		} else {
+		    foundAmp = true;
+		}
+	    } else {
+		newLabel ~= c;
+		if (foundAmp == true) {
+		    assert(foundShortcut == false);
+		    shortcut = c;
+		    foundAmp = false;
+		    foundShortcut = true;
+		    this.shortcutIdx = shortcutIdx;
+		} else {
+		    shortcutIdx++;
+		}
+	    }
+	}
+	this.rawLabel = newLabel;
+    }
+}
+
+
+/**
  * ColorTheme is a collection of colors keyed by string.
  */
 public class ColorTheme {
@@ -1785,6 +1841,16 @@ public class ColorTheme {
 	color.backColor = Color.WHITE;
 	color.bold = true;
 	colors["tbutton.disabled"] = color;
+	color = new CellAttributes();
+	color.foreColor = Color.YELLOW;
+	color.backColor = Color.GREEN;
+	color.bold = true;
+	colors["tbutton.mnemonic"] = color;
+	color = new CellAttributes();
+	color.foreColor = Color.YELLOW;
+	color.backColor = Color.GREEN;
+	color.bold = true;
+	colors["tbutton.mnemonic.highlighted"] = color;
 
 	// TLabel text
 	color = new CellAttributes();
@@ -1864,12 +1930,12 @@ public class ColorTheme {
 	color.foreColor = Color.RED;
 	color.backColor = Color.WHITE;
 	color.bold = false;
-	colors["tmenu.accelerator"] = color;
+	colors["tmenu.mnemonic"] = color;
 	color = new CellAttributes();
 	color.foreColor = Color.RED;
 	color.backColor = Color.GREEN;
 	color.bold = false;
-	colors["tmenu.accelerator.highlighted"] = color;
+	colors["tmenu.mnemonic.highlighted"] = color;
 	color = new CellAttributes();
 	color.foreColor = Color.BLACK;
 	color.backColor = Color.WHITE;

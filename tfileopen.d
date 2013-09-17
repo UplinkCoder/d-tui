@@ -178,11 +178,11 @@ public class TFileOpenBox : TWindow {
 	dstring openLabel = "";
 	final switch (type) {
 	case Type.OPEN:
-	    openLabel = " Open ";
+	    openLabel = " &Open ";
 	    title = "Open File...";
 	    break;
 	case Type.SAVE:
-	    openLabel = " Save ";
+	    openLabel = " &Save ";
 	    title = "Save File...";
 	    break;
 	}
@@ -195,7 +195,7 @@ public class TFileOpenBox : TWindow {
 	);
 	openButton.enabled = false;
 
-	addButton("Cancel", this.width - 12, 5,
+	addButton("&Cancel", this.width - 12, 5,
 	    delegate void() {
 		filename = null;
 		application.closeWindow(this);

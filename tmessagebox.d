@@ -93,7 +93,7 @@ public class TMessageBox : TWindow {
 
 	this(application, title, caption, type, true);
     }
-    
+
     /**
      * Public constructor.  The message box will be centered on
      * screen.
@@ -148,7 +148,7 @@ public class TMessageBox : TWindow {
 		this.width = 15;
 	    }
 	    uint buttonX = (this.width - 11)/2;
-	    buttons[0] = addButton("  OK  ", buttonX, lineI,
+	    buttons[0] = addButton("  &OK  ", buttonX, lineI,
 		delegate void() {
 		    result = Result.OK;
 		    application.closeWindow(this);
@@ -163,14 +163,14 @@ public class TMessageBox : TWindow {
 		this.width = 26;
 	    }
 	    uint buttonX = (this.width - 22)/2;
-	    buttons[0] = addButton("  OK  ", buttonX, lineI,
+	    buttons[0] = addButton("  &OK  ", buttonX, lineI,
 		delegate void() {
 		    result = Result.OK;
 		    application.closeWindow(this);
 		}
 	    );
 	    buttonX += 8 + 4;
-	    buttons[1] = addButton("Cancel", buttonX, lineI,
+	    buttons[1] = addButton("&Cancel", buttonX, lineI,
 		delegate void() {
 		    result = Result.CANCEL;
 		    application.closeWindow(this);
@@ -185,14 +185,14 @@ public class TMessageBox : TWindow {
 		this.width = 20;
 	    }
 	    uint buttonX = (this.width - 16)/2;
-	    buttons[0] = addButton("Yes", buttonX, lineI,
+	    buttons[0] = addButton("&Yes", buttonX, lineI,
 		delegate void() {
 		    result = Result.YES;
 		    application.closeWindow(this);
 		}
 	    );
 	    buttonX += 5 + 4;
-	    buttons[1] = addButton("No", buttonX, lineI,
+	    buttons[1] = addButton("&No", buttonX, lineI,
 		delegate void() {
 		    result = Result.NO;
 		    application.closeWindow(this);
@@ -207,21 +207,21 @@ public class TMessageBox : TWindow {
 		this.width = 31;
 	    }
 	    uint buttonX = (this.width - 27)/2;
-	    buttons[0] = addButton("Yes", buttonX, lineI,
+	    buttons[0] = addButton("&Yes", buttonX, lineI,
 		delegate void() {
 		    result = Result.YES;
 		    application.closeWindow(this);
 		}
 	    );
 	    buttonX += 5 + 4;
-	    buttons[1] = addButton("No", buttonX, lineI,
+	    buttons[1] = addButton("&No", buttonX, lineI,
 		delegate void() {
 		    result = Result.NO;
 		    application.closeWindow(this);
 		}
 	    );
 	    buttonX += 4 + 4;
-	    buttons[2] = addButton("Cancel", buttonX, lineI,
+	    buttons[2] = addButton("&Cancel", buttonX, lineI,
 		delegate void() {
 		    result = Result.CANCEL;
 		    application.closeWindow(this);

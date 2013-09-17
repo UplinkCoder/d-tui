@@ -51,8 +51,8 @@ import twidget;
  */
 public class TButton : TWidget {
 
-    /// Button text
-    private dstring text = "";
+    /// The shortcut and button text
+    public MnemonicString mnemonic;
 
     /// Remember mouse state
     private TMouseEvent mouse;
@@ -77,11 +77,12 @@ public class TButton : TWidget {
 	// Set parent and window
 	super(parent);
 
-	this.text = text;
+	mnemonic = new MnemonicString(text);
+
 	this.x = x;
 	this.y = y;
 	this.height = 2;
-	this.width = cast(uint)text.length + 3;
+	this.width = cast(uint)(mnemonic.rawLabel.length) + 3;
     }
 
     /**
@@ -139,6 +140,7 @@ public class TButton : TWidget {
     /// Draw a button with a shadow
     override public void draw() {
 	CellAttributes buttonColor;
+	CellAttributes menuMnemonicColor;
 	CellAttributes shadowColor = new CellAttributes();
 	shadowColor.setTo(window.getBackground());
 	shadowColor.foreColor = Color.BLACK;
@@ -146,23 +148,30 @@ public class TButton : TWidget {
 
 	if (!enabled) {
 	    buttonColor = window.application.theme.getColor("tbutton.disabled");
+	    menuMnemonicColor = window.application.theme.getColor("tbutton.disabled");
 	} else if (getAbsoluteActive()) {
 	    buttonColor = window.application.theme.getColor("tbutton.active");
+	    menuMnemonicColor = window.application.theme.getColor("tbutton.mnemonic.highlighted");
 	} else {
 	    buttonColor = window.application.theme.getColor("tbutton.inactive");
+	    menuMnemonicColor = window.application.theme.getColor("tbutton.mnemonic");
 	}
 	
 	if (inButtonPress) {
 	    window.putCharXY(1, 0, ' ', buttonColor);
-	    window.putStrXY(2, 0, text, buttonColor);
+	    window.putStrXY(2, 0, mnemonic.rawLabel, buttonColor);
 	    window.putCharXY(width - 1, 0, ' ', buttonColor);
 	} else {
 	    window.putCharXY(0, 0, ' ', buttonColor);
-	    window.putStrXY(1, 0, text, buttonColor);
+	    window.putStrXY(1, 0, mnemonic.rawLabel, buttonColor);
 	    window.putCharXY(width - 2, 0, ' ', buttonColor);
 
 	    window.putCharXY(width - 1, 0, cp437_chars[0xDC], shadowColor);
 	    window.hLineXY(1, 1, width - 1, cp437_chars[0xDF], shadowColor);
+	}
+	if (mnemonic.shortcutIdx >= 0) {
+	    window.putCharXY(1 + mnemonic.shortcutIdx, 0,
+		mnemonic.shortcut, menuMnemonicColor);
 	}
     }
 

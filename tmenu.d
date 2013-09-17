@@ -42,9 +42,6 @@ import tapplication;
 import twidget;
 import twindow;
 
-// DEBUG
-import std.stdio;
-
 // Defines -------------------------------------------------------------------
 
 // Globals -------------------------------------------------------------------
@@ -52,66 +49,12 @@ import std.stdio;
 // Classes -------------------------------------------------------------------
 
 /**
- * AcceleratorString is used to render a string like "&File" into a
- * highlighted 'F' and the rest of 'ile'.
- */
-private class AcceleratorString {
-
-    /// Keyboard shortcut to activate this menu
-    public dchar shortcut;
-
-    /// Location of the highlighted character
-    public int shortcutIdx = -1;
-
-    /// The raw (uncolored) string
-    public dstring rawTitle;
-
-    /**
-     * Public constructor
-     *
-     * Params:
-     *    title = menu or menuitem title.  Title must contain a keyboard shortcut, denoted by prefixing a letter with "&", e.g. "&File"
-     */
-    public this(dstring label) {
-
-	// Setup the menu shortcut
-	dstring newTitle = "";
-	bool foundAmp = false;
-	bool foundShortcut = false;
-	uint shortcutIdx = 0;
-	foreach (c; label) {
-	    if (c == '&') {
-		if (foundAmp == true) {
-		    newTitle ~= '&';
-		    shortcutIdx++;
-		} else {
-		    foundAmp = true;
-		}
-	    } else {
-		newTitle ~= c;
-		if (foundAmp == true) {
-		    assert(foundShortcut == false);
-		    shortcut = c;
-		    foundAmp = false;
-		    foundShortcut = true;
-		    this.shortcutIdx = shortcutIdx;
-		} else {
-		    shortcutIdx++;
-		}
-	    }
-	}
-	this.rawTitle = newTitle;
-    }
-
-}
-
-/**
  * TMenu is a top-level collection of TMenuItems
  */
 public class TMenu : TWindow {
 
     /// The shortcut and title
-    public AcceleratorString accelerator;
+    public MnemonicString mnemonic;
 
     /// Reserved menu item IDs
     public static immutable short MID_UNUSED		= -1;
@@ -155,9 +98,9 @@ public class TMenu : TWindow {
 	parent.closeWindow(this);
 
 	// Setup the menu shortcut
-	accelerator = new AcceleratorString(title);
-	this.title = accelerator.rawTitle;
-	assert(accelerator.shortcutIdx >= 0);
+	mnemonic = new MnemonicString(title);
+	this.title = mnemonic.rawLabel;
+	assert(mnemonic.shortcutIdx >= 0);
 
 	// Recompute width and height to reflect an empty menu
 	width = cast(uint)this.title.length + 4;
@@ -312,13 +255,13 @@ public class TMenu : TWindow {
 	    return;
 	}
 
-	// Switch to a menuItem if it has an accelerator
+	// Switch to a menuItem if it has an mnemonic
 	if (!keypress.key.isKey &&
 	    !keypress.key.alt &&
 	    !keypress.key.ctrl) {
 	    foreach (w; cast(TMenuItem [])children) {
-		if ((w.accelerator !is null) &&
-		    (toLowercase(w.accelerator.shortcut) == toLowercase(keypress.key.ch))
+		if ((w.mnemonic !is null) &&
+		    (toLowercase(w.mnemonic.shortcut) == toLowercase(keypress.key.ch))
 		) {
 		    // Send an enter keystroke to it
 		    activate(w);
@@ -556,7 +499,7 @@ public class TMenuItem : TWidget {
 
     /// The title string.  Use '&' to specify a mnemonic, i.e. "&File" will
     /// highlight the 'F' and allow 'f' or 'F' to select it.
-    public AcceleratorString accelerator;
+    public MnemonicString mnemonic;
 
     /**
      * Set a global accelerator key for this menu item
@@ -588,12 +531,12 @@ public class TMenuItem : TWidget {
 	// Set parent and window
 	super(parent);
 
-	accelerator = new AcceleratorString(label);
+	mnemonic = new MnemonicString(label);
 
 	this.x = x;
 	this.y = y;
 	this.height = 1;
-	this.label = accelerator.rawTitle;
+	this.label = mnemonic.rawLabel;
 	this.width = cast(uint)label.length + 4;
 	this.id = id;
 
@@ -660,17 +603,17 @@ public class TMenuItem : TWidget {
     override public void draw() {
 	CellAttributes background = window.application.theme.getColor("tmenu");
 	CellAttributes menuColor;
-	CellAttributes menuAcceleratorColor;
+	CellAttributes menuMnemonicColor;
 	if (getAbsoluteActive()) {
 	    menuColor = window.application.theme.getColor("tmenu.highlighted");
-	    menuAcceleratorColor = window.application.theme.getColor("tmenu.accelerator.highlighted");
+	    menuMnemonicColor = window.application.theme.getColor("tmenu.mnemonic.highlighted");
 	} else {
 	    if (enabled) {
 		menuColor = window.application.theme.getColor("tmenu");
-		menuAcceleratorColor = window.application.theme.getColor("tmenu.accelerator");
+		menuMnemonicColor = window.application.theme.getColor("tmenu.mnemonic");
 	    } else {
 		menuColor = window.application.theme.getColor("tmenu.disabled");
-		menuAcceleratorColor = window.application.theme.getColor("tmenu.disabled");
+		menuMnemonicColor = window.application.theme.getColor("tmenu.disabled");
 	    }
 	}
 
@@ -679,14 +622,14 @@ public class TMenuItem : TWidget {
 	window.vLineXY(width - 1, 0, 1, cVSide, background);
 
 	window.hLineXY(1, 0, width - 2, ' ', menuColor);
-	window.putStrXY(2, 0, accelerator.rawTitle, menuColor);
+	window.putStrXY(2, 0, mnemonic.rawLabel, menuColor);
 	if (hasKey) {
 	    dstring keyLabel = key.toString();
 	    window.putStrXY(cast(uint)(width - keyLabel.length - 2), 0, keyLabel, menuColor);
 	}
-	if (accelerator.shortcutIdx >= 0) {
-	    window.putCharXY(2 + accelerator.shortcutIdx, 0,
-		accelerator.shortcut, menuAcceleratorColor);
+	if (mnemonic.shortcutIdx >= 0) {
+	    window.putCharXY(2 + mnemonic.shortcutIdx, 0,
+		mnemonic.shortcut, menuMnemonicColor);
 	}
 	if (checked) {
 	    assert(checkable);
