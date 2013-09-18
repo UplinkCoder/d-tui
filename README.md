@@ -55,6 +55,14 @@ applications somewhat as follows:
 
 See the file demo1.d for example usages.
 
+Acknowledgements
+----------------
+
+Thanks to Adam Ruppe for [his terminal.d class](
+https://raw.github.com/adamdruppe/misc-stuff-including-D-programming-language-web-stuff/master/terminal.d)
+which greatly accelerated support for the Win32 console.
+
+
 Roadmap
 -------
 

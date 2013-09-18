@@ -42,6 +42,7 @@ import std.math;
 import base;
 import codepage;
 import ecma;
+import win32;
 import twidget;
 import twindow;
 import teditor;
@@ -121,7 +122,12 @@ public class TApplication {
 
     /// Public constructor.
     public this() {
-	backend = new ECMABackend();
+	version(Posix) {
+	    backend = new ECMABackend();
+	}
+	version(Windows) {
+	    backend = new Win32ConsoleBackend();
+	}
 	theme = new ColorTheme();
 	desktopBottom = backend.screen.getHeight() - 1;
 	primaryEventFiber = new Fiber(&primaryEventHandler);
