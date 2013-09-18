@@ -33,17 +33,7 @@
 
 /*
  * TODO:
- *	Win32 support:
- *		Screen.flush()
- *		Terminal.this() / ~this()
- *		Terminal.getEvents() needs to pull keyboard/mouse events
- *			from the Console
- *		Terminal.getPhysicalWidth()
- *		Terminal.getPhysicalHeight()
- *		Terminal.cursor(bool visible)
- *	Terminal:
- *	ColorTheme:
- *		Read from / write to file
+ *	Win32 support
  */
 
 // Description ---------------------------------------------------------------
