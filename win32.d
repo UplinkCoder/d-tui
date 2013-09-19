@@ -146,9 +146,6 @@ version(Windows) {
 		return;
 	    }
 
-	    // Start at the visible top-left corner.
-	    console.gotoXY(0, 0);
-
 	    // Re-draw the entire screen onto a buffer.
 	    CHAR_INFO [] charInfo = new CHAR_INFO[width * height];
 
@@ -209,8 +206,24 @@ version(Windows) {
 	/// The original state of hConsoleOutput
 	private DWORD hConsoleOutputMode;
 
+	/// true if mouse1 was down.  Used to report mouse1 on the release
+	/// event.
+	private bool mouse1 = false;
+
+	/// true if mouse2 was down.  Used to report mouse2 on the release
+	/// event.
+	private bool mouse2 = false;
+
+	/// true if mouse3 was down.  Used to report mouse3 on the release
+	/// event.
+	private bool mouse3 = false;
+
 	/// Cache the cursor value so we only change it when we need to
 	private bool cursorOn = true;
+
+	/// Win32 console never posts window resize events, so cache them so
+	/// we can poll for resizes instead.
+	private TResizeEvent windowResize = null;
 
 	/**
 	 * Get the width of the physical console.
@@ -264,6 +277,13 @@ version(Windows) {
 
 	    DWORD newOutputMode = 0;
 	    SetConsoleMode(hConsoleOutput, newOutputMode);
+
+	    // Hang onto the window size
+	    windowResize = new TResizeEvent(TResizeEvent.Type.Screen, getPhysicalWidth(),
+		getPhysicalHeight());
+
+	    // Start at the visible top-left corner.
+	    gotoXY(0, 0);
 	}
 
 	/**
@@ -277,13 +297,12 @@ version(Windows) {
 
 	    if (on && (cursorOn == false)) {
 		cursorOn = true;
-		cursorInfo.dwSize = 1;
+		cursorInfo.dwSize = 25;
 		cursorInfo.bVisible = TRUE;
 		SetConsoleCursorInfo(hConsoleOutput, &cursorInfo);
 	    }
 	    if (!on && (cursorOn == true)) {
 		cursorOn = false;
-		cursorInfo.dwSize = 1;
 		cursorInfo.bVisible = FALSE;
 		SetConsoleCursorInfo(hConsoleOutput, &cursorInfo);
 	    }
@@ -310,14 +329,14 @@ version(Windows) {
 	 *    virtualKeyCode = Win32 device independent key code
 	 *
 	 * Returns:
-	 *    the equivalent TKeypress, or kbEscape if unknown
+	 *    the equivalent TKeypress, or kbNoKey if unknown
 	 */
 	private TKeypress win32Key(WORD virtualKeyCode) {
 	    if ((virtualKeyCode >= '0') && (virtualKeyCode <= '9')) {
-		return TKeypress(false, TKeypress.ESC, virtualKeyCode, false, false, false);
+		return TKeypress(false, 0, virtualKeyCode, false, false, false);
 	    }
 	    if ((virtualKeyCode >= 'A') && (virtualKeyCode <= 'Z')) {
-		return TKeypress(false, TKeypress.ESC, virtualKeyCode, false, false, false);
+		return TKeypress(false, 0, virtualKeyCode, false, false, false);
 	    }
 
 	    switch (virtualKeyCode) {
@@ -402,7 +421,7 @@ version(Windows) {
 		return kbF24;
 +/
 	    default:
-		return kbEsc;
+		return kbNoKey;
 	    }
 	}
 
@@ -415,25 +434,53 @@ version(Windows) {
 	public TInputEvent [] getEvents() {
 	    TInputEvent [] events;
 
-	    INPUT_RECORD[32] buffer;
+	    auto newWidth = getPhysicalWidth();
+	    auto newHeight = getPhysicalHeight();
+	    if ((newWidth != windowResize.width) ||
+		(newHeight != windowResize.height)) {
+		TResizeEvent resize = new TResizeEvent(TResizeEvent.Type.Screen,
+		    newWidth, newHeight);
+		windowResize.width = newWidth;
+		windowResize.height = newHeight;
+		events ~= resize;
+	    }
+
+	    INPUT_RECORD [] buffer = new INPUT_RECORD[10];
 	    DWORD actuallyRead;
 	    auto rc = ReadConsoleInputW(hConsoleInput, buffer.ptr, buffer.length, &actuallyRead);
+
+	    // std.stdio.stderr.writefln("rc %d actuallyRead %d", rc, actuallyRead);
 
 	    if (rc == 0) {
 		// Error reading input, bail out unhappily
 		throw new Exception("ReadConsoleInputW failed");
 	    }
 
-	    foreach (event; buffer[0 .. actuallyRead]) {
+	    for (auto i = 0; i < actuallyRead; i++) {
+		auto event = buffer[i];
+
+		// std.stdio.stderr.writefln("EventType %d 0x%x", event.EventType, event.EventType);
+
 		switch (event.EventType) {
+
 		case KEY_EVENT:
 		    auto winKeypress = event.KeyEvent;
 		    if (winKeypress.bKeyDown == false) {
 			// Ignore key up events
 			break;
 		    }
-		    TKeypressEvent keypress;
-		    keypress.key = win32Key(winKeypress.wVirtualKeyCode);
+		    TKeypress key = win32Key(winKeypress.wVirtualKeyCode);
+		    if (key == kbNoKey) {
+			// std.stdio.stderr.writefln("uChar %d '%c'", winKeypress.UnicodeChar, winKeypress.UnicodeChar);
+			if (winKeypress.UnicodeChar > 0) {
+			    // Use uChar
+			    key = TKeypress(false, 0, winKeypress.UnicodeChar, false, false, false);
+			} else {
+			    // Ignore this keystroke
+			    break;
+			}
+		    }
+		    TKeypressEvent keypress = new TKeypressEvent(key);
 		    DWORD flags = winKeypress.dwControlKeyState;
 		    if (flags & SHIFT_PRESSED) {
 			keypress.key.shift = true;
@@ -446,18 +493,113 @@ version(Windows) {
 		    if ((flags & LEFT_ALT_PRESSED) || (flags & RIGHT_ALT_PRESSED)) {
 			keypress.key.alt = true;
 		    }
+
+		    // My convention is that:
+		    //    - Bare Alt- keys are lowercase
+		    //    - Shift+Alt- keys are uppercase
+		    //    - Bare Ctrl- keys are uppercase (already done)
+		    //    - Shifted keys are uppercase
+		    if (keypress.key.alt &&
+			!keypress.key.ctrl &&
+			!keypress.key.shift) {
+
+			keypress.key = toLower(keypress.key);
+		    } else if (keypress.key.alt &&
+			!keypress.key.ctrl &&
+			keypress.key.shift) {
+
+			keypress.key = toUpper(keypress.key);
+		    } else if (keypress.key.shift) {
+			keypress.key = toUpper(keypress.key);
+		    }
+
 		    events ~= keypress;
 		    break;
 
 		case MOUSE_EVENT:
 		    auto winMouseEvent = event.MouseEvent;
-		    // TODO
 
+		    TMouseEvent mouse = new TMouseEvent(TMouseEvent.Type.MOUSE_MOTION);
+		    mouse.x = winMouseEvent.dwMousePosition.X;
+		    mouse.y = winMouseEvent.dwMousePosition.Y;
+		    // Clamp to the window coordinates
+		    if (mouse.x >= windowResize.width) {
+			mouse.x = windowResize.width - 1;
+		    }
+		    if (mouse.y >= windowResize.height) {
+			mouse.y = windowResize.height - 1;
+		    }
+		    mouse.absoluteX = mouse.x;
+		    mouse.absoluteY = mouse.y;
+		    if (winMouseEvent.dwButtonState & FROM_LEFT_1ST_BUTTON_PRESSED) {
+			mouse.mouse1 = true;
+		    }
+		    if (winMouseEvent.dwButtonState & RIGHTMOST_BUTTON_PRESSED) {
+			mouse.mouse2 = true;
+		    }
+		    if (winMouseEvent.dwButtonState & FROM_LEFT_2ND_BUTTON_PRESSED) {
+			mouse.mouse3 = true;
+		    }
+
+		    switch (winMouseEvent.dwEventFlags) {
+		    case 0:
+			// Button press OR release.  Check each mouse button
+			// and drop UP/DOWN messages.
+			if (mouse1 && !mouse.mouse1) {
+			    // Button 1 release
+			    mouse.type = TMouseEvent.Type.MOUSE_UP;
+			    mouse.mouse1 = true;
+			} else if (mouse2 && !mouse.mouse2) {
+			    // Button 2 release
+			    mouse.type = TMouseEvent.Type.MOUSE_UP;
+			    mouse.mouse2 = true;
+			} else if (mouse3 && !mouse.mouse3) {
+			    // Button 3 release
+			    mouse.type = TMouseEvent.Type.MOUSE_UP;
+			    mouse.mouse3 = true;
+			} else {
+			    // Button press
+			    mouse.type = TMouseEvent.Type.MOUSE_DOWN;
+			}
+			break;
+
+		    case MOUSE_MOVED:
+			// Mouse motion - nothing to do
+			break;
+
+		    // case MOUSE_WHEELED:
+		    case 0x0004:
+			// Wheel up/down - doesn't seem to be working in
+			// Windows XP, oh well.
+			if (HIWORD(winMouseEvent.dwButtonState) > 0) {
+			    mouse.mouseWheelUp = true;
+			} else {
+			    mouse.mouseWheelDown = true;
+			}
+			break;
+
+		    default:
+			// Unknown - disregard mouse
+			mouse = null;
+			break;
+		    }
+
+		    if (mouse !is null) {
+			// Hang onto button states
+			mouse1 = mouse.mouse1;
+			mouse2 = mouse.mouse2;
+			mouse3 = mouse.mouse3;
+			events ~= mouse;
+		    }
 		    break;
 
 		case WINDOW_BUFFER_SIZE_EVENT:
-		    // TODO
-		    // record.WindowBufferSizeEvent;
+		    // We listen for this even, but at least for Windows XP
+		    // it is never posted.
+		    COORD newSize = event.WindowBufferSizeEvent.dwSize;
+		    TResizeEvent resize = new TResizeEvent(TResizeEvent.Type.Screen,
+			newSize.X, newSize.Y);
+		    events ~= resize;
 		    break;
 
 		default:

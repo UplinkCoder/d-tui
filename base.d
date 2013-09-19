@@ -33,15 +33,6 @@
 
 /*
  * TODO:
- *	Win32 support:
- *		Screen.flush()
- *		Terminal.this() / ~this()
- *		Terminal.getEvents() needs to pull keyboard/mouse events
- *			from the Console
- *		Terminal.getPhysicalWidth()
- *		Terminal.getPhysicalHeight()
- *		Terminal.cursor(bool visible)
- *	Terminal:
  *	ColorTheme:
  *		Read from / write to file
  */
@@ -800,6 +791,9 @@ public struct TKeypress {
 
     // Various special keystrokes
 
+    /// "No key"
+    public static immutable ubyte NONE	= 255;
+
     /// Function key F1
     public static immutable ubyte F1	= 1;
     /// Function key F2
@@ -1060,7 +1054,7 @@ public struct TKeypress {
 	} else {
 	    if (alt && !shift && !ctrl) {
 		// Alt-X
-		formattedWrite(writer, "Alt+%c", toUppercase(ch));
+		formattedWrite(writer, "Alt+%c", ch);
 	    } else if (!alt && shift && !ctrl) {
 		// Shift-X
 		formattedWrite(writer, "%c", ch);
@@ -1156,6 +1150,8 @@ public dchar toLowercase(dchar ch) {
     return ch;
 }
 
+// Special "no-key" keypress, used to ignore undefined keystrokes
+public immutable TKeypress kbNoKey = TKeypress(true, TKeypress.NONE, ' ', false, false, false);
 public immutable TKeypress kbF1 = TKeypress(true, TKeypress.F1, ' ', false, false, false);
 public immutable TKeypress kbF2 = TKeypress(true, TKeypress.F2, ' ', false, false, false);
 public immutable TKeypress kbF3 = TKeypress(true, TKeypress.F3, ' ', false, false, false);
