@@ -292,7 +292,7 @@ public class TApplication {
      *
      * Params:
      *    forward = switch to the next window in the list
-     */ 
+     */
     final public void switchWindow(bool forward) {
 	// Only switch if there are multiple windows
 	if (windows.length < 2) {

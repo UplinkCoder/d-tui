@@ -156,7 +156,7 @@ public class TButton : TWidget {
 	    buttonColor = window.application.theme.getColor("tbutton.inactive");
 	    menuMnemonicColor = window.application.theme.getColor("tbutton.mnemonic");
 	}
-	
+
 	if (inButtonPress) {
 	    window.putCharXY(1, 0, ' ', buttonColor);
 	    window.putStrXY(2, 0, mnemonic.rawLabel, buttonColor);
@@ -170,8 +170,14 @@ public class TButton : TWidget {
 	    window.hLineXY(1, 1, width - 1, cp437_chars[0xDF], shadowColor);
 	}
 	if (mnemonic.shortcutIdx >= 0) {
-	    window.putCharXY(1 + mnemonic.shortcutIdx, 0,
-		mnemonic.shortcut, menuMnemonicColor);
+	    if (inButtonPress) {
+		window.putCharXY(2 + mnemonic.shortcutIdx, 0,
+		    mnemonic.shortcut, menuMnemonicColor);
+	    } else {
+		window.putCharXY(1 + mnemonic.shortcutIdx, 0,
+		    mnemonic.shortcut, menuMnemonicColor);
+	    }
+
 	}
     }
 
@@ -238,7 +244,7 @@ public class TButton : TWidget {
      *    event = keystroke event
      */
     override protected void onKeypress(TKeypressEvent event) {
-	if ((event.key == kbEnter) || 
+	if ((event.key == kbEnter) ||
 	    (event.key == kbSpace)
 	) {
 	    // Dispatch
