@@ -235,12 +235,7 @@ public class Cell : CellAttributes {
 
 /**
  * This class represents a text-based screen.  Drawing operations
- * write to a logical screen.  Calling flushString() returns a string
- * that contains xterm/ANSI/ECMA-type escape sequences that provides
- * the updates to the physical screen.
- *
- * Win32 would need a new flush() that calls the Console drawing
- * functions.
+ * write to a logical screen.
  */
 public class Screen {
 

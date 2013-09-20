@@ -122,11 +122,13 @@ public class TApplication {
 
     /// Public constructor.
     public this() {
-	version(Posix) {
-	    backend = new ECMABackend();
-	}
-	version(Windows) {
-	    backend = new Win32ConsoleBackend();
+	if (backend is null) {
+	    version(Posix) {
+		backend = new ECMABackend();
+	    }
+	    version(Windows) {
+		backend = new Win32ConsoleBackend();
+	    }
 	}
 	theme = new ColorTheme();
 	desktopBottom = backend.screen.getHeight() - 1;
@@ -988,7 +990,7 @@ public class TApplication {
      * Get the amount of time I can sleep before missing a Timer tick.
      *
      * Params:
-     *    timeout = initial timeout
+     *    timeout = initial (maximum) timeout
      *
      * Returns:
      *    number of milliseconds between now and the next timer event

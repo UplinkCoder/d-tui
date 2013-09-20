@@ -411,7 +411,7 @@ public class ECMATerminal {
     }
 
     /**
-     * Read one Unicode code point from stdin.
+     * Read one Unicode code point from a file descriptor.
      *
      * Params:
      *    fileno = file number to read from
