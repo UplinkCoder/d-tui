@@ -60,7 +60,7 @@ void main(string [] args) {
     MyApplication app = new MyApplication();
     app.run();
 }
-'''
+```
 
 See the file demo1.d for many example usages.
 
