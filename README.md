@@ -37,29 +37,30 @@ The library is currently under initial development, usage patterns are
 still being worked on.  Generally the goal will be to build
 applications somewhat as follows:
 
-    import tui;
+```D
+import tui;
 
-    public class MyApplication : TApplication {
+public class MyApplication : TApplication {
 
-        this() {
-            super();
+    this() {
+        super();
 
-            // Create an editor window that has support for
-            // copy/paste, search text, arrow keys, horizontal
-            // and vertical scrollbar, etc.
-            addEditor();
+        // Create an editor window that has support for
+        // copy/paste, search text, arrow keys, horizontal
+        // and vertical scrollbar, etc.
+        addEditor();
 
-            // Create a menu with Open and Exit actions
-            TMenu menu = addMenu("&File");
-            menu.addItem(TMenu.MID_FILE_OPEN);
-            menu.addItem("E&xit", cmExit, kbAltX);
-        }
+        // Create standard menus for File and Window
+        addFileMenu();
+        addWindowMenu();
     }
+}
 
-    void main(string [] args) {
-        MyApplication app = new MyApplication();
-        app.run();
-    }
+void main(string [] args) {
+    MyApplication app = new MyApplication();
+    app.run();
+}
+'''
 
 See the file demo1.d for many example usages.
 
@@ -75,8 +76,8 @@ which greatly accelerated support for the Win32 console.
 Roadmap
 -------
 
-I am just beginning as a work in progress.  Many tasks remain before
-calling this version 1.0:
+This is a work in progress.  Many tasks remain before calling this
+version 1.0:
 
 - [ ] TEditor
   - [ ] Word wrap
