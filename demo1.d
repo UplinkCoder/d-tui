@@ -433,6 +433,14 @@ private class DemoApplication : TApplication {
 	item = demoMenu.addItem(2001, "Disabled");
 	item.enabled = false;
 	item = demoMenu.addItem(2002, "&Normal");
+	TSubMenu subMenu = demoMenu.addSubMenu("Sub-&Menu");
+	item = demoMenu.addItem(2010, "N&ormal A&&D");
+
+	item = subMenu.addItem(2020, "&Checkable (sub)");
+	item.checkable = true;
+	item = subMenu.addItem(2021, "Disabled (sub)");
+	item.enabled = false;
+	item = subMenu.addItem(2022, "&Normal (sub)");
 
 	addWindowMenu();
     }
