@@ -471,6 +471,29 @@ public class TMenu : TWindow {
 	height++;
     }
 
+    /**
+     * Convenience function to add a submenu.
+     *
+     * Params:
+     *    title = menu title.  Title must contain a keyboard shortcut, denoted by prefixing a letter with "&", e.g. "&File"
+     */
+    public TSubMenu addSubMenu(dstring title) {
+	uint y = cast(uint)children.length + 1;
+
+	assert(y < height);
+	TSubMenu subMenu = new TSubMenu(this, title, 1, y);
+	height++;
+	if (subMenu.width + 2 > width) {
+	    width = subMenu.width + 2;
+	}
+	foreach (i; children) {
+	    i.width = width - 2;
+	}
+	application.recomputeMenuX();
+	activate(0);
+	return subMenu;
+    }
+
 }
 
 /**
@@ -518,7 +541,7 @@ public class TMenuItem : TWidget {
     }
 
     /**
-     * Public constructor
+     * Private constructor
      *
      * Params:
      *    parent = parent widget
@@ -701,7 +724,7 @@ public class TMenuItem : TWidget {
 public class TMenuSeparator : TMenuItem {
 
     /**
-     * Public constructor
+     * Private constructor
      *
      * Params:
      *    parent = parent widget
@@ -722,6 +745,62 @@ public class TMenuSeparator : TMenuItem {
 	window.putCharXY(0, 0, cp437_chars[0xC3], background);
 	window.putCharXY(width - 1, 0, cp437_chars[0xB4], background);
 	window.hLineXY(1, 0, width - 2, GraphicsChars.SINGLE_BAR, background);
+    }
+
+}
+
+/**
+ * TSubMenu is a special case menu item that wraps another TMenu.
+ */
+public class TSubMenu : TMenuItem {
+
+    /// The menu window
+    public TMenu menu;
+
+    /// Allow access to addX() functions
+    alias menu this;
+
+    /**
+     * Private constructor
+     *
+     * Params:
+     *    parent = parent widget
+     *    title = menu title.  Title must contain a keyboard shortcut, denoted by prefixing a letter with "&", e.g. "&File"
+     *    x = column relative to parent
+     *    y = row relative to parent
+     */
+    private this(TMenu parent, dstring title, uint x, uint y) {
+	super(parent, TMenu.MID_UNUSED, x, y, title);
+
+	active = false;
+	enabled = true;
+
+	this.menu = new TMenu(parent.application, x, y, title);
+	width = menu.width + 2;
+    }
+
+    /// Draw the menu title
+    override public void draw() {
+	super.draw();
+
+	CellAttributes background = window.application.theme.getColor("tmenu");
+	CellAttributes menuColor;
+	CellAttributes menuMnemonicColor;
+	if (getAbsoluteActive()) {
+	    menuColor = window.application.theme.getColor("tmenu.highlighted");
+	    menuMnemonicColor = window.application.theme.getColor("tmenu.mnemonic.highlighted");
+	} else {
+	    if (enabled) {
+		menuColor = window.application.theme.getColor("tmenu");
+		menuMnemonicColor = window.application.theme.getColor("tmenu.mnemonic");
+	    } else {
+		menuColor = window.application.theme.getColor("tmenu.disabled");
+		menuMnemonicColor = window.application.theme.getColor("tmenu.disabled");
+	    }
+	}
+
+	// Add the arrow
+	window.putCharXY(width - 2, 0, cp437_chars[0x10], menuColor);
     }
 
 }

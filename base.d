@@ -1757,11 +1757,12 @@ public class MnemonicString {
 	    } else {
 		newLabel ~= c;
 		if (foundAmp == true) {
-		    assert(foundShortcut == false);
-		    shortcut = c;
-		    foundAmp = false;
-		    foundShortcut = true;
-		    this.shortcutIdx = shortcutIdx;
+		    if (foundShortcut == false) {
+			shortcut = c;
+			foundAmp = false;
+			foundShortcut = true;
+			this.shortcutIdx = shortcutIdx;
+		    }
 		} else {
 		    shortcutIdx++;
 		}

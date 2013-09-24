@@ -34,6 +34,7 @@
 /*
  * TODO:
  *	Win32 support
+ *	Read/write to socket
  */
 
 // Description ---------------------------------------------------------------
