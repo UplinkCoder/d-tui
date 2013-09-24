@@ -55,7 +55,7 @@ public class TLabel : TWidget {
     public dstring text = "";
 
     /// Label color
-    private CellAttributes color;
+    private string colorKey;
 
     /**
      * Public constructor
@@ -81,16 +81,17 @@ public class TLabel : TWidget {
 	this.y = y;
 	this.height = 1;
 	this.width = cast(uint)text.length;
-
-	// Setup my color
-	color = new CellAttributes();
-	color.setTo(window.application.theme.getColor(colorKey));
-	CellAttributes background = window.getBackground();
-	color.backColor = background.backColor;
+	this.colorKey = colorKey;
     }
 
     /// Draw a static label
     override public void draw() {
+	// Setup my color
+	CellAttributes color = new CellAttributes();
+	color.setTo(window.application.theme.getColor(colorKey));
+	CellAttributes background = window.getBackground();
+	color.backColor = background.backColor;
+
 	window.putStrXY(0, 0, text, color);
     }
 

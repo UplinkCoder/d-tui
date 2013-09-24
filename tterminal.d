@@ -5755,18 +5755,6 @@ public class TTerminal : TWindow {
 	super.onMouseDown(mouse);
     }
 
-    /**
-     * Returns my active widget.
-     *
-     * Returns:
-     *    widget that is active, or this if no children
-     */
-    override public TWidget getActiveChild() {
-	// Always return me so that the cursor will be here and not on the
-	// scrollbar.
-	return this;
-    }
-
 }
 
 // Functions -----------------------------------------------------------------

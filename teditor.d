@@ -143,18 +143,6 @@ public class TEditorWidget : TWidget {
     }
 
     /**
-     * Returns my active widget.
-     *
-     * Returns:
-     *    widget that is active, or this if no children
-     */
-    override public TWidget getActiveChild() {
-	// Always return me so that the cursor will be here and not on the
-	// scrollbars.
-	return this;
-    }
-
-    /**
      * Public constructor
      *
      * Params:

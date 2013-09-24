@@ -111,7 +111,10 @@ public class TWidget {
 	    bool foundSibling = false;
 	    if (parent !is null) {
 		foreach (w; parent.children) {
-		    if (w.enabled) {
+		    if ((w.enabled) &&
+			(!cast(THScroller)this) &&
+			(!cast(TVScroller)this)
+		    ) {
 			parent.activate(w);
 			foundSibling = true;
 			break;
@@ -295,7 +298,10 @@ public class TWidget {
     private void addChild(TWidget child) {
 	children ~= child;
 
-	if (child.enabled) {
+	if ((child.enabled) &&
+	    (!cast(THScroller)child) &&
+	    (!cast(TVScroller)child)
+	) {
 	    foreach (w; children) {
 		w.active = false;
 	    }
@@ -315,6 +321,11 @@ public class TWidget {
      */
     public void activate(TWidget child) {
 	assert(child.enabled);
+	if ((cast(THScroller)child) ||
+	    (cast(TVScroller)child)) {
+	    return;
+	}
+
 	if (child !is activeChild) {
 	    if (activeChild !is null) {
 		activeChild.active = false;
@@ -338,7 +349,11 @@ public class TWidget {
 	}
 	TWidget child = null;
 	foreach (w; children) {
-	    if ((w.enabled == true) && (w.tabOrder >= tabOrder)) {
+	    if ((w.enabled == true) &&
+		(!cast(THScroller)w) &&
+		(!cast(TVScroller)w) &&
+		(w.tabOrder >= tabOrder)
+	    ) {
 		child = w;
 		break;
 	    }
@@ -393,7 +408,9 @@ public class TWidget {
 		// We wrapped around
 		break;
 	    }
-	} while (children[tabOrder].enabled == false);
+	} while ((children[tabOrder].enabled == false) &&
+	    !cast(THScroller)(children[tabOrder]) &&
+	    !cast(TVScroller)(children[tabOrder]));
 
 	assert(children[tabOrder].enabled == true);
 
@@ -412,6 +429,12 @@ public class TWidget {
      *    widget that is active, or this if no children
      */
     public TWidget getActiveChild() {
+	if ((cast(THScroller)this) ||
+	    (cast(TVScroller)this)
+	) {
+	    return parent;
+	}
+
 	foreach (w; children) {
 	    if (w.active) {
 		return w.getActiveChild();

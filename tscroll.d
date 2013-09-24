@@ -113,7 +113,7 @@ public class TVScroller : TWidget {
 	} else {
 	    window.vLineXY(0, 1, height - 2, GraphicsChars.HATCH, barColor);
 	}
-	
+
     }
 
     /**
@@ -346,7 +346,7 @@ public class THScroller : TWidget {
 	} else {
 	    window.hLineXY(1, 0, width - 2, GraphicsChars.HATCH, barColor);
 	}
-	
+
     }
 
     /**

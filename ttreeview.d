@@ -345,7 +345,7 @@ public class TTreeItem : TWidget {
 		item.unselect();
 	    }
 	}
-    }	
+    }
 
     /**
      * Handle mouse release events.
@@ -721,7 +721,7 @@ public class TTreeView : TWidget {
 	    topY++;
 	}
     }
-    
+
     /**
      * Handle mouse press events.
      *

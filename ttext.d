@@ -60,7 +60,7 @@ public class TText : TWidget {
     protected dstring [] lines;
 
     /// Text color
-    protected CellAttributes color;
+    protected string colorKey;
 
     /// Vertical scrollbar
     protected TVScroller vScroller;
@@ -146,15 +146,16 @@ public class TText : TWidget {
 	this.width = width;
 	this.height = height;
 	this.text = text;
-
-	// Setup my color
-	color = window.application.theme.getColor(colorKey);
+	this.colorKey = colorKey;
 
 	reflow();
     }
 
     /// Draw a static text
     override public void draw() {
+	// Setup my color
+	CellAttributes color = window.application.theme.getColor(colorKey);
+
 	uint begin = vScroller.value;
 	uint topY = 0;
 	for (auto i = begin; i < lines.length; i++) {

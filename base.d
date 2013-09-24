@@ -31,12 +31,6 @@
  * 02110-1301 USA
  */
 
-/*
- * TODO:
- *	ColorTheme:
- *		Read from / write to file
- */
-
 // Description ---------------------------------------------------------------
 
 // Imports -------------------------------------------------------------------
@@ -44,6 +38,7 @@
 import std.array;
 import std.datetime;
 import std.format;
+import std.stdio;
 import codepage;
 
 // Defines -------------------------------------------------------------------
@@ -150,6 +145,80 @@ public class CellAttributes {
 	this.backColor = that.backColor;
     }
 
+    /**
+     * Convert enum to string
+     *
+     * Param:
+     *    color = Color.RED, Color.BLUE, etc.
+     *
+     * Returns:
+     *    "red", "blue", etc.
+     */
+    private string stringFromColor(Color color) {
+	final switch (color) {
+	case Color.BLACK:
+	    return "black";
+	case Color.WHITE:
+	    return "white";
+	case Color.RED:
+	    return "red";
+	case Color.CYAN:
+	    return "cyan";
+	case Color.GREEN:
+	    return "green";
+	case Color.MAGENTA:
+	    return "magenta";
+	case Color.BLUE:
+	    return "blue";
+	case Color.YELLOW:
+	    return "yellow";
+	}
+    }
+
+    /**
+     * Convert string to enum
+     *
+     * Param:
+     *    "red", "blue", etc.
+     *
+     * Returns:
+     *    color = Color.RED, Color.BLUE, etc.
+     */
+    static private Color colorFromString(string color) {
+	switch (std.string.toLower(color)) {
+	case "black":
+	    return Color.BLACK;
+	case "white":
+	    return Color.WHITE;
+	case "red":
+	    return Color.RED;
+	case "cyan":
+	    return Color.CYAN;
+	case "green":
+	    return Color.GREEN;
+	case "magenta":
+	    return Color.MAGENTA;
+	case "blue":
+	    return Color.BLUE;
+	case "yellow":
+	    return Color.YELLOW;
+	case "brown":
+	    return Color.YELLOW;
+	default:
+	    return Color.WHITE;
+	}
+    }
+
+    /// Make human-readable description of this CellAttributes
+    override public string toString() {
+	auto writer = appender!string();
+	formattedWrite(writer, "%s%s on %s",
+	    bold ? "bold " : "",
+	    stringFromColor(foreColor),
+	    stringFromColor(backColor));
+	return writer.data;
+    }
+
 }
 
 /**
@@ -224,7 +293,7 @@ public class Cell : CellAttributes {
 	this.ch = ch;
     }
 
-    /// Make human-readable description of this Keystroke.
+    /// Make human-readable description of this Cell
     override public string toString() {
 	auto writer = appender!string();
 	formattedWrite(writer, "fore: %d back: %d bold: %s blink: %s ch %c",
@@ -1702,7 +1771,6 @@ public class MnemonicString {
     }
 }
 
-
 /**
  * ColorTheme is a collection of colors keyed by string.
  */
@@ -1726,6 +1794,62 @@ public class ColorTheme {
     public CellAttributes getColor(string name) {
 	CellAttributes attr = colors[name];
 	return attr;
+    }
+
+    /**
+     * Save the colors to an ASCII file
+     *
+     * Params:
+     *    filename = file to write to
+     */
+    public void save(string filename) {
+	auto file = File(filename, "wt");
+	foreach (string key; colors.keys.sort) {
+	    CellAttributes color = colors[key];
+	    file.writefln("%s = %s", key, color);
+	}
+    }
+
+    /**
+     * Read colors from an ASCII file
+     *
+     * Params:
+     *    filename = file to read from
+     */
+    public void load(string filename) {
+	string text = std.file.readText!(string)(filename);
+	foreach (line; std.string.splitLines!(string)(text)) {
+	    string key;
+	    string bold;
+	    string foreColor;
+	    string on;
+	    string backColor;
+	    auto tokenCount = formattedRead(line, "%s = %s %s %s %s",
+		&key, &bold, &foreColor, &on, &backColor);
+	    if (tokenCount == 4) {
+		std.stdio.stderr.writefln("1 %s = %s %s %s %s",
+		    key, bold, foreColor, on, backColor);
+
+		// "key = blah on blah"
+		foreColor = bold;
+		backColor = on;
+		bold = "";
+	    } else if (tokenCount == 5) {
+		// "key = bold blah on blah"
+		std.stdio.stderr.writefln("2 %s = %s %s %s %s",
+		    key, bold, foreColor, on, backColor);
+	    } else {
+		// Unknown line, skip this one
+		continue;
+	    }
+	    CellAttributes color = new CellAttributes();
+	    if (bold == "bold") {
+		color.bold = true;
+	    }
+	    color.foreColor = CellAttributes.colorFromString(foreColor);
+	    color.backColor = CellAttributes.colorFromString(backColor);
+	    colors[key] = color;
+	}
     }
 
     /// Sets to defaults that resemble the Borland IDE colors.

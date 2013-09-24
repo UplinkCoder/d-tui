@@ -87,20 +87,17 @@ version 1.0:
   - [ ] Cut/Copy/Paste
 - [ ] TMenu / TMenuItem
   - [ ] TSubMenu
-- [ ] TApplicationSocket - socket that knows about environment variables and
-      rows X cols
-  - [ ] this(TApplication application)
 - [ ] ECMATerminal
   - [ ] Mouse 1006 mode parsing
   - [ ] Win32 support (used for reading/writing sockets)
+  - [ ] ECMABackend(Socket) / TApplication(Socket)
 - [ ] Win32ConsoleBackend
   - [ ] Eliminate cursor flicker
-- [ ] Read/write color themes
 - [ ] Bugs
   - [ ] TDirectoryList cannot be navigated only with keyboard
   - [ ] TTreeView cannot be navigated only with keyboard
   - [ ] Assertion failure when exiting via mouse on win32
-
+  - [ ] RangeViolation after dragging scrollbar up/down
 
 Wishlist features (2.0):
 
