@@ -90,8 +90,8 @@ public class TApplication {
     /// Top-level menus in this application.
     private TMenu [] menus;
 
-    /// MenuItem IDs in this application.
-    private TMenuItem[short] menuItems;
+    /// Stack of activated sub-menus in this application.
+    private TMenu [] subMenus;
 
     /// Timers that are being ticked.
     private TTimer [] timers;
@@ -142,6 +142,9 @@ public class TApplication {
 	attr.backColor = invertColor(attr.backColor);
 	backend.screen.putAttrXY(mouseX, mouseY, attr, false);
 	flush = true;
+	if (windows.length == 0) {
+	    repaint = true;
+	}
     }
 
     /**
@@ -212,6 +215,12 @@ public class TApplication {
 	    x += m.title.length + 2;
 	}
 
+	foreach (m; subMenus) {
+	    // Reset the screen clipping so we can draw the next sub-menu.
+	    backend.screen.resetClipping();
+	    m.drawChildren();
+	}
+
 	// Draw the mouse pointer
 	drawMouse();
 
@@ -233,18 +242,6 @@ public class TApplication {
     }
 
     /**
-     * Add a menu item to the global hash
-     *
-     * Params:
-     *    command = command to send to the active widget
-     *    keypress = keypress that will activate the command
-     */
-    final public void addMenuItem(TMenuItem item) {
-	assert((item.id in menuItems) is null);
-	menuItems[item.id] = item;
-    }
-
-    /**
      * Add a keyboard accelerator to the global hash
      *
      * Params:
@@ -254,6 +251,16 @@ public class TApplication {
     final public void addAccelerator(TMenuItem item, TKeypress keypress) {
 	assert((keypress in accelerators) is null);
 	accelerators[keypress] = item;
+    }
+
+    /**
+     * Add a sub-menu to the list of open sub-menus
+     *
+     * Params:
+     *    menu = sub-menu
+     */
+    final public void addSubMenu(TMenu menu) {
+	subMenus ~= menu;
     }
 
     /**
@@ -348,6 +355,10 @@ public class TApplication {
 	    // They clicked outside the active menu, turn it off
 	    activeMenu.active = false;
 	    activeMenu = null;
+	    foreach (m; subMenus) {
+		m.active = false;
+	    }
+	    subMenus.length = 0;
 	    // Continue checks
 	}
 
@@ -356,6 +367,11 @@ public class TApplication {
 	    (mouse.mouse1) &&
 	    (!modalWindowActive())
 	) {
+
+	    foreach (m; subMenus) {
+		m.active = false;
+	    }
+	    subMenus.length = 0;
 
 	    // They selected the menu, go activate it
 	    foreach (m; menus) {
@@ -379,6 +395,10 @@ public class TApplication {
 	    (activeMenu !is null)) {
 
 	    TMenu oldMenu = activeMenu;
+	    foreach (m; subMenus) {
+		m.active = false;
+	    }
+	    subMenus.length = 0;
 
 	    // See if we should switch menus
 	    foreach (m; menus) {
@@ -541,7 +561,23 @@ public class TApplication {
 	if (activeMenu !is null) {
 	    activeMenu.active = false;
 	    activeMenu = null;
+	    foreach (m; subMenus) {
+		m.active = false;
+	    }
+	    subMenus.length = 0;
 	}
+	repaint = true;
+    }
+
+    /**
+     * Turn off a menu
+     */
+    final public void closeSubMenu() {
+	assert(activeMenu !is null);
+	auto item = subMenus[$ - 1];
+	assert(item);
+	item.active = false;
+	subMenus.length--;
 	repaint = true;
     }
 
@@ -550,6 +586,12 @@ public class TApplication {
      */
     final public void switchMenu(bool forward = true) {
 	assert(activeMenu !is null);
+
+	foreach (m; subMenus) {
+	    m.active = false;
+	}
+	subMenus.length = 0;
+
 	for (auto i = 0; i < menus.length; i++) {
 	    if (activeMenu is menus[i]) {
 		if (forward) {
@@ -949,6 +991,8 @@ public class TApplication {
 	    keypress.key.alt &&
 	    !keypress.key.ctrl &&
 	    (activeMenu is null)) {
+
+	    assert(subMenus.length == 0);
 
 	    foreach (m; menus) {
 		if (toLowercase(m.mnemonic.shortcut) == toLowercase(keypress.key.ch)) {

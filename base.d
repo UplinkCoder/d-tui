@@ -1118,7 +1118,7 @@ public struct TKeypress {
 	} else {
 	    if (alt && !shift && !ctrl) {
 		// Alt-X
-		formattedWrite(writer, "Alt+%c", ch);
+		formattedWrite(writer, "Alt+%c", toUppercase(ch));
 	    } else if (!alt && shift && !ctrl) {
 		// Shift-X
 		formattedWrite(writer, "%c", ch);

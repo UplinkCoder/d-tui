@@ -85,8 +85,8 @@ version 1.0:
   - [ ] Search
   - [ ] Replace
   - [ ] Cut/Copy/Paste
-- [ ] TMenu / TMenuItem
-  - [ ] TSubMenu
+- [ ] TSubMenu
+  - [ ] Mouse support
 - [ ] ECMATerminal
   - [ ] Mouse 1006 mode parsing
   - [ ] Win32 support (used for reading/writing sockets)

@@ -72,7 +72,7 @@ public class TWidget {
     public TWidget [] children;
 
     /// The currently active child widget that will receive keypress events.
-    private TWidget activeChild = null;
+    public TWidget activeChild = null;
 
     /// If true, this widget will receive events.
     public bool active = false;

@@ -436,11 +436,18 @@ private class DemoApplication : TApplication {
 	TSubMenu subMenu = demoMenu.addSubMenu("Sub-&Menu");
 	item = demoMenu.addItem(2010, "N&ormal A&&D");
 
-	item = subMenu.addItem(2020, "&Checkable (sub)");
+	item = subMenu.addItem(2000, "&Checkable (sub)");
 	item.checkable = true;
-	item = subMenu.addItem(2021, "Disabled (sub)");
+	item = subMenu.addItem(2001, "Disabled (sub)");
 	item.enabled = false;
-	item = subMenu.addItem(2022, "&Normal (sub)");
+	item = subMenu.addItem(2002, "&Normal (sub)");
+
+	subMenu = subMenu.addSubMenu("Sub-&Menu");
+	item = subMenu.addItem(2000, "&Checkable (sub)");
+	item.checkable = true;
+	item = subMenu.addItem(2001, "Disabled (sub)");
+	item.enabled = false;
+	item = subMenu.addItem(2002, "&Normal (sub)");
 
 	addWindowMenu();
     }

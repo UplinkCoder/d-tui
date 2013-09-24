@@ -53,6 +53,9 @@ import twindow;
  */
 public class TMenu : TWindow {
 
+    /// If true, this is a sub-menu
+    private bool isSubMenu = false;
+
     /// The shortcut and title
     public MnemonicString mnemonic;
 
@@ -233,6 +236,12 @@ public class TMenu : TWindow {
      *    event = keystroke event
      */
     override protected void onKeypress(TKeypressEvent keypress) {
+	if (activeChild !is null) {
+	    if (auto item = cast(TSubMenu)activeChild) {
+		item.onKeypress(keypress);
+		return;
+	    }
+	}
 
 	if (keypress.key == kbEsc) {
 	    application.closeMenu();
@@ -247,11 +256,17 @@ public class TMenu : TWindow {
 	    return;
 	}
 	if (keypress.key == kbRight) {
-	    application.switchMenu(true);
+	    if (!isSubMenu) {
+		application.switchMenu(true);
+	    }
 	    return;
 	}
 	if (keypress.key == kbLeft) {
-	    application.switchMenu(false);
+	    if (isSubMenu) {
+		application.closeSubMenu();
+	    } else {
+		application.switchMenu(false);
+	    }
 	    return;
 	}
 
@@ -491,6 +506,8 @@ public class TMenu : TWindow {
 	}
 	application.recomputeMenuX();
 	activate(0);
+	subMenu.menu.x = x + width - 2;
+
 	return subMenu;
     }
 
@@ -562,11 +579,6 @@ public class TMenuItem : TWidget {
 	this.label = mnemonic.rawLabel;
 	this.width = cast(uint)label.length + 4;
 	this.id = id;
-
-	// Save for the application
-	if (id != TMenu.MID_UNUSED) {
-	    window.application.addMenuItem(this);
-	}
 
 	// Default state for some known menu items
 	switch (id) {
@@ -775,8 +787,10 @@ public class TSubMenu : TMenuItem {
 	active = false;
 	enabled = true;
 
-	this.menu = new TMenu(parent.application, x, y, title);
+	this.menu = new TMenu(parent.application, x, getAbsoluteY(), title);
 	width = menu.width + 2;
+
+	this.menu.isSubMenu = true;
     }
 
     /// Draw the menu title
@@ -801,6 +815,82 @@ public class TSubMenu : TMenuItem {
 
 	// Add the arrow
 	window.putCharXY(width - 2, 0, cp437_chars[0x10], menuColor);
+    }
+
+    /**
+     * Handle keystrokes.
+     *
+     * Params:
+     *    event = keystroke event
+     */
+    override protected void onKeypress(TKeypressEvent event) {
+
+	if (menu.active) {
+	    menu.onKeypress(event);
+	    return;
+	}
+
+	TKeypress key = event.key;
+
+	if (key == kbEnter) {
+	    dispatch();
+	    return;
+	}
+
+	if (key == kbRight) {
+	    dispatch();
+	    return;
+	}
+
+	if (key == kbDown) {
+	    parent.switchWidget(true);
+	    return;
+	}
+
+	if (key == kbUp) {
+	    parent.switchWidget(false);
+	    return;
+	}
+
+	if (key == kbLeft) {
+	    auto parentMenu = cast(TMenu)parent;
+	    if (parentMenu.isSubMenu) {
+		application.closeSubMenu();
+	    } else {
+		application.switchMenu(false);
+	    }
+	    return;
+	}
+
+	if (key == kbEsc) {
+	    application.closeMenu();
+	    return;
+	}
+    }
+
+    /// Override dispatch() to do nothing
+    override public void dispatch() {
+	assert(enabled == true);
+	if (getAbsoluteActive()) {
+	    if (menu.active == false) {
+		application.addSubMenu(menu);
+		menu.active = true;
+	    }
+	}
+    }
+
+    /**
+     * Returns my active widget.
+     *
+     * Returns:
+     *    widget that is active, or this if no children
+     */
+    override public TWidget getActiveChild() {
+	if (menu.active) {
+	    return menu;
+	}
+	// Menu not active, return me
+	return this;
     }
 
 }
