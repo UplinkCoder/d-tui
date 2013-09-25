@@ -1718,6 +1718,13 @@ public class Backend {
      *    events received, or an empty list if the timeout was reached
      */
     abstract public TInputEvent [] getEvents(uint timeout);
+
+    /**
+     * Subclasses must provide an implementation that closes sockets,
+     * restores console, etc.
+     */
+    abstract public void shutdown();
+
 }
 
 /**

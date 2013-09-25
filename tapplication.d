@@ -1144,6 +1144,8 @@ public class TApplication {
 	    // Update the screen
 	    drawAll();
 	}
+
+	backend.shutdown();
     }
 
     /**

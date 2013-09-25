@@ -250,11 +250,18 @@ version(Windows) {
 	}
 
 	/**
+	 * Restore original console mode
+	 */
+	public void shutdown() {
+	    SetConsoleMode(hConsoleInput, hConsoleInputMode);
+	    SetConsoleMode(hConsoleOutput, hConsoleOutputMode);
+	}
+
+	/**
 	 * Destructor restores original console mode
 	 */
 	public ~this() {
-	    SetConsoleMode(hConsoleInput, hConsoleInputMode);
-	    SetConsoleMode(hConsoleOutput, hConsoleOutputMode);
+	    shutdown();
 	}
 
 	/**
@@ -658,6 +665,15 @@ version(Windows) {
 	    }
 	    return events;
 	}
+
+	/**
+	 * Subclasses must provide an implementation that closes sockets,
+	 * restores console, etc.
+	 */
+	override public void shutdown() {
+	    console.shutdown();
+	}
+
     }
 
     // Functions -------------------------------------------------------------

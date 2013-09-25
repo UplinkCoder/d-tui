@@ -351,9 +351,17 @@ public class ECMATerminal {
     /// The socket to read/write from
     private Socket socket = null;
 
+    /// If true, the socket is assumed to be alive.
+    private bool socketAlive = false;
+
     /// When true, the terminal is sending non-UTF8 bytes when
     /// reporting mouse events.
     private bool brokenTerminalUTFMouse = false;
+
+    // Cache these variables between calls to getCharSocket()
+    private dchar[] socketChars;
+    private char[1024] socketReadBuffer;
+    private size_t socketReadBufferN = 0;
 
     /**
      * Constructor sets up state for getEvent()
@@ -367,6 +375,7 @@ public class ECMATerminal {
 	mouse2 = false;
 	mouse3 = false;
 	this.socket = socket;
+	socketChars.length = 0;
 
 	if (socket is null) {
 	    version(Windows) {
@@ -382,6 +391,7 @@ public class ECMATerminal {
 	    setRawMode = true;
 	} else {
 	    assert(socket.blocking == true);
+	    socketAlive = socket.isAlive();
 	}
 
 	// Enable mouse reporting and metaSendsEscape
@@ -392,15 +402,25 @@ public class ECMATerminal {
 	    getPhysicalHeight());
     }
 
-    /// Destructor restores terminal to normal state
-    public ~this() {
+    /// Restore terminal to normal state
+    public void shutdown() {
 	if (setRawMode) {
 	    version(Posix) {
 		tcsetattr(std.stdio.stdin.fileno(), TCSANOW, &oldTermios);
 	    }
+	    setRawMode = false;
 	}
 	// Disable mouse reporting and show cursor
-	writef("%s%s", mouse(false), cursor(true));
+	writef("%s%s%s", mouse(false), cursor(true), normal());
+	if ((socket !is null) && (socketAlive)) {
+	    socket.shutdown(SocketShutdown.BOTH);
+	    socketAlive = false;
+	}
+    }
+
+    /// Destructor restores terminal to normal state
+    public ~this() {
+	shutdown();
     }
 
     /**
@@ -413,7 +433,7 @@ public class ECMATerminal {
 	if (socket is null) {
 	    std.stdio.stdout.writef(args);
 	} else {
-	    if (socket.isAlive) {
+	    if (socketAlive) {
 		auto writer = appender!string();
 		formattedWrite(writer, args);
 		socket.send(writer.data);
@@ -572,6 +592,19 @@ public class ECMATerminal {
 	}
     }
 
+    // private import core.stdc.errno;
+    // private import core.stdc.string;
+
+    /**
+     * See if getCharSocket() will return something.
+     *
+     * Returns:
+     *    true if there is a backlog of characters waiting to be read
+     */
+    public bool backlog() {
+	return (socketChars.length > 0);
+    }
+
     /**
      * Read one Unicode code point from socket.
      *
@@ -581,58 +614,111 @@ public class ECMATerminal {
     public dchar getCharSocket() {
 	assert(socket !is null);
 
-	try {
-	    char[] buffer;
-	    char[1] remoteByte;
-	    auto rc = socket.receive(remoteByte);
-	    if (rc != 1) {
-		// Remote side closed connection, or other error.  Let
-		// ECMABackend report that the socket is closed.
-		socket.shutdown(SocketShutdown.BOTH);
-		return 0;
-	    }
+    getCharSocketReturn:
+	// Return any dchars already read
+	if (socketChars.length > 0) {
+	    dchar ch = socketChars[0];
+	    socketChars = socketChars[1 .. $];
+	    // std.stdio.stderr.writefln("---> return ch: %x %c", ch, ch);
+	    return ch;
+	}
+	assert(socketChars.length == 0);
+
+	// Process any bytes in socketReadBuffer
+	while (socketReadBufferN > 0) {
+	    // std.stdio.stderr.writefln("socketReadBufferN: %d", socketReadBufferN);
+
+	    char[4] buffer;
+	    buffer[0] = socketReadBuffer[0];
 
 	    if ((brokenTerminalUTFMouse == true) && (state == STATE.MOUSE)) {
-		// This terminal is sending non-UTF8 characters in its
-		// mouse reporting.  Do not decode stuff, just return
-		// buffer[0].
-		return remoteByte[0];
+		// This terminal is sending non-UTF8 characters in its mouse
+		// reporting.  Do not decode stuff, just return buffer[0].
+		socketChars ~= buffer[0];
+		// Manually perform the array copy
+		for (auto i = 0; i < socketReadBufferN - 1; i++) {
+		    socketReadBuffer[i] = socketReadBuffer[i + 1];
+		}
+		socketReadBufferN -= 1;
+		goto getCharSocketReturn;
 	    }
 
-	    if ((remoteByte[0] & 0xF0) == 0xF0) {
+	    size_t len = 1;
+	    if ((buffer[0] & 0xF0) == 0xF0) {
 		// 3 more bytes coming
-		buffer.length = 3;
-	    } else if ((remoteByte[0] & 0xE0) == 0xE0) {
+		len += 3;
+	    } else if ((buffer[0] & 0xE0) == 0xE0) {
 		// 2 more bytes coming
-		buffer.length = 2;
-	    } else if ((remoteByte[0] & 0xC0) == 0xC0) {
+		len += 2;
+	    } else if ((buffer[0] & 0xC0) == 0xC0) {
 		// 1 more byte coming
-		buffer.length = 1;
+		len += 1;
 	    }
-	    rc = socket.receive(buffer);
-	    if (rc != 1) {
-		// Remote side closed connection, or other error.  Let
-		// ECMABackend report that the socket is closed.
-		socket.shutdown(SocketShutdown.BOTH);
-		return 0;
+	    if (socketReadBufferN < len) {
+		// Still waiting on more data, bail out
+		break;
 	    }
-	    char [] utf8Buffer;
-	    utf8Buffer ~= remoteByte;
-	    utf8Buffer ~= buffer;
-	    size_t i;
-	    return decode(utf8Buffer, i);
-	} catch (UTFException e) {
-	    if (state == STATE.MOUSE) {
-		// The terminal we are using (e.g. gnome-terminal,
-		// xfce4-terminal, or others) is sending non-UTF8
-		// characters for the mouse reporting.
-		brokenTerminalUTFMouse = true;
-	    }
+	    buffer[0 .. len] = socketReadBuffer[0 .. len];
+	    try {
+		size_t i;
+		socketChars ~= decode(buffer, i);
+		// std.stdio.stderr.writefln("appended: %02x %c", socketChars[$ - 1], socketChars[$ - 1]);
+	    } catch (UTFException e) {
+		if (state == STATE.MOUSE) {
+		    // The terminal we are using (e.g. gnome-terminal,
+		    // xfce4-terminal, or others) is sending non-UTF8
+		    // characters for the mouse reporting.
+		    brokenTerminalUTFMouse = true;
+		    socketChars.length = 0;
+		}
 
-	    // Trash this code.
-	    reset();
+		// Trash this code.
+		reset();
+		break;
+	    }
+	    // Manually perform the array copy
+	    for (auto i = 0; i < socketReadBufferN - len; i++) {
+		socketReadBuffer[i] = socketReadBuffer[i + len];
+	    }
+	    socketReadBufferN -= len;
+	}
+
+	if (socketChars.length > 0) {
+	    // Found a character, return it
+	    goto getCharSocketReturn;
+	}
+
+	if (socketReadBufferN > 0) {
+	    // Still waiting on more data, bail out
 	    return 0;
 	}
+
+	// Read more data
+	auto rc = socket.receive(socketReadBuffer);
+	// std.stdio.stderr.writefln("rc = %d", rc);
+	if (rc == 0) {
+	    // Remote side closed connection.  Let ECMABackend report
+	    // that the socket is closed.
+	    socket.shutdown(SocketShutdown.BOTH);
+	    socketAlive = false;
+	    socketReadBufferN = 0;
+	    return 0;
+	}
+	if (rc < 0) {
+	    if (errno == EAGAIN) {
+		return 0;
+	    }
+
+	    // Some other error.  Let ECMABackend report that the socket
+	    // is closed.
+	    // std.stdio.stderr.writefln("SHUTDOWN socket: %d %s", errno, to!string(strerror(errno)));
+	    socket.shutdown(SocketShutdown.BOTH);
+	    socketAlive = false;
+	    socketReadBufferN = 0;
+	    return 0;
+	}
+	socketReadBufferN += rc;
+	goto getCharSocketReturn;
     }
 
     /**
@@ -658,7 +744,7 @@ public class ECMATerminal {
 	    }
 	}
 	// TODO: let TelnetSocket et al. set the window size
-	return 25;
+	return 80;
     }
 
     /**
@@ -684,7 +770,7 @@ public class ECMATerminal {
 	    }
 	}
 	// TODO: let TelnetSocket et al. set the window size
-	return 80;
+	return 24;
     }
 
     /**
@@ -1905,6 +1991,8 @@ public class ECMABackend : Backend {
      *    events received, or an empty list if the timeout was reached
      */
     override public TInputEvent [] getEvents(uint timeout) {
+	TInputEvent [] events;
+
 	if (socket is null) {
 	    version(Posix) {
 		// Poll on stdin.
@@ -1920,11 +2008,11 @@ public class ECMABackend : Backend {
 		}
 	    }
 	} else {
-	    if (!socket.isAlive()) {
-		TInputEvent [] events;
+	    if (!terminal.socketAlive) {
 		events ~= new TCommandEvent(cmAbort);
 		return events;
 	    }
+	    assert(timeout > 0);
 
 	    // Select on the socket.  Last parameter is microseconds,
 	    // so convert to millis.
@@ -1932,27 +2020,47 @@ public class ECMABackend : Backend {
 	    writeSockets.reset();
 	    exceptSockets.reset();
 	    readSockets.add(socket);
-	    exceptSockets.add(socket);
-	    writeSockets.add(socket);
+
+	    // For now, disregard writeSockets and exceptSockets.
+	    // exceptSockets.add(socket);
+	    // writeSockets.add(socket);
 	    auto rc = Socket.select(readSockets, writeSockets,
 		exceptSockets, timeout * 1000);
 
 	    if (rc < 0) {
 		// Interrupt
-		return terminal.getEvents(0, true);
+	    }
+
+	    if (rc == 0) {
+		// Timeout
+		events ~= terminal.getEvents(0, true);
 	    }
 
 	    if (readSockets.isSet(socket)) {
 		// socket is readable, go get data
 		dchar ch = terminal.getCharSocket();
-		return terminal.getEvents(ch);
+		events ~= terminal.getEvents(ch);
 	    }
-
-	    // For now, disregard writeSockets and exceptSockets.
 	}
 
-	return terminal.getEvents(0, true);
+	while (terminal.backlog()) {
+	    // We had something from the last read
+	    dchar ch = terminal.getCharSocket();
+	    events ~= terminal.getEvents(ch);
+	}
+
+	// Timeout case
+	return events;
     }
+
+    /**
+     * Subclasses must provide an implementation that closes sockets,
+     * restores console, etc.
+     */
+    override public void shutdown() {
+	terminal.shutdown();
+    }
+
 }
 
 // Functions -----------------------------------------------------------------
