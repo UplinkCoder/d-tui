@@ -16,7 +16,8 @@ Two platforms are available:
   tracking using UTF8 coordinates is supported.
 
 * Windows console mode (tested on Windows XP).  Input/output is
-  handled via Win32 console functions.
+  handled via Win32 console functions.  (WARNING: CTFE is complaining
+  on Windows when referencing std.socket.  I will try to fix shortly.)
 
 Contributions towards supporting other platforms would be *greatly*
 appreciated.

@@ -39,6 +39,7 @@ import core.thread;
 import std.conv;
 import std.datetime;
 import std.math;
+import std.socket;
 import base;
 import codepage;
 import ecma;
@@ -120,9 +121,16 @@ public class TApplication {
     /// Active keyboard accelerators
     private TMenuItem[TKeypress] accelerators;
 
-    /// Public constructor.
-    public this() {
-	if (backend is null) {
+    /**
+     * Public constructor.
+     *
+     * Params:
+     *    socket = remote socket to the user, or null if using stdio
+     */
+    public this(Socket socket = null) {
+	if (socket !is null) {
+	    backend = new ECMABackend(socket);
+	} else {
 	    version(Posix) {
 		backend = new ECMABackend();
 	    }
@@ -649,6 +657,14 @@ public class TApplication {
 	    // std.stdio.stderr.writefln("metaHandleEvents event: %s", event);
 
 	    // Special application-wide events -------------------------------
+
+	    // Abort everything
+	    if (auto command = cast(TCommandEvent)event) {
+		if (command.cmd == cmAbort) {
+		    quit = true;
+		    return;
+		}
+	    }
 
 	    // Screen resize
 	    if (auto resize = cast(TResizeEvent)event) {

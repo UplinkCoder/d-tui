@@ -1436,6 +1436,9 @@ public immutable TKeypress kbBackspaceDel = TKeypress(false, 0, 0x7F, false, fal
 public struct TCommand {
 
     enum Type {
+	/// Immediately abort the application (e.g. remote side closed connection)
+	ABORT,
+
 	/// File open dialog
 	OPEN,
 	/// Exit application
@@ -1484,6 +1487,7 @@ public struct TCommand {
 	return writer.data;
     }
 }
+public immutable TCommand cmAbort = TCommand(TCommand.Type.ABORT);
 public immutable TCommand cmExit = TCommand(TCommand.Type.EXIT);
 public immutable TCommand cmQuit = TCommand(TCommand.Type.EXIT);
 public immutable TCommand cmOpen = TCommand(TCommand.Type.OPEN);

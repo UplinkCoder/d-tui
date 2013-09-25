@@ -31,12 +31,6 @@
  * 02110-1301 USA
  */
 
-/*
- * TODO:
- *	Win32 support
- *	Read/write to socket
- */
-
 // Description ---------------------------------------------------------------
 
 // Imports -------------------------------------------------------------------
@@ -46,10 +40,19 @@ import std.conv;
 import std.datetime;
 import std.file;
 import std.format;
-import std.stdio;
+import std.socket;
 import std.utf;
 import base;
 import codepage;
+
+version(Posix) {
+    import core.stdc.errno;
+    import core.stdc.string;
+    import core.sys.posix.poll;
+    import core.sys.posix.sys.ioctl;
+    import core.sys.posix.termios;
+    import core.sys.posix.unistd;
+}
 
 // Defines -------------------------------------------------------------------
 
@@ -105,11 +108,11 @@ public class ECMAScreen : Screen {
 	    if ((lCell != pCell) || (reallyCleared == true)) {
 
 		if (debugToStderr) {
-		    stderr.writefln("\n--");
-		    stderr.writefln(" Y: %d X: %d", y, x);
-		    stderr.writefln("   lCell: %s", lCell);
-		    stderr.writefln("   pCell: %s", pCell);
-		    stderr.writefln("    ====    ");
+		    std.stdio.stderr.writefln("\n--");
+		    std.stdio.stderr.writefln(" Y: %d X: %d", y, x);
+		    std.stdio.stderr.writefln("   lCell: %s", lCell);
+		    std.stdio.stderr.writefln("   pCell: %s", pCell);
+		    std.stdio.stderr.writefln("    ====    ");
 		}
 
 		if (lastAttr is null) {
@@ -153,7 +156,7 @@ public class ECMAScreen : Screen {
 			    lCell.backColor));
 
 		    if (debugToStderr) {
-			stderr.writefln("1 Change only fore/back colors");
+			std.stdio.stderr.writefln("1 Change only fore/back colors");
 		    }
 		} else if ((lCell.foreColor != lastAttr.foreColor) &&
 		    (lCell.backColor != lastAttr.backColor) &&
@@ -163,7 +166,7 @@ public class ECMAScreen : Screen {
 		    (lCell.blink != lastAttr.blink)) {
 
 		    if (debugToStderr) {
-			stderr.writefln("2 Set all attributes");
+			std.stdio.stderr.writefln("2 Set all attributes");
 		    }
 
 		    // Everything is different
@@ -183,7 +186,7 @@ public class ECMAScreen : Screen {
 		    writer.put(terminal.color(lCell.foreColor, true));
 
 		    if (debugToStderr) {
-			stderr.writefln("3 Change foreColor");
+			std.stdio.stderr.writefln("3 Change foreColor");
 		    }
 
 		} else if ((lCell.foreColor == lastAttr.foreColor) &&
@@ -197,7 +200,7 @@ public class ECMAScreen : Screen {
 		    writer.put(terminal.color(lCell.backColor, false));
 
 		    if (debugToStderr) {
-			stderr.writefln("4 Change backColor");
+			std.stdio.stderr.writefln("4 Change backColor");
 		    }
 
 		} else if ((lCell.foreColor == lastAttr.foreColor) &&
@@ -211,7 +214,7 @@ public class ECMAScreen : Screen {
 		    // NOP
 
 		    if (debugToStderr) {
-			stderr.writefln("5 Only emit character");
+			std.stdio.stderr.writefln("5 Only emit character");
 		    }
 		} else {
 		    // Just reset everything again
@@ -220,7 +223,7 @@ public class ECMAScreen : Screen {
 			    lCell.underline));
 
 		    if (debugToStderr) {
-			stderr.writefln("6 Change all attributes");
+			std.stdio.stderr.writefln("6 Change all attributes");
 		    }
 		}
 		// Emit the character
@@ -269,7 +272,7 @@ public class ECMAScreen : Screen {
 
 	string result = writer.data;
 	if (debugToStderr) {
-	    stderr.writefln("flushString(): %s", result);
+	    std.stdio.stderr.writefln("flushString(): %s", result);
 	}
 	return result;
     }
@@ -286,10 +289,9 @@ public class ECMAScreen : Screen {
 	} else {
 	    result ~= terminal.cursor(false);
 	}
-	stdout.write(result);
-	stdout.flush();
+	terminal.writef(result);
+	terminal.flush();
     }
-
 }
 
 /**
@@ -343,9 +345,93 @@ public class ECMATerminal {
     /// Set by the SIGWINCH handler to expose window resize events
     private TResizeEvent windowResize = null;
 
+    /// If true, then we changed stdin and need to change it back
+    private bool setRawMode;
+
+    /// The socket to read/write from
+    private Socket socket = null;
+
     /// When true, the terminal is sending non-UTF8 bytes when
     /// reporting mouse events.
     private bool brokenTerminalUTFMouse = false;
+
+    /**
+     * Constructor sets up state for getEvent()
+     *
+     * Params:
+     *    socket = socket to the remote user, or null for stdin.  If stdin is used, it will be put in raw mode; the destructor will restore stdin to whatever it was.  Note that the socket must be in blocking mode.  Also, stdin is not supported on Windows, use Win32ConsoleBackend() instead.
+     */
+    public this(Socket socket = null) {
+	reset();
+	mouse1 = false;
+	mouse2 = false;
+	mouse3 = false;
+	this.socket = socket;
+
+	if (socket is null) {
+	    version(Windows) {
+		throw new Exception("stdin is not supported on Windows, either use Win32ConsoleBackend() instead or pass in a socket");
+	    }
+	    version(Posix) {
+		termios newTermios;
+		tcgetattr(std.stdio.stdin.fileno(), &oldTermios);
+		newTermios = oldTermios;
+		cfmakeraw(&newTermios);
+		tcsetattr(std.stdio.stdin.fileno(), TCSANOW, &newTermios);
+	    }
+	    setRawMode = true;
+	} else {
+	    assert(socket.blocking == true);
+	}
+
+	// Enable mouse reporting and metaSendsEscape
+	writef("%s%s", mouse(true), xtermMetaSendsEscape(true));
+
+	// Hang onto the window size
+	windowResize = new TResizeEvent(TResizeEvent.Type.Screen, getPhysicalWidth(),
+	    getPhysicalHeight());
+    }
+
+    /// Destructor restores terminal to normal state
+    public ~this() {
+	if (setRawMode) {
+	    version(Posix) {
+		tcsetattr(std.stdio.stdin.fileno(), TCSANOW, &oldTermios);
+	    }
+	}
+	// Disable mouse reporting and show cursor
+	writef("%s%s", mouse(false), cursor(true));
+    }
+
+    /**
+     * Emit something to output, either stdout or socket
+     *
+     * Params:
+     *    args... = arguments to writef
+     */
+    public void writef(T...)(T args) {
+	if (socket is null) {
+	    std.stdio.stdout.writef(args);
+	} else {
+	    if (socket.isAlive) {
+		auto writer = appender!string();
+		formattedWrite(writer, args);
+		socket.send(writer.data);
+	    }
+	}
+    }
+
+    /**
+     * Flush output, either stdout or socket
+     */
+    public void flush() {
+	if (socket is null) {
+	    std.stdio.stdout.flush();
+	} else {
+	    // Nothing to do, the socket is in blocking mode so everything
+	    // was already "flushed" by the writef() call.
+	}
+    }
 
     /// Reset keyboard/mouse input parser
     private void reset() {
@@ -355,17 +441,10 @@ public class ECMATerminal {
 	params[0] = "";
     }
 
-    /// If true, then we changed stdin and need to change it back
-    private bool setRawMode;
-
     // Used for raw mode
     version(Posix) {
-	import core.sys.posix.termios;
-	import core.sys.posix.unistd;
-	import core.stdc.errno;
-	import core.stdc.string;
 
-	// This definition is taken from the Linux man page
+	/// The definitions for the flags are taken from the Linux man page
 	public static void cfmakeraw(termios * termios_p) {
 	    termios_p.c_iflag &= ~(IGNBRK | BRKINT | PARMRK | ISTRIP | INLCR | IGNCR | ICRNL | IXON);
 	    termios_p.c_oflag &= ~OPOST;
@@ -374,27 +453,21 @@ public class ECMATerminal {
 	    termios_p.c_cflag |= CS8;
 	}
 
+	/// The original state of stdin
 	private termios oldTermios;
 
-    } else version(Windows) {
-	// I'm keeping this for reference, but it doesn't do anything useful
-	// for the Terminal class at the moment.
-	import core.sys.windows.windows;
-    }
+	/**
+	 * Read one unsigned byte from stdin and upcast to dchar.
+	 *
+	 * Params:
+	 *    fileno = file number to read from
+	 *
+	 * Returns:
+	 *    one 8-bit byte upcast to a Unicode code point
+	 */
+	static public dchar getByteFileno(int fileno) {
+	    char[1] buffer;
 
-    /**
-     * Read one unsigned byte from stdin and upcast to dchar.
-     *
-     * Params:
-     *    fileno = file number to read from
-     *
-     * Returns:
-     *    one 8-bit byte upcast to a Unicode code point
-     */
-    static public dchar getByteFileno(int fileno) {
-	char[1] buffer;
-
-	version(Posix) {
 	    auto rc = read(fileno, buffer.ptr, 1);
 	    if (rc == 0) {
 		// This is EOF
@@ -407,23 +480,21 @@ public class ECMATerminal {
 		}
 		throw new FileException(to!string(strerror(errno)));
 	    }
+	    return buffer[0];
 	}
-	return buffer[0];
-    }
 
-    /**
-     * Read one Unicode code point from a file descriptor.
-     *
-     * Params:
-     *    fileno = file number to read from
-     *
-     * Returns:
-     *    one Unicode code point
-     */
-    static public dchar getCharFileno(int fileno) {
-	char[4] buffer;
+	/**
+	 * Read one Unicode code point from a file descriptor.
+	 *
+	 * Params:
+	 *    fileno = file number to read from
+	 *
+	 * Returns:
+	 *    one Unicode code point
+	 */
+	static public dchar getCharFileno(int fileno) {
+	    char[4] buffer;
 
-	version(Posix) {
 	    auto rc = read(fileno, buffer.ptr, 1);
 	    if (rc == 0) {
 		// This is EOF
@@ -450,23 +521,21 @@ public class ECMATerminal {
 		len = 1;
 	    }
 	    rc = read(fileno, cast(void *)(buffer.ptr) + 1, len);
+
+	    size_t i;
+	    return decode(buffer, i);
 	}
 
-	size_t i;
-	return decode(buffer, i);
-    }
-
-    /**
-     * Read one Unicode code point from stdin.
-     *
-     * Returns:
-     *    one Unicode code point
-     */
-    public dchar getCharStdin() {
-	try {
-	    char[4] buffer;
-	    version(Posix) {
-		read(stdin.fileno(), buffer.ptr, 1);
+	/**
+	 * Read one Unicode code point from stdin.
+	 *
+	 * Returns:
+	 *    one Unicode code point
+	 */
+	public dchar getCharStdin() {
+	    try {
+		char[4] buffer;
+		read(std.stdio.stdin.fileno(), buffer.ptr, 1);
 		if ((brokenTerminalUTFMouse == true) && (state == STATE.MOUSE)) {
 		    // This terminal is sending non-UTF8 characters in its
 		    // mouse reporting.  Do not decode stuff, just return
@@ -485,10 +554,73 @@ public class ECMATerminal {
 		    // 1 more byte coming
 		    len = 1;
 		}
-		read(stdin.fileno(), cast(void *)(buffer.ptr) + 1, len);
+		read(std.stdio.stdin.fileno(), cast(void *)(buffer.ptr) + 1, len);
+		size_t i;
+		return decode(buffer, i);
+	    } catch (UTFException e) {
+		if (state == STATE.MOUSE) {
+		    // The terminal we are using (e.g. gnome-terminal,
+		    // xfce4-terminal, or others) is sending non-UTF8
+		    // characters for the mouse reporting.
+		    brokenTerminalUTFMouse = true;
+		}
+
+		// Trash this code.
+		reset();
+		return 0;
 	    }
+	}
+    }
+
+    /**
+     * Read one Unicode code point from socket.
+     *
+     * Returns:
+     *    one Unicode code point
+     */
+    public dchar getCharSocket() {
+	assert(socket !is null);
+
+	try {
+	    char[] buffer;
+	    char[1] remoteByte;
+	    auto rc = socket.receive(remoteByte);
+	    if (rc != 1) {
+		// Remote side closed connection, or other error.  Let
+		// ECMABackend report that the socket is closed.
+		socket.shutdown(SocketShutdown.BOTH);
+		return 0;
+	    }
+
+	    if ((brokenTerminalUTFMouse == true) && (state == STATE.MOUSE)) {
+		// This terminal is sending non-UTF8 characters in its
+		// mouse reporting.  Do not decode stuff, just return
+		// buffer[0].
+		return remoteByte[0];
+	    }
+
+	    if ((remoteByte[0] & 0xF0) == 0xF0) {
+		// 3 more bytes coming
+		buffer.length = 3;
+	    } else if ((remoteByte[0] & 0xE0) == 0xE0) {
+		// 2 more bytes coming
+		buffer.length = 2;
+	    } else if ((remoteByte[0] & 0xC0) == 0xC0) {
+		// 1 more byte coming
+		buffer.length = 1;
+	    }
+	    rc = socket.receive(buffer);
+	    if (rc != 1) {
+		// Remote side closed connection, or other error.  Let
+		// ECMABackend report that the socket is closed.
+		socket.shutdown(SocketShutdown.BOTH);
+		return 0;
+	    }
+	    char [] utf8Buffer;
+	    utf8Buffer ~= remoteByte;
+	    utf8Buffer ~= buffer;
 	    size_t i;
-	    return decode(buffer, i);
+	    return decode(utf8Buffer, i);
 	} catch (UTFException e) {
 	    if (state == STATE.MOUSE) {
 		// The terminal we are using (e.g. gnome-terminal,
@@ -503,11 +635,6 @@ public class ECMATerminal {
 	}
     }
 
-    // Used for getPhsyicalWidth/Height
-    version(Posix) {
-	private import core.sys.posix.sys.ioctl;
-    }
-
     /**
      * Get the width of the physical console.
      *
@@ -515,22 +642,23 @@ public class ECMATerminal {
      *    width of console stdin is attached to
      */
     public uint getPhysicalWidth() {
-	version(Posix) {
-	    // We use TIOCGWINSZ
-	    winsize consoleSize;
-	    if (ioctl(stdin.fileno(), TIOCGWINSZ, &consoleSize) < 0) {
-		// Error.  So assume 80
-		return 80;
+	if (socket is null) {
+	    version(Posix) {
+		// We use TIOCGWINSZ
+		winsize consoleSize;
+		if (ioctl(std.stdio.stdin.fileno(), TIOCGWINSZ, &consoleSize) < 0) {
+		    // Error.  So assume 80
+		    return 80;
+		}
+		if (consoleSize.ws_col == 0) {
+		    // Error.  So assume 80
+		    return 80;
+		}
+		return consoleSize.ws_col;
 	    }
-	    if (consoleSize.ws_col == 0) {
-		// Error.  So assume 80
-		return 80;
-	    }
-	    return consoleSize.ws_col;
 	}
-	version(Windows) {
-	    return 25;
-	}
+	// TODO: let TelnetSocket et al. set the window size
+	return 25;
     }
 
     /**
@@ -540,64 +668,23 @@ public class ECMATerminal {
      *    height of console stdin is attached to
      */
     public uint getPhysicalHeight() {
-	version(Posix) {
-	    // We use TIOCGWINSZ
-	    winsize consoleSize;
-	    if (ioctl(stdin.fileno(), TIOCGWINSZ, &consoleSize) < 0) {
-		// Error.  So assume 24
-		return 24;
-	    }
-	    if (consoleSize.ws_row == 0) {
-		// Error.  So assume 24
-		return 24;
-	    }
-	    return consoleSize.ws_row;
-	}
-	version(Windows) {
-	    return 80;
-	}
-    }
-
-    /**
-     * Constructor sets up state for getEvent()
-     *
-     * Params:
-     *    setupStdin = if true, put stdin in raw mode.  The destructor will
-     *                 restore to whatever it was.
-     */
-    public this(bool setupStdin = false) {
-	reset();
-	mouse1 = false;
-	mouse2 = false;
-	mouse3 = false;
-	if (setupStdin) {
+	if (socket is null) {
 	    version(Posix) {
-		termios newTermios;
-		tcgetattr(stdin.fileno(), &oldTermios);
-		newTermios = oldTermios;
-		cfmakeraw(&newTermios);
-		tcsetattr(stdin.fileno(), TCSANOW, &newTermios);
+		// We use TIOCGWINSZ
+		winsize consoleSize;
+		if (ioctl(std.stdio.stdin.fileno(), TIOCGWINSZ, &consoleSize) < 0) {
+		    // Error.  So assume 24
+		    return 24;
+		}
+		if (consoleSize.ws_row == 0) {
+		    // Error.  So assume 24
+		    return 24;
+		}
+		return consoleSize.ws_row;
 	    }
-	    setRawMode = true;
-
-	    // Enable mouse reporting and metaSendsEscape
-	    stdout.writef("%s%s", mouse(true), xtermMetaSendsEscape(true));
 	}
-
-	// Hang onto the window size
-	windowResize = new TResizeEvent(TResizeEvent.Type.Screen, getPhysicalWidth(),
-	    getPhysicalHeight());
-    }
-
-    /// Destructor restores terminal to normal state
-    public ~this() {
-	if (setRawMode) {
-	    version(Posix) {
-		tcsetattr(stdin.fileno(), TCSANOW, &oldTermios);
-	    }
-	    // Disable mouse reporting and show cursor
-	    stdout.writef("%s%s", mouse(false), cursor(true));
-	}
+	// TODO: let TelnetSocket et al. set the window size
+	return 80;
     }
 
     /**
@@ -614,7 +701,7 @@ public class ECMATerminal {
     private TKeypressEvent controlChar(dchar ch) {
 	TKeypressEvent event = new TKeypressEvent();
 
-	// stderr.writef("controlChar: %02x\n", ch);
+	// std.stdio.stderr.writef("controlChar: %02x\n", ch);
 
 	switch (ch) {
 	case '\r':
@@ -901,7 +988,7 @@ public class ECMATerminal {
 	event.absoluteX = x;
 	event.absoluteY = y;
 
-	// stderr.writef("buttons: %04x\r\n", buttons);
+	// std.stdio.stderr.writef("buttons: %04x\r\n", buttons);
 
 	switch (buttons) {
 	case 0:
@@ -1031,7 +1118,7 @@ public class ECMATerminal {
 	    return events;
 	}
 
-	// stderr.writef("state: %s ch %c\r\n", state, ch);
+	// std.stdio.stderr.writef("state: %s ch %c\r\n", state, ch);
 
 	switch (state) {
 	case STATE.GROUND:
@@ -1760,11 +1847,6 @@ public class ECMATerminal {
 
 };
 
-version(Posix) {
-    // Used in getEvents() to poll stdin
-    import core.sys.posix.poll;
-}
-
 /**
  * This class uses an xterm/ANSI/ECMA-type terminal to provide a
  * screen, keyboard, and mouse to TApplication.
@@ -1774,10 +1856,20 @@ public class ECMABackend : Backend {
     /// Input events are processed by this Terminal.
     private ECMATerminal terminal;
 
-    /// Public constructor
-    public this() {
+    /// Socket to the remote user, or null if using stdio
+    private Socket socket;
+
+    /**
+     * Public constructor.
+     *
+     * Params:
+     *    socket = remote socket to the user, or null if using stdio.  Note that the socket must be in blocking mode.
+     */
+    public this(Socket socket = null) {
+	this.socket = socket;
+
 	// Create a terminal and explicitly set stdin into raw mode
-	terminal = new ECMATerminal(true);
+	terminal = new ECMATerminal(socket);
 
 	// Create a screen
 	screen = new ECMAScreen(terminal);
@@ -1787,8 +1879,8 @@ public class ECMABackend : Backend {
 	    terminal.getPhysicalHeight());
 
 	// Clear the screen
-	stdout.write(terminal.clearAll());
-	stdout.flush();
+	terminal.writef(terminal.clearAll());
+	terminal.flush();
     }
 
     /**
@@ -1797,6 +1889,11 @@ public class ECMABackend : Backend {
     override public void flushScreen() {
 	screen.flushPhysical();
     }
+
+    // We use select() in getEvents()
+    SocketSet readSockets = new SocketSet();
+    SocketSet writeSockets = new SocketSet();
+    SocketSet exceptSockets = new SocketSet();
 
     /**
      * Get keyboard, mouse, and screen resize events.
@@ -1808,19 +1905,52 @@ public class ECMABackend : Backend {
      *    events received, or an empty list if the timeout was reached
      */
     override public TInputEvent [] getEvents(uint timeout) {
-	version(Posix) {
-	    // Poll on stdin.
-	    pollfd pfd;
-	    pfd.fd = stdin.fileno();
-	    pfd.events = POLLIN;
-	    pfd.revents = 0;
-	    auto poll_rc = poll(&pfd, 1, timeout);
-	    if (poll_rc > 0) {
-		// We have something to read
-		dchar ch = terminal.getCharStdin();
+	if (socket is null) {
+	    version(Posix) {
+		// Poll on stdin.
+		pollfd pfd;
+		pfd.fd = std.stdio.stdin.fileno();
+		pfd.events = POLLIN;
+		pfd.revents = 0;
+		auto poll_rc = poll(&pfd, 1, timeout);
+		if (poll_rc > 0) {
+		    // We have something to read
+		    dchar ch = terminal.getCharStdin();
+		    return terminal.getEvents(ch);
+		}
+	    }
+	} else {
+	    if (!socket.isAlive()) {
+		TInputEvent [] events;
+		events ~= new TCommandEvent(cmAbort);
+		return events;
+	    }
+
+	    // Select on the socket.  Last parameter is microseconds,
+	    // so convert to millis.
+	    readSockets.reset();
+	    writeSockets.reset();
+	    exceptSockets.reset();
+	    readSockets.add(socket);
+	    exceptSockets.add(socket);
+	    writeSockets.add(socket);
+	    auto rc = Socket.select(readSockets, writeSockets,
+		exceptSockets, timeout * 1000);
+
+	    if (rc < 0) {
+		// Interrupt
+		return terminal.getEvents(0, true);
+	    }
+
+	    if (readSockets.isSet(socket)) {
+		// socket is readable, go get data
+		dchar ch = terminal.getCharSocket();
 		return terminal.getEvents(ch);
 	    }
+
+	    // For now, disregard writeSockets and exceptSockets.
 	}
+
 	return terminal.getEvents(0, true);
     }
 }
