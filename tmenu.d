@@ -224,6 +224,9 @@ public class TMenu : TWindow {
 	    ) {
 		// Activate this menu item
 		activate(w);
+		if (auto menu = cast(TSubMenu)w) {
+		    menu.dispatch();
+		}
 		return;
 	    }
 	}
@@ -787,7 +790,7 @@ public class TSubMenu : TMenuItem {
 	active = false;
 	enabled = true;
 
-	this.menu = new TMenu(parent.application, x, getAbsoluteY(), title);
+	this.menu = new TMenu(parent.application, x, getAbsoluteY() - 1, title);
 	width = menu.width + 2;
 
 	this.menu.isSubMenu = true;

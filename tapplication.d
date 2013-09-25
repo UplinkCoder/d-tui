@@ -343,6 +343,28 @@ public class TApplication {
 	repaint = true;
     }
 
+    /**
+     * Check if a mouse event would hit either the active menu or any
+     * open sub-menus.
+     *
+     * Params:
+     *    mouse = mouse event
+     *
+     * Returns:
+     *    true if the mouse would hit
+     */
+    private bool mouseOnMenu(TMouseEvent mouse) {
+	assert(activeMenu !is null);
+	TMenu [] menus = subMenus.dup;
+	menus.reverse;
+	foreach (m; menus) {
+	    if (m.mouseWouldHit(mouse)) {
+		return true;
+	    }
+	}
+	return activeMenu.mouseWouldHit(mouse);
+    }
+
     /// See if we need to switch window or activate the menu based on
     /// a mouse click
     final public void checkSwitchFocus(TMouseEvent mouse) {
@@ -350,7 +372,7 @@ public class TApplication {
 	if ((mouse.type == TMouseEvent.Type.MOUSE_DOWN) &&
 	    (activeMenu !is null) &&
 	    (mouse.absoluteY != 0) &&
-	    (!activeMenu.mouseWouldHit(mouse))
+	    (!mouseOnMenu(mouse))
 	) {
 	    // They clicked outside the active menu, turn it off
 	    activeMenu.active = false;
@@ -365,7 +387,8 @@ public class TApplication {
 	// See if they hit the menu bar
 	if ((mouse.type == TMouseEvent.Type.MOUSE_DOWN) &&
 	    (mouse.mouse1) &&
-	    (!modalWindowActive())
+	    (!modalWindowActive()) &&
+	    (mouse.absoluteY == 0)
 	) {
 
 	    foreach (m; subMenus) {
@@ -375,8 +398,7 @@ public class TApplication {
 
 	    // They selected the menu, go activate it
 	    foreach (m; menus) {
-		if ((mouse.absoluteY == 0) &&
-		    (mouse.absoluteX >= m.x) &&
+		if ((mouse.absoluteX >= m.x) &&
 		    (mouse.absoluteX < m.x + m.title.length + 2)
 		) {
 		    m.active = true;
@@ -392,7 +414,9 @@ public class TApplication {
 	// See if they hit the menu bar
 	if ((mouse.type == TMouseEvent.Type.MOUSE_MOTION) &&
 	    (mouse.mouse1) &&
-	    (activeMenu !is null)) {
+	    (activeMenu !is null) &&
+	    (mouse.absoluteY == 0)
+	) {
 
 	    TMenu oldMenu = activeMenu;
 	    foreach (m; subMenus) {
@@ -402,8 +426,7 @@ public class TApplication {
 
 	    // See if we should switch menus
 	    foreach (m; menus) {
-		if ((mouse.absoluteY == 0) &&
-		    (mouse.absoluteX >= m.x) &&
+		if ((mouse.absoluteX >= m.x) &&
 		    (mouse.absoluteX < m.x + m.title.length + 2)
 		) {
 		    m.active = true;
@@ -737,14 +760,37 @@ public class TApplication {
 
 	// Handle menu events
 	if ((activeMenu !is null) && (!cast(TCommandEvent)event)) {
+	    TMenu menu = activeMenu;
 	    if (auto mouse = cast(TMouseEvent)event) {
+
+		while (subMenus.length > 0) {
+		    TMenu subMenu = subMenus[$ - 1];
+		    if (subMenu.mouseWouldHit(mouse)) {
+			break;
+		    }
+		    if ((mouse.type == TMouseEvent.Type.MOUSE_MOTION) &&
+			(!mouse.mouse1) &&
+			(!mouse.mouse2) &&
+			(!mouse.mouse3) &&
+			(!mouse.mouseWheelUp) &&
+			(!mouse.mouseWheelDown)
+		    ) {
+			break;
+		    }
+		    // We navigated away from a sub-menu, so close it
+		    closeSubMenu();
+		}
+
 		// Convert the mouse relative x/y to menu coordinates
 		assert(mouse.x == mouse.absoluteX);
 		assert(mouse.y == mouse.absoluteY);
-		mouse.x -= activeMenu.x;
-		mouse.y -= activeMenu.y;
+		if (subMenus.length > 0) {
+		    menu = subMenus[$ - 1];
+		}
+		mouse.x -= menu.x;
+		mouse.y -= menu.y;
 	    }
-	    activeMenu.handleEvent(event);
+	    menu.handleEvent(event);
 	    return;
 	}
 

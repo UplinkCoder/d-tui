@@ -85,8 +85,6 @@ version 1.0:
   - [ ] Search
   - [ ] Replace
   - [ ] Cut/Copy/Paste
-- [ ] TSubMenu
-  - [ ] Mouse support
 - [ ] ECMATerminal
   - [ ] Mouse 1006 mode parsing
   - [ ] Win32 support (used for reading/writing sockets)
@@ -98,6 +96,7 @@ version 1.0:
   - [ ] TTreeView cannot be navigated only with keyboard
   - [ ] Assertion failure when exiting via mouse on win32
   - [ ] RangeViolation after dragging scrollbar up/down
+  - [ ] TSubMenu keyboard mnemonic not working
 
 Wishlist features (2.0):
 
