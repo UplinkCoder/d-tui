@@ -29,13 +29,8 @@ default:	all
 
 TUI_SRC =	tui.d base.d codepage.d twidget.d tapplication.d twindow.d \
 		tmessagebox.d tbutton.d tlabel.d tfield.d tcheckbox.d tradio.d \
-		tmenu.d ttimer.d ttext.d tterminal.d tprogress.d tscroll.d \
-		ttreeview.d teditor.d ecma.d tfileopen.d tdirlist.d win32.d
-
-TUI_OBJS =	tui.obj base.obj codepage.obj twidget.obj tapplication.obj twindow.obj \
-		tmessagebox.obj tbutton.obj tlabel.obj tfield.obj tcheckbox.obj tradio.obj \
-		tmenu.obj ttimer.obj ttext.obj tterminal.obj tprogress.obj tscroll.obj \
-		ttreeview.obj teditor.obj ecma.obj tfileopen.obj tdirlist.obj win32.obj
+		tmenu.d ttimer.d ttext.d tprogress.d tscroll.d \
+		ttreeview.d teditor.d tfileopen.d tdirlist.d win32.d
 
 DC = dmd
 INC = -I@srcdir@
@@ -51,10 +46,12 @@ demo1:	tui demo1.d
 	$(DC) $(DFLAGS) $(LDLIBS) -ofdemo1 demo1.d libtui.lib
 
 clean:
-	del libtui.lib core *.obj demo1
+	del libtui.lib core *.obj demo1.exe
 
-tui:	$(TUI_OBJS)
-	$(DC) $(LDFLAGS) -oflibtui $(TUI_OBJS)
+tui:	libtui.lib
 
-.d.obj:
-	$(DC) $(DFLAGS) -Dd$(DDOCDIR) -of$@ -c $<
+libtui.lib:	$(TUI_SRC)
+	$(DC) $(LDFLAGS) -oflibtui $(TUI_SRC)
+
+# .d.obj:
+#	$(DC) $(DFLAGS) -Dd$(DDOCDIR) -of$@ -c $<

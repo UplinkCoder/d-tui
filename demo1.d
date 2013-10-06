@@ -386,15 +386,17 @@ private class DemoMainWindow : TWindow {
 	}
 	row += 2;
 
-	if (!isModal) {
-	    addLabel("Terminal", 1, row);
-	    addButton("Termi&nal", 35, row,
-		{
-		    application.openTerminal(0, 0);
-		}
-	    );
+	version(Posix) {
+	    if (!isModal) {
+		addLabel("Terminal", 1, row);
+		addButton("Termi&nal", 35, row,
+		    {
+			application.openTerminal(0, 0);
+		    }
+		);
+	    }
+	    row += 2;
 	}
-	row += 2;
 
 	TProgressBar bar = addProgressBar(1, row, 22);
 	row++;

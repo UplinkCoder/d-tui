@@ -49,7 +49,9 @@ public import tmenu;
 public import tmessagebox;
 public import tprogress;
 public import tradio;
-public import tterminal;
+version(Posix) {
+    public import tterminal;
+}
 public import ttext;
 public import ttimer;
 public import ttreeview;

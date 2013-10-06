@@ -42,7 +42,10 @@ import std.math;
 import std.socket;
 import base;
 import codepage;
-import ecma;
+version(Posix) {
+    import ecma;
+    import tterminal;
+}
 import win32;
 import twidget;
 import twindow;
@@ -51,7 +54,6 @@ import tfileopen;
 import tmessagebox;
 import tmenu;
 import ttimer;
-import tterminal;
 
 // Defines -------------------------------------------------------------------
 
@@ -129,7 +131,11 @@ public class TApplication {
      */
     public this(Socket socket = null) {
 	if (socket !is null) {
-	    backend = new ECMABackend(socket);
+	    version(Posix) {
+		backend = new ECMABackend(socket);
+	    } else {
+		assert(false);
+	    }
 	} else {
 	    version(Posix) {
 		backend = new ECMABackend();
@@ -970,11 +976,15 @@ public class TApplication {
 	    repaint = true;
 	    return true;
 	}
-	if (cmd.cmd == cmShell) {
-	    openTerminal(0, 0, TWindow.Flag.RESIZABLE);
-	    repaint = true;
-	    return true;
+
+	version(Posix) {
+	    if (cmd.cmd == cmShell) {
+		openTerminal(0, 0, TWindow.Flag.RESIZABLE);
+		repaint = true;
+		return true;
+	    }
 	}
+
 	if (cmd.cmd == cmTile) {
 	    tileWindows();
 	    repaint = true;
@@ -1013,11 +1023,15 @@ public class TApplication {
 	    repaint = true;
 	    return true;
 	}
-	if (menu.id == TMenu.MID_SHELL) {
-	    openTerminal(0, 0, TWindow.Flag.RESIZABLE);
-	    repaint = true;
-	    return true;
+
+	version(Posix) {
+	    if (menu.id == TMenu.MID_SHELL) {
+		openTerminal(0, 0, TWindow.Flag.RESIZABLE);
+		repaint = true;
+		return true;
+	    }
 	}
+
 	if (menu.id == TMenu.MID_TILE) {
 	    tileWindows();
 	    repaint = true;
@@ -1187,21 +1201,23 @@ public class TApplication {
 	return new TWindow(this, title, x, y, width, height, flags);
     }
 
-    /**
-     * Convenience function to open a terminal window.
-     *
-     * Params:
-     *    x = column relative to parent
-     *    y = row relative to parent
-     *    flags = mask of CENTERED, MODAL, or RESIZABLE
-     *
-     * Returns:
-     *    the new window
-     */
-    final public TTerminal openTerminal(uint x, uint y,
-	TWindow.Flag flags = TWindow.Flag.RESIZABLE | TWindow.Flag.CENTERED) {
+    version(Posix) {
+	/**
+	 * Convenience function to open a terminal window.
+	 *
+	 * Params:
+	 *    x = column relative to parent
+	 *    y = row relative to parent
+	 *    flags = mask of CENTERED, MODAL, or RESIZABLE
+	 *
+	 * Returns:
+	 *    the new window
+	 */
+	final public TTerminal openTerminal(uint x, uint y,
+	    TWindow.Flag flags = TWindow.Flag.RESIZABLE | TWindow.Flag.CENTERED) {
 
-	return new TTerminal(this, x, y, flags);
+	    return new TTerminal(this, x, y, flags);
+	}
     }
 
     /**
@@ -1332,7 +1348,9 @@ public class TApplication {
 	TMenu fileMenu = addMenu("&File");
 	fileMenu.addDefaultItem(TMenu.MID_OPEN_FILE);
 	fileMenu.addSeparator();
-	fileMenu.addDefaultItem(TMenu.MID_SHELL);
+	version(Posix) {
+	    fileMenu.addDefaultItem(TMenu.MID_SHELL);
+	}
 	fileMenu.addDefaultItem(TMenu.MID_EXIT);
 	return fileMenu;
     }

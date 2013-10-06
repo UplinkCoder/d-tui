@@ -99,6 +99,7 @@ version 1.0:
   - [ ] Assertion failure when exiting via mouse on win32
   - [ ] RangeViolation after dragging scrollbar up/down
   - [ ] TSubMenu keyboard mnemonic not working
+  - [ ] Can't reference ECMABackend(socket) on Windows
 
 Wishlist features (2.0):
 
@@ -108,7 +109,7 @@ Wishlist features (2.0):
 - [ ] TWindow
   - [ ] "Smart placement" for new windows
 - [ ] Screen
-  - [ ] allow complex characters in putCharXY() and detect them in putStrXY().
+  - [ ] Allow complex characters in putCharXY() and detect them in putStrXY().
 - [ ] TComboBox
 - [ ] TListBox
 - [ ] TSpinner
