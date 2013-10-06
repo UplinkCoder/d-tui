@@ -32,11 +32,6 @@ TUI_SRC =	tui.d base.d codepage.d twidget.d tapplication.d twindow.d \
 		tmenu.d ttimer.d ttext.d tterminal.d tprogress.d tscroll.d \
 		ttreeview.d teditor.d ecma.d tfileopen.d tdirlist.d win32.d
 
-TUI_OBJS =	tui.o base.o codepage.o twidget.o tapplication.o twindow.o \
-		tmessagebox.o tbutton.o tlabel.o tfield.o tcheckbox.o tradio.o \
-		tmenu.o ttimer.o ttext.o tterminal.o tprogress.o tscroll.o \
-		ttreeview.o teditor.o ecma.o tfileopen.o tdirlist.o win32.o
-
 DC = dmd
 INC = -I@srcdir@
 DDOCDIR = ./ddoc
@@ -53,8 +48,9 @@ demo1:	tui demo1.d
 clean:
 	rm libtui.a core *.o demo1
 
-tui:	$(TUI_OBJS)
-	$(DC) $(LDFLAGS) -oflibtui $(TUI_OBJS)
+tui:	$(TUI_SRC)
+	$(DC) $(LDFLAGS) -oflibtui $(TUI_SRC)
 
-.d.o:
-	$(DC) $(DFLAGS) -Dd$(DDOCDIR) -of$@ -c $<
+# dmd is much faster just compiling from all source files at once.
+# .d.o:
+# 	$(DC) $(DFLAGS) -Dd$(DDOCDIR) -of$@ -c $<
