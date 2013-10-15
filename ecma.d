@@ -431,12 +431,20 @@ public class ECMATerminal {
      */
     public void writef(T...)(T args) {
 	if (socket is null) {
-	    std.stdio.stdout.writef(args);
+	    if (args.length > 1) {
+		std.stdio.stdout.writef(args);
+	    } else {
+		std.stdio.stdout.write(args);
+	    }
 	} else {
 	    if (socketAlive) {
-		auto writer = appender!string();
-		formattedWrite(writer, args);
-		socket.send(writer.data);
+		if (args.length > 1) {
+		    auto writer = appender!string();
+		    formattedWrite(writer, args);
+		    socket.send(writer.data);
+		} else {
+		    socket.send(args[0]);
+		}
 	    }
 	}
     }
