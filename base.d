@@ -846,6 +846,13 @@ public class Screen {
 	cursorX = x;
 	cursorY = y;
     }
+
+    /**
+     * Hide the cursor
+     */
+    public void hideCursor() {
+	cursorVisible = false;
+    }
 }
 
 /**
@@ -1147,7 +1154,7 @@ public struct TKeypress {
 }
 
 /**
- * Convert a keypress to lowercase.  Function keys are not converted.
+ * Convert a keypress to lowercase.  Function keys and ctrl keys are not converted.
  *
  * Params:
  *    key = keypress to convert
@@ -1157,7 +1164,7 @@ public struct TKeypress {
  */
 public TKeypress toLower(TKeypress key) {
     TKeypress newKey = TKeypress(key.isKey, key.fnKey, key.ch, key.alt, key.ctrl, key.shift);
-    if (!(key.isKey) && (key.ch >= 'A') && (key.ch <= 'Z')) {
+    if (!(key.isKey) && (key.ch >= 'A') && (key.ch <= 'Z') && (!key.ctrl)) {
 	newKey.shift = false;
 	newKey.ch += 32;
     }
@@ -1165,7 +1172,7 @@ public TKeypress toLower(TKeypress key) {
 }
 
 /**
- * Convert a keypress to uppercase.  Function keys are not converted.
+ * Convert a keypress to uppercase.  Function keys and ctrl keys are not converted.
  *
  * Params:
  *    key = keypress to convert
@@ -1175,7 +1182,7 @@ public TKeypress toLower(TKeypress key) {
  */
 public TKeypress toUpper(TKeypress key) {
     TKeypress newKey = TKeypress(key.isKey, key.fnKey, key.ch, key.alt, key.ctrl, key.shift);
-    if (!(key.isKey) && (key.ch >= 'a') && (key.ch <= 'z')) {
+    if (!(key.isKey) && (key.ch >= 'a') && (key.ch <= 'z') && (!key.ctrl)) {
 	newKey.shift = true;
 	newKey.ch -= 32;
     }

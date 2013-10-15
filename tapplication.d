@@ -179,8 +179,8 @@ public class TApplication {
 	    return;
 	}
 
-	// Kill the cursor
-	backend.screen.putCursor(false, 0, 0);
+	// If true, the cursor is not visible
+	bool cursor = false;
 
 	// Start with a clean screen
 	backend.screen.clear();
@@ -245,7 +245,13 @@ public class TApplication {
 	    if (activeWidget.hasCursor) {
 		backend.screen.putCursor(true, activeWidget.getCursorAbsoluteX(),
 		    activeWidget.getCursorAbsoluteY());
+		cursor = true;
 	    }
+	}
+
+	// Kill the cursor
+	if (cursor == false) {
+	    backend.screen.hideCursor();
 	}
 
 	// Flush the screen contents
@@ -541,12 +547,9 @@ public class TApplication {
 	    if (secondaryEventFiber.state == Fiber.State.HOLD) {
 		secondaryEventFiber.call();
 	    }
-
-	    // Kill the fiber reference so we don't call it again in
-	    // processChar().
 	    secondaryEventFiber = null;
 
-	    // Wake up the primary handler if it is waiting
+	    // Unfreeze the logic in handleEvent()
 	    if (primaryEventFiber.state == Fiber.State.HOLD) {
 		primaryEventFiber.call();
 	    }
@@ -660,7 +663,14 @@ public class TApplication {
 
 	foreach (event; events) {
 
-	    // std.stdio.stderr.writefln("metaHandleEvents event: %s", event);
+	    // std.stdio.stderr.writefln("metaHandleEvents event: %s primary %s",
+	    //     event, primaryEventFiber.state);
+
+	    if (quit == true) {
+		// Do no more processing if the application is already trying to
+		// exit.
+		return;
+	    }
 
 	    // Special application-wide events -------------------------------
 
@@ -717,8 +727,7 @@ public class TApplication {
      */
     private void primaryEventHandler() {
 	while (quit == false) {
-	    // Yield if there is nothing to do.  We will be called again in
-	    // processChar().
+	    // Yield if there is nothing to do.
 	    if (eventQueue.length == 0) {
 		Fiber.yield();
 	    }
@@ -744,8 +753,7 @@ public class TApplication {
 	// assert(secondaryEventReceiver !is null);
 
 	while (secondaryEventReceiver !is null) {
-	    // Yield if there is nothing to do.  We will be called again
-	    // EITHER in processChar() or in closeWindow().
+	    // Yield if there is nothing to do.
 	    if (eventQueue.length == 0) {
 		Fiber.yield();
 	    }
@@ -973,6 +981,8 @@ public class TApplication {
 		    TMessageBox.Type.YESNO).result == TMessageBox.Result.YES) {
 		quit = true;
 	    }
+	    // std.stdio.stderr.writefln("onCommand cmExit result: quit = %s", quit);
+	    // std.stdio.stderr.flush();
 	    repaint = true;
 	    return true;
 	}
@@ -1020,6 +1030,8 @@ public class TApplication {
 		    TMessageBox.Type.YESNO).result == TMessageBox.Result.YES) {
 		quit = true;
 	    }
+	    // std.stdio.stderr.writefln("onMenu MID_EXIT result: quit = %s", quit);
+	    // std.stdio.stderr.flush();
 	    repaint = true;
 	    return true;
 	}
@@ -1157,6 +1169,22 @@ public class TApplication {
 
 	    // Update the screen
 	    drawAll();
+	}
+
+	// Shutdown the fibers
+	eventQueue.length = 0;
+	if (secondaryEventFiber !is null) {
+	    assert(secondaryEventReceiver !is null);
+	    secondaryEventReceiver = null;
+	    if (secondaryEventFiber.state == Fiber.State.HOLD) {
+		// Wake up the secondary handler so that it can exit.
+		secondaryEventFiber.call();
+	    }
+	}
+
+	if (primaryEventFiber.state == Fiber.State.HOLD) {
+	    // Wake up the primary handler so that it can exit.
+	    primaryEventFiber.call();
 	}
 
 	backend.shutdown();

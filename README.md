@@ -91,15 +91,13 @@ version 1.0:
 - [ ] ECMATerminal
   - [ ] Mouse 1006 mode parsing
   - [ ] Win32 support (used for reading/writing sockets)
-- [ ] Win32ConsoleBackend
-  - [ ] Eliminate cursor flicker
 - [ ] Bugs
   - [ ] TDirectoryList cannot be navigated only with keyboard
   - [ ] TTreeView cannot be navigated only with keyboard
-  - [ ] Assertion failure when exiting via mouse on win32
   - [ ] RangeViolation after dragging scrollbar up/down
   - [ ] TSubMenu keyboard mnemonic not working
   - [ ] Can't reference ECMABackend(socket) on Windows
+  - [ ] kbDel assertion failure in TMenu (MID_CLEAR)
 
 Wishlist features (2.0):
 

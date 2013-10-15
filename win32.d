@@ -37,6 +37,7 @@ version(Windows) {
 
     // Imports ---------------------------------------------------------------
     import core.sys.windows.windows;
+    import std.algorithm;
     import std.conv;
     import base;
 
@@ -53,6 +54,10 @@ version(Windows) {
 
 	/// We call console.cursor() and console.gotoXY() so need the instance
 	private Win32Console console;
+
+	/// The actual physical screen as seen by the last flushPhysical()
+	/// call
+	private CHAR_INFO [] charInfo;
 
 	/**
 	 * Public constructor
@@ -145,32 +150,15 @@ version(Windows) {
 		assert(reallyCleared == false);
 		return;
 	    }
+	    bool changed = false;
 
 	    // Re-draw the entire screen onto a buffer.
-	    CHAR_INFO [] charInfo = new CHAR_INFO[width * height];
-
-	    for (auto x = 0; x < width; x++) {
-		for (auto y = 0; y < height; y++) {
-		    charInfo[y * width + x].UnicodeChar = logical[x][y].ch & 0xFFFF;
-		    charInfo[y * width + x].Attributes = win32Attr(logical[x][y]);
-		    physical[x][y].setTo(logical[x][y]);
-		}
+	    if (charInfo.length != width * height) {
+		charInfo = new CHAR_INFO[width * height];
+		changed = true;
 	    }
 
-	    // Blast the entire buffer to screen with one call to
-	    // WriteConsoleOutputW.
-	    COORD bufferSize = { cast(short)width, cast(short)height };
-	    COORD bufferCoord = { 0, 0 };
-	    SMALL_RECT writeRegion = {
-		cast(short)0,
-		cast(short)0,
-		cast(short)width,
-		cast(short)height
-	    };
-	    WriteConsoleOutputW(GetStdHandle(STD_OUTPUT_HANDLE),
-		charInfo.ptr, bufferSize, bufferCoord, &writeRegion);
-
-	    // Now place the cursor.
+	    // Place the cursor.
 	    if ((cursorVisible) &&
 		(cursorY <= height - 1) &&
 		(cursorX <= width - 1)
@@ -181,7 +169,38 @@ version(Windows) {
 		console.cursor(false);
 	    }
 
+	    for (auto x = 0; x < width; x++) {
+		for (auto y = 0; y < height; y++) {
+		    if (physical[x][y] != logical[x][y]) {
+			physical[x][y].setTo(logical[x][y]);
+			charInfo[y * width + x].UnicodeChar = physical[x][y].ch & 0xFFFF;
+			charInfo[y * width + x].Attributes = win32Attr(physical[x][y]);
+			changed = true;
+		    }
+		}
+	    }
+
+	    // For EITHER a cursor change or text change, blast the whole
+	    // thing down again.  Otherwise the cursor update leaves screen
+	    // artifacts.
+	    if ((changed == true) || (console.cursorChanged == true)) {
+
+		// Blast the entire buffer to screen with one call to
+		// WriteConsoleOutputW.
+		COORD bufferSize = { cast(short)width, cast(short)height };
+		COORD bufferCoord = { 0, 0 };
+		SMALL_RECT writeRegion = {
+		    cast(short)0,
+		    cast(short)0,
+		    cast(short)width,
+		    cast(short)height
+		};
+		WriteConsoleOutputW(console.getBuffer(),
+		    charInfo.ptr, bufferSize, bufferCoord, &writeRegion);
+	    }
+
 	    // All done.
+	    console.cursorChanged = false;
 	    dirty = false;
 	    reallyCleared = false;
 	}
@@ -206,6 +225,9 @@ version(Windows) {
 	/// The original state of hConsoleOutput
 	private DWORD hConsoleOutputMode;
 
+	/// The original state of hConsoleOutput's cursor
+	private CONSOLE_CURSOR_INFO consoleOutputCursorInfo;
+
 	/// true if mouse1 was down.  Used to report mouse1 on the release
 	/// event.
 	private bool mouse1 = false;
@@ -225,36 +247,28 @@ version(Windows) {
 	/// we can poll for resizes instead.
 	private TResizeEvent windowResize = null;
 
-	/**
-	 * Get the width of the physical console.
-	 *
-	 * Returns:
-	 *    width of console stdin is attached to
-	 */
-	public uint getPhysicalWidth() {
-	    CONSOLE_SCREEN_BUFFER_INFO screenBufferInfo;
-	    GetConsoleScreenBufferInfo(hConsoleOutput, &screenBufferInfo);
-	    return (screenBufferInfo.srWindow.Right - screenBufferInfo.srWindow.Left + 1);
-	}
+	/// If true, the cursor visibility changed
+	private bool cursorChanged = false;
 
-	/**
-	 * Get the height of the physical console.
-	 *
-	 * Returns:
-	 *    height of console stdin is attached to
-	 */
-	public uint getPhysicalHeight() {
-	    CONSOLE_SCREEN_BUFFER_INFO screenBufferInfo;
-	    GetConsoleScreenBufferInfo(hConsoleOutput, &screenBufferInfo);
-	    return (screenBufferInfo.srWindow.Bottom - screenBufferInfo.srWindow.Top + 1);
-	}
+	/// The last cursor X position.  Initialized to 1 so that gotoXY(0,
+	/// 0) will do something.
+	private uint cursorX = 1;
+
+	/// The last cursor Y position.  Initialized to 1 so that gotoXY(0,
+	/// 0) will do something.
+	private uint cursorY = 1;
 
 	/**
 	 * Restore original console mode
 	 */
 	public void shutdown() {
+	    // Reset input
 	    SetConsoleMode(hConsoleInput, hConsoleInputMode);
+
+	    // Reset output
+	    SetConsoleActiveScreenBuffer(hConsoleOutput);
 	    SetConsoleMode(hConsoleOutput, hConsoleOutputMode);
+	    SetConsoleCursorInfo(hConsoleOutput, &consoleOutputCursorInfo);
 	}
 
 	/**
@@ -276,6 +290,7 @@ version(Windows) {
 
 	    GetConsoleMode(hConsoleInput, &hConsoleInputMode);
 	    GetConsoleMode(hConsoleOutput, &hConsoleOutputMode);
+	    GetConsoleCursorInfo(hConsoleOutput, &consoleOutputCursorInfo);
 
 	    DWORD newInputMode = 0;
 	    newInputMode |= ENABLE_WINDOW_INPUT;
@@ -283,14 +298,57 @@ version(Windows) {
 	    SetConsoleMode(hConsoleInput, newInputMode);
 
 	    DWORD newOutputMode = 0;
+
+	    // DEBUG
+	    // newOutputMode |= ENABLE_PROCESSED_OUTPUT;
 	    SetConsoleMode(hConsoleOutput, newOutputMode);
 
 	    // Hang onto the window size
 	    windowResize = new TResizeEvent(TResizeEvent.Type.Screen, getPhysicalWidth(),
 		getPhysicalHeight());
 
-	    // Start at the visible top-left corner.
+	    // Setup each drawing surface
+	    CONSOLE_SCREEN_BUFFER_INFO screenBufferInfo;
+	    GetConsoleScreenBufferInfo(hConsoleOutput, &screenBufferInfo);
+	    screenBufferInfo.dwSize.X = cast(short)getPhysicalWidth();
+	    screenBufferInfo.dwSize.Y = cast(short)getPhysicalHeight();
+	    SetConsoleScreenBufferSize(hConsoleOutput, screenBufferInfo.dwSize);
 	    gotoXY(0, 0);
+	    cursor(false);
+	}
+
+	/**
+	 * Get the active drawing screen.
+	 *
+	 * Returns:
+	 *    current drawing screen
+	 */
+	public HANDLE getBuffer() {
+	    return hConsoleOutput;
+	}
+
+	/**
+	 * Get the width of the physical console.
+	 *
+	 * Returns:
+	 *    width of console stdin is attached to
+	 */
+	public uint getPhysicalWidth() {
+	    CONSOLE_SCREEN_BUFFER_INFO screenBufferInfo;
+	    GetConsoleScreenBufferInfo(getBuffer(), &screenBufferInfo);
+	    return (screenBufferInfo.srWindow.Right - screenBufferInfo.srWindow.Left + 1);
+	}
+
+	/**
+	 * Get the height of the physical console.
+	 *
+	 * Returns:
+	 *    height of console stdin is attached to
+	 */
+	public uint getPhysicalHeight() {
+	    CONSOLE_SCREEN_BUFFER_INFO screenBufferInfo;
+	    GetConsoleScreenBufferInfo(getBuffer(), &screenBufferInfo);
+	    return (screenBufferInfo.srWindow.Bottom - screenBufferInfo.srWindow.Top + 1);
 	}
 
 	/**
@@ -302,16 +360,21 @@ version(Windows) {
 	public void cursor(bool on) {
 	    CONSOLE_CURSOR_INFO cursorInfo;
 
-	    if (on && (cursorOn == false)) {
+	    if ((on) && (cursorOn == false)) {
 		cursorOn = true;
-		cursorInfo.dwSize = 25;
+		cursorInfo.dwSize = 100;
 		cursorInfo.bVisible = TRUE;
 		SetConsoleCursorInfo(hConsoleOutput, &cursorInfo);
+		cursorChanged = true;
 	    }
-	    if (!on && (cursorOn == true)) {
+	    if ((!on) && (cursorOn == true)) {
 		cursorOn = false;
+		// dwSize has to be within 1 and 100 even if you are making
+		// the cursor invisible.
+		cursorInfo.dwSize = 1;
 		cursorInfo.bVisible = FALSE;
 		SetConsoleCursorInfo(hConsoleOutput, &cursorInfo);
+		cursorChanged = true;
 	    }
 	}
 
@@ -323,8 +386,13 @@ version(Windows) {
 	 *    y = row coordinate.  0 is the top-most row.
 	 */
 	public void gotoXY(uint x, uint y) {
-	    COORD coord = { cast(short)x, cast(short)y };
-	    SetConsoleCursorPosition(hConsoleOutput, coord);
+	    if ((x != cursorX) || (y != cursorY)) {
+		COORD coord = { cast(short)x, cast(short)y };
+		cursorX = x;
+		cursorY = y;
+		SetConsoleCursorPosition(hConsoleOutput, coord);
+		cursorChanged = true;
+	    }
 	}
 
 	/**
@@ -476,9 +544,21 @@ version(Windows) {
 			// Ignore key up events
 			break;
 		    }
+
+		    DWORD flags = winKeypress.dwControlKeyState;
+/+
+		    std.stdio.stderr.writefln("shift %s ctrl %s alt %s vkey %%x%02x %d uChar %d '%c'",
+			(flags & SHIFT_PRESSED ? "true" : "false"),
+			(((flags & LEFT_CTRL_PRESSED) || (flags & RIGHT_CTRL_PRESSED)) ? "true" : "false"),
+			(((flags & LEFT_ALT_PRESSED) || (flags & RIGHT_ALT_PRESSED)) ? "true" : "false"),
+			winKeypress.wVirtualKeyCode,
+			winKeypress.wVirtualKeyCode,
+			winKeypress.UnicodeChar,
+			winKeypress.UnicodeChar);
++/
+
 		    TKeypress key = win32Key(winKeypress.wVirtualKeyCode);
 		    if (key == kbNoKey) {
-			// std.stdio.stderr.writefln("uChar %d '%c'", winKeypress.UnicodeChar, winKeypress.UnicodeChar);
 			if (winKeypress.UnicodeChar > 0) {
 			    // Use uChar
 			    key = TKeypress(false, 0, winKeypress.UnicodeChar, false, false, false);
@@ -487,8 +567,8 @@ version(Windows) {
 			    break;
 			}
 		    }
+
 		    TKeypressEvent keypress = new TKeypressEvent(key);
-		    DWORD flags = winKeypress.dwControlKeyState;
 		    if (flags & SHIFT_PRESSED) {
 			keypress.key.shift = true;
 		    } else {
@@ -520,6 +600,7 @@ version(Windows) {
 			keypress.key = toUpper(keypress.key);
 		    }
 
+		    // std.stdio.stderr.writefln("TKeypress %s", keypress.key);
 		    events ~= keypress;
 		    break;
 
@@ -601,11 +682,17 @@ version(Windows) {
 		    break;
 
 		case WINDOW_BUFFER_SIZE_EVENT:
-		    // We listen for this even, but at least for Windows XP
-		    // it is never posted.
 		    COORD newSize = event.WindowBufferSizeEvent.dwSize;
 		    TResizeEvent resize = new TResizeEvent(TResizeEvent.Type.Screen,
 			newSize.X, newSize.Y);
+
+		    // Make the screen buffer match the window size
+		    SetConsoleScreenBufferSize(hConsoleOutput, event.WindowBufferSizeEvent.dwSize);
+
+		    // Reset the cursor
+		    cursor(true);
+		    gotoXY(0, 0);
+
 		    events ~= resize;
 		    break;
 
