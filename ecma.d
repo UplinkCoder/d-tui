@@ -2020,7 +2020,6 @@ public class ECMABackend : Backend {
 		events ~= new TCommandEvent(cmAbort);
 		return events;
 	    }
-	    assert(timeout > 0);
 
 	    // Select on the socket.  Last parameter is microseconds,
 	    // so convert to millis.
@@ -2036,7 +2035,11 @@ public class ECMABackend : Backend {
 		exceptSockets, timeout * 1000);
 
 	    if (rc < 0) {
-		// Interrupt
+		if (errno != EAGAIN) {
+		    // Interrupt or other error
+		    // std.stdio.stderr.writefln("ERROR select(): %d %s", errno, to!string(strerror(errno)));
+		    // std.stdio.stderr.flush();
+		}
 	    }
 
 	    if (rc == 0) {
@@ -2044,7 +2047,7 @@ public class ECMABackend : Backend {
 		events ~= terminal.getEvents(0, true);
 	    }
 
-	    if (readSockets.isSet(socket)) {
+	    if ((rc > 0) && (readSockets.isSet(socket))) {
 		// socket is readable, go get data
 		dchar ch = terminal.getCharSocket();
 		events ~= terminal.getEvents(ch);
