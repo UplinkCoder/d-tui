@@ -78,6 +78,10 @@ public class ECMAScreen : Screen {
      */
     public this(ECMATerminal terminal) {
 	this.terminal = terminal;
+
+	// Query the screen size
+	setDimensions(terminal.session.windowWidth(),
+	    terminal.session.windowHeight());
     }
 
     /**
@@ -477,7 +481,7 @@ public class ECMATerminal {
 	    assert(socket.blocking == true);
 	    socketAlive = socket.isAlive();
 	    if (auto socketSession = cast(SessionInfo)socket) {
-		this.session = socketSession;
+		session = socketSession;
 	    }
 	}
 	if (session is null) {
@@ -488,8 +492,8 @@ public class ECMATerminal {
 	writef("%s%s", mouse(true), xtermMetaSendsEscape(true));
 
 	// Hang onto the window size
-	windowResize = new TResizeEvent(TResizeEvent.Type.Screen, session.windowWidth(),
-	    session.windowHeight());
+	windowResize = new TResizeEvent(TResizeEvent.Type.Screen,
+	    session.windowWidth(), session.windowHeight());
     }
 
     /// Restore terminal to normal state
@@ -2005,10 +2009,6 @@ public class ECMABackend : Backend {
 
 	// Create a screen
 	screen = new ECMAScreen(terminal);
-
-	// Reset the screen size
-	screen.setDimensions(terminal.session.windowWidth(),
-	    terminal.session.windowHeight());
 
 	// Clear the screen
 	terminal.writef(terminal.clearAll());
