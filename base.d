@@ -1700,10 +1700,90 @@ public class TMenuEvent : TInputEvent {
 }
 
 /**
+ * SessionInfo is used to store per-session properties that are determined at
+ * different layers of the communication stack.
+ */
+public interface SessionInfo {
+
+    /// Username getter
+    @property public string username();
+
+    /// Username getter/setter
+    @property public string username(string name);
+
+    /// Language getter
+    @property public string language();
+
+    /// Language getter/setter
+    @property public string language(string lang);
+
+    /// Text window width getter
+    public uint windowWidth();
+
+    /// Text window height getter
+    public uint windowHeight();
+}
+
+/**
+ * TSessionInfo provides a default session implementation.  The username is
+ * blank, language is "en_US", with a 80x24 text window.
+ */
+public class TSessionInfo : SessionInfo {
+
+    /// User name
+    private string name = "";
+
+    /// Language
+    private string lang = "en_US";
+
+    /// Text window width
+    private uint width = 80;
+
+    /// Text window height
+    private uint height = 24;
+
+    /// Username getter
+    @property public string username() {
+	return this.name;
+    }
+
+    /// Username getter/setter
+    @property public string username(string name) {
+	this.name = name;
+	return this.name;
+    }
+
+    /// Language getter
+    @property public string language() {
+	return this.lang;
+    }
+
+    /// Language getter/setter
+    @property public string language(string lang) {
+	this.lang = lang;
+	return this.lang;
+    }
+
+    /// Text window width getter
+    public uint windowWidth() {
+	return width;
+    }
+
+    /// Text window height getter
+    public uint windowHeight() {
+	return height;
+    }
+}
+
+/**
  * This abstract class provides a screen, keyboard, and mouse to
- * TApplication.
+ * TApplication.  It also exposes session information as gleaned from lower
+ * levels of the communication stack.
  */
 public class Backend {
+
+    /// The session information
+    public SessionInfo session;
 
     /// The screen to draw on
     public Screen screen;

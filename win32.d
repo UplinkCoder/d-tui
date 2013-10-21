@@ -213,6 +213,9 @@ version(Windows) {
      */
     public class Win32Console {
 
+	/// The session information
+	public SessionInfo session;
+
 	/// The Win32 console input handle
 	private HANDLE hConsoleInput;
 
@@ -304,6 +307,7 @@ version(Windows) {
 	    SetConsoleMode(hConsoleOutput, newOutputMode);
 
 	    // Hang onto the window size
+	    // TODO: use SessionInfo
 	    windowResize = new TResizeEvent(TResizeEvent.Type.Screen, getPhysicalWidth(),
 		getPhysicalHeight());
 

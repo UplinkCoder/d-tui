@@ -40,6 +40,7 @@ import std.conv;
 import std.datetime;
 import std.file;
 import std.format;
+import std.process;
 import std.socket;
 import std.utf;
 import base;
@@ -49,6 +50,7 @@ version(Posix) {
     import core.stdc.errno;
     import core.stdc.string;
     import core.sys.posix.poll;
+    import core.sys.posix.pwd;
     import core.sys.posix.sys.ioctl;
     import core.sys.posix.termios;
     import core.sys.posix.unistd;
@@ -295,11 +297,92 @@ public class ECMAScreen : Screen {
 }
 
 /**
+ * TTYSessionInfo queries environment variables and the tty window size for
+ * the session information.  The username is taken from
+ * getpwuid(geteuid()).pw_name, language is taken from LANG, and text window
+ * size from ioctl(TIOCGWINSIZ).
+ */
+public class TTYSessionInfo : SessionInfo {
+
+    /// User name
+    private string user = "";
+
+    /// Language
+    private string lang = "";
+
+    /// Username getter
+    @property public string username() {
+	return this.user;
+    }
+
+    /// Username getter/setter
+    @property public string username(string user) {
+	this.user = user;
+	return this.user;
+    }
+
+    /// Language getter
+    @property public string language() {
+	return this.lang;
+    }
+
+    /// Language getter/setter
+    @property public string language(string lang) {
+	this.lang = lang;
+	return this.lang;
+    }
+
+    /// Text window width getter
+    public uint windowWidth() {
+	version(Posix) {
+	    // We use TIOCGWINSZ
+	    winsize consoleSize;
+	    if (ioctl(std.stdio.stdin.fileno(), TIOCGWINSZ, &consoleSize) < 0) {
+		// Error.  So assume 80
+		return 80;
+	    }
+	    if (consoleSize.ws_col == 0) {
+		// Error.  So assume 80
+		return 80;
+	    }
+	    return consoleSize.ws_col;
+	}
+    }
+
+    /// Text window height getter
+    public uint windowHeight() {
+	version(Posix) {
+	    // We use TIOCGWINSZ
+	    winsize consoleSize;
+	    if (ioctl(std.stdio.stdin.fileno(), TIOCGWINSZ, &consoleSize) < 0) {
+		// Error.  So assume 24
+		return 24;
+	    }
+	    if (consoleSize.ws_row == 0) {
+		// Error.  So assume 24
+		return 24;
+	    }
+	    return consoleSize.ws_row;
+	}
+    }
+
+    /// Public constructor
+    public this() {
+	// Populate lang and user from the environment
+	lang = environment["LANG"];
+	user = to!string(getpwuid(geteuid()).pw_name);
+    }
+}
+
+/**
  * This class has convenience methods for emitting output to ANSI
  * X3.64 / ECMA-48 type terminals e.g. xterm, linux, vt100, ansi.sys,
  * etc.
  */
 public class ECMATerminal {
+
+    /// The session information
+    public SessionInfo session;
 
     /// Parameters being collected.  E.g. if the string is \033[1;3m,
     /// then params[0] will be 1 and params[1] will be 3.
@@ -387,19 +470,26 @@ public class ECMATerminal {
 		newTermios = oldTermios;
 		cfmakeraw(&newTermios);
 		tcsetattr(std.stdio.stdin.fileno(), TCSANOW, &newTermios);
+		session = new TTYSessionInfo();
 	    }
 	    setRawMode = true;
 	} else {
 	    assert(socket.blocking == true);
 	    socketAlive = socket.isAlive();
+	    if (auto socketSession = cast(SessionInfo)socket) {
+		this.session = socketSession;
+	    }
+	}
+	if (session is null) {
+	    session = new TSessionInfo();
 	}
 
 	// Enable mouse reporting and metaSendsEscape
 	writef("%s%s", mouse(true), xtermMetaSendsEscape(true));
 
 	// Hang onto the window size
-	windowResize = new TResizeEvent(TResizeEvent.Type.Screen, getPhysicalWidth(),
-	    getPhysicalHeight());
+	windowResize = new TResizeEvent(TResizeEvent.Type.Screen, session.windowWidth(),
+	    session.windowHeight());
     }
 
     /// Restore terminal to normal state
@@ -727,58 +817,6 @@ public class ECMATerminal {
 	}
 	socketReadBufferN += rc;
 	goto getCharSocketReturn;
-    }
-
-    /**
-     * Get the width of the physical console.
-     *
-     * Returns:
-     *    width of console stdin is attached to
-     */
-    public uint getPhysicalWidth() {
-	if (socket is null) {
-	    version(Posix) {
-		// We use TIOCGWINSZ
-		winsize consoleSize;
-		if (ioctl(std.stdio.stdin.fileno(), TIOCGWINSZ, &consoleSize) < 0) {
-		    // Error.  So assume 80
-		    return 80;
-		}
-		if (consoleSize.ws_col == 0) {
-		    // Error.  So assume 80
-		    return 80;
-		}
-		return consoleSize.ws_col;
-	    }
-	}
-	// TODO: let TelnetSocket et al. set the window size
-	return 80;
-    }
-
-    /**
-     * Get the height of the physical console.
-     *
-     * Returns:
-     *    height of console stdin is attached to
-     */
-    public uint getPhysicalHeight() {
-	if (socket is null) {
-	    version(Posix) {
-		// We use TIOCGWINSZ
-		winsize consoleSize;
-		if (ioctl(std.stdio.stdin.fileno(), TIOCGWINSZ, &consoleSize) < 0) {
-		    // Error.  So assume 24
-		    return 24;
-		}
-		if (consoleSize.ws_row == 0) {
-		    // Error.  So assume 24
-		    return 24;
-		}
-		return consoleSize.ws_row;
-	    }
-	}
-	// TODO: let TelnetSocket et al. set the window size
-	return 24;
     }
 
     /**
@@ -1197,8 +1235,8 @@ public class ECMATerminal {
 	}
 
 	if (noChar == true) {
-	    auto newWidth = getPhysicalWidth();
-	    auto newHeight = getPhysicalHeight();
+	    auto newWidth = session.windowWidth();
+	    auto newHeight = session.windowHeight();
 	    if ((newWidth != windowResize.width) ||
 		(newHeight != windowResize.height)) {
 		TResizeEvent event = new TResizeEvent(TResizeEvent.Type.Screen,
@@ -1969,8 +2007,8 @@ public class ECMABackend : Backend {
 	screen = new ECMAScreen(terminal);
 
 	// Reset the screen size
-	screen.setDimensions(terminal.getPhysicalWidth(),
-	    terminal.getPhysicalHeight());
+	screen.setDimensions(terminal.session.windowWidth(),
+	    terminal.session.windowHeight());
 
 	// Clear the screen
 	terminal.writef(terminal.clearAll());
@@ -2014,6 +2052,10 @@ public class ECMABackend : Backend {
 		    dchar ch = terminal.getCharStdin();
 		    return terminal.getEvents(ch);
 		}
+		if (poll_rc == 0) {
+		    // Timeout
+		    return terminal.getEvents(0, true);
+		}
 	    }
 	} else {
 	    if (!terminal.socketAlive) {
@@ -2032,7 +2074,7 @@ public class ECMABackend : Backend {
 	    // exceptSockets.add(socket);
 	    // writeSockets.add(socket);
 	    auto rc = Socket.select(readSockets, writeSockets,
-		exceptSockets, timeout * 1000);
+		exceptSockets, dur!("msecs")(timeout));
 
 	    if (rc < 0) {
 		if (errno != EAGAIN) {
