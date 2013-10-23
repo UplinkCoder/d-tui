@@ -72,12 +72,50 @@ public class TText : TWidget {
     protected uint maxLineWidth;
 
     /**
+     * Convenience method used by TWindowLoggerOutput
+     *
+     * Params:
+     *    line = new line to add
+     */
+    public void addLine(dstring line) {
+	lines ~= line;
+	computeBounds();
+    }
+
+    /**
+     * Recompute the bounds for the scrollbars
+     */
+    private void computeBounds() {
+	maxLineWidth = 0;
+	foreach (line; lines) {
+	    if (line.length > maxLineWidth) {
+		maxLineWidth = cast(uint)line.length;
+	    }
+	}
+
+	vScroller.bottomValue = cast(int)lines.length - height - 1;
+	if (vScroller.bottomValue < 0) {
+	    vScroller.bottomValue = 0;
+	}
+	if (vScroller.value > vScroller.bottomValue) {
+	    vScroller.value = vScroller.bottomValue;
+	}
+
+	hScroller.rightValue = maxLineWidth - width + 1;
+	if (hScroller.rightValue < 0) {
+	    hScroller.rightValue = 0;
+	}
+	if (hScroller.value > hScroller.rightValue) {
+	    hScroller.value = hScroller.rightValue;
+	}
+    }
+
+    /**
      * Resize text and scrollbars for a new width/height
      */
     public void reflow() {
 	// Reset the lines
 	lines.length = 0;
-	maxLineWidth = 0;
 
 	// Break up text into paragraphs
 	dstring [] paragraphs = split(text, "\n\n");
@@ -85,11 +123,6 @@ public class TText : TWidget {
 	    dstring paragraph = wrap!(dstring)(p, width - 1);
 	    lines ~= splitLines!(dstring)(paragraph);
 	    lines ~= "";
-	}
-	foreach (line; lines) {
-	    if (line.length > maxLineWidth) {
-		maxLineWidth = cast(uint)line.length;
-	    }
 	}
 
 	// Start at the top
@@ -99,12 +132,8 @@ public class TText : TWidget {
 	    vScroller.x = width - 1;
 	    vScroller.height = height - 1;
 	}
-	vScroller.bottomValue = cast(int)lines.length - height - 1;
 	vScroller.topValue = 0;
 	vScroller.value = 0;
-	if (vScroller.bottomValue < 0) {
-	    vScroller.bottomValue = 0;
-	}
 	vScroller.bigChange = height - 1;
 
 	// Start at the left
@@ -114,13 +143,11 @@ public class TText : TWidget {
 	    hScroller.y = height - 1;
 	    hScroller.width = width - 1;
 	}
-	hScroller.rightValue = maxLineWidth - width + 1;
 	hScroller.leftValue = 0;
 	hScroller.value = 0;
-	if (hScroller.rightValue < 0) {
-	    hScroller.rightValue = 0;
-	}
 	hScroller.bigChange = width - 1;
+
+	computeBounds();
     }
 
     /**
@@ -165,8 +192,7 @@ public class TText : TWidget {
 	    } else {
 		line = "";
 	    }
-	    window.putStrXY(0, topY,
-		leftJustify!(dstring)(line, this.width - 1), color);
+	    window.putStrXY(0, topY, leftJustify!(dstring)(line, this.width - 1), color);
 	    topY++;
 
 	    if (topY >= height - 1) {

@@ -67,7 +67,7 @@ public class TWindow : TWidget {
     alias screen this;
 
     /// Window title
-    dstring title = "";
+    public dstring title = "";
 
     enum Flag {
 
