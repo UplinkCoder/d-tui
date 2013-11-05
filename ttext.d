@@ -71,6 +71,9 @@ public class TText : TWidget {
     /// Maximum width of a single line
     protected uint maxLineWidth;
 
+    /// Number of lines between each paragraph
+    public uint lineSpacing = 1;
+
     /**
      * Convenience method used by TWindowLoggerOutput
      *
@@ -78,8 +81,13 @@ public class TText : TWidget {
      *    line = new line to add
      */
     public void addLine(dstring line) {
-	lines ~= line;
-	computeBounds();
+	if (text.length == 0) {
+	    text = line;
+	} else {
+	    text ~= "\n\n";
+	    text ~= line;
+	}
+	reflow();
     }
 
     /**
@@ -93,7 +101,7 @@ public class TText : TWidget {
 	    }
 	}
 
-	vScroller.bottomValue = cast(int)lines.length - height - 1;
+	vScroller.bottomValue = cast(int)lines.length - height + 1;
 	if (vScroller.bottomValue < 0) {
 	    vScroller.bottomValue = 0;
 	}
@@ -122,29 +130,31 @@ public class TText : TWidget {
 	foreach (p; paragraphs) {
 	    dstring paragraph = wrap!(dstring)(p, width - 1);
 	    lines ~= splitLines!(dstring)(paragraph);
-	    lines ~= "";
+	    for (auto i = 0; i < lineSpacing; i++) {
+		lines ~= "";
+	    }
 	}
 
 	// Start at the top
 	if (vScroller is null) {
 	    vScroller = new TVScroller(this, width - 1, 0, height - 1);
+	    vScroller.topValue = 0;
+	    vScroller.value = 0;
 	} else {
 	    vScroller.x = width - 1;
 	    vScroller.height = height - 1;
 	}
-	vScroller.topValue = 0;
-	vScroller.value = 0;
 	vScroller.bigChange = height - 1;
 
 	// Start at the left
 	if (hScroller is null) {
 	    hScroller = new THScroller(this, 0, height - 1, width - 1);
+	    hScroller.leftValue = 0;
+	    hScroller.value = 0;
 	} else {
 	    hScroller.y = height - 1;
 	    hScroller.width = width - 1;
 	}
-	hScroller.leftValue = 0;
-	hScroller.value = 0;
 	hScroller.bigChange = width - 1;
 
 	computeBounds();
