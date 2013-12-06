@@ -37,7 +37,7 @@ INC = -I@srcdir@
 DDOCDIR = ./ddoc
 # DFLAGS = -w -wi $(INC) -release
 DFLAGS = -w -wi -g $(INC) -debug -de -Dd$(DDOCDIR)
-LDLIBS = -L-lutil -L-lphobos2
+LDLIBS = -L-lutil -defaultlib=libphobos2.so
 LDFLAGS = -shared -fPIC $(LDLIBS)
 
 all:	tui demo1
@@ -50,7 +50,3 @@ clean:
 
 tui:	$(TUI_SRC)
 	$(DC) $(LDFLAGS) -oflibtui $(TUI_SRC)
-
-# dmd is much faster just compiling from all source files at once.
-# .d.o:
-# 	$(DC) $(DFLAGS) -Dd$(DDOCDIR) -of$@ -c $<

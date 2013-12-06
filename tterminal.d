@@ -1628,13 +1628,13 @@ private class ECMA48 {
 	    final switch (currentState.glLockshift) {
 
 	    case LockshiftMode.G1_GR:
-		assert(1 == 0);
+		assert(0);
 
 	    case LockshiftMode.G2_GR:
-		assert(1 == 0);
+		assert(0);
 
 	    case LockshiftMode.G3_GR:
-		assert(1 == 0);
+		assert(0);
 
 	    case LockshiftMode.G2_GL:
 		// LS2
@@ -1655,10 +1655,10 @@ private class ECMA48 {
 	    final switch (currentState.grLockshift) {
 
 	    case LockshiftMode.G2_GL:
-		assert(1 == 0);
+		assert(0);
 
 	    case LockshiftMode.G3_GL:
-		assert(1 == 0);
+		assert(0);
 
 	    case LockshiftMode.G1_GR:
 		// LS1R

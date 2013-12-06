@@ -132,7 +132,7 @@ public class TDirectoryList : TWidget {
 	    if (isDir(DirEntry(name))) {
 		continue;
 	    }
-	    DirEntry child = dirEntry(name);
+	    auto child = DirEntry(name);
 	    files ~= child;
 	}
 

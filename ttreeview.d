@@ -88,18 +88,6 @@ public class TDirTreeItem : TTreeItem {
 	assert(dir.isDir());
 	expandable = true;
 
-	version (Posix) {
-	    // http://d.puremagic.com/issues/show_bug.cgi?id=10463 -
-	    // dirEntries will segfault if we do not have access to this
-	    // path.  As a workaround, try to opendir() it first.
-	    core.sys.posix.dirent.DIR * pDIR;
-	    pDIR = core.sys.posix.dirent.opendir(toStringz(dir.name));
-	    if (pDIR is null) {
-		expandable = false;
-		expanded = false;
-	    }
-	}
-
 	if ((expanded == false) || (expandable == false)) {
 	    view.reflow();
 	    return;
@@ -357,11 +345,13 @@ public class TTreeItem : TWidget {
 	if ((mouse.x == (getExpanderX() - view.hScroller.value)) &&
 	    (mouse.y == 0)
 	) {
-	    // Flip expanded flag
-	    expanded = !expanded;
-	    if (expanded == false) {
-		// Unselect children that became invisible
-		unselect();
+	    if (selectable) {
+		// Flip expanded flag
+		expanded = !expanded;
+		if (expanded == false) {
+		    // Unselect children that became invisible
+		    unselect();
+		}
 	    }
 	    // Let subclasses do something with this
 	    onExpand();
