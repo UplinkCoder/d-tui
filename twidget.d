@@ -664,8 +664,8 @@ public class TWidget {
     }
 
     /**
-     * Check if a mouse press/release event coordinate is contained in
-     * this widget.
+     * Check if a mouse press/release event coordinate is contained in this
+     * widget.
      *
      * Params:
      *    mouse = a mouse-based event
@@ -701,8 +701,7 @@ public class TWidget {
      * Returns:
      *    the new button
      */
-    public TButton addButton(dstring text, uint x, uint y,
-	void function() actionFn) {
+    public TButton addButton(dstring text, uint x, uint y, void function() actionFn) {
 	return new TButton(this, text, x, y, actionFn);
     }
 
@@ -718,8 +717,7 @@ public class TWidget {
      * Returns:
      *    the new button
      */
-    public TButton addButton(dstring text, uint x, uint y,
-	void delegate() actionFn) {
+    public TButton addButton(dstring text, uint x, uint y, void delegate() actionFn) {
 	return new TButton(this, text, x, y, actionFn);
     }
 
@@ -735,8 +733,7 @@ public class TWidget {
      * Returns:
      *    the new label
      */
-    public TLabel addLabel(dstring text, uint x, uint y,
-	string colorKey = "tlabel") {
+    public TLabel addLabel(dstring text, uint x, uint y, string colorKey = "tlabel") {
 	return new TLabel(this, text, x, y, colorKey);
     }
 
@@ -744,7 +741,6 @@ public class TWidget {
      * Convenience function to add a field to this container/window.
      *
      * Params:
-     *    parent = parent widget
      *    x = column relative to parent
      *    y = row relative to parent
      *    width = visible text width
@@ -754,9 +750,7 @@ public class TWidget {
      * Returns:
      *    the new field
      */
-    public TField addField(uint x, uint y, uint width, bool fixed,
-	dstring text = "") {
-
+    public TField addField(uint x, uint y, uint width, bool fixed, dstring text = "") {
 	return new TField(this, x, y, width, fixed, text);
     }
 
@@ -764,7 +758,6 @@ public class TWidget {
      * Convenience function to add a field to this container/window.
      *
      * Params:
-     *    parent = parent widget
      *    x = column relative to parent
      *    y = row relative to parent
      *    width = visible text width
@@ -775,8 +768,8 @@ public class TWidget {
      * Returns:
      *    the new field
      */
-    public TField addField(uint x, uint y, uint width, bool fixed,
-	dstring text, void delegate(bool) actionFn) {
+    public TField addField(uint x, uint y, uint width, bool fixed, dstring text,
+	void delegate(bool) actionFn) {
 
 	return new TField(this, x, y, width, fixed, text, actionFn);
     }
@@ -785,7 +778,6 @@ public class TWidget {
      * Convenience function to add a field to this container/window.
      *
      * Params:
-     *    parent = parent widget
      *    x = column relative to parent
      *    y = row relative to parent
      *    width = visible text width
@@ -796,8 +788,8 @@ public class TWidget {
      * Returns:
      *    the new field
      */
-    public TField addField(uint x, uint y, uint width, bool fixed,
-	dstring text, void function(bool) actionFn) {
+    public TField addField(uint x, uint y, uint width, bool fixed, dstring text,
+	void function(bool) actionFn) {
 
 	return new TField(this, x, y, width, fixed, text, actionFn);
     }
@@ -814,8 +806,7 @@ public class TWidget {
      * Returns:
      *    the new checkbox
      */
-    public TCheckbox addCheckbox(uint x, uint y, dstring label,
-	bool checked = false) {
+    public TCheckbox addCheckbox(uint x, uint y, dstring label, bool checked = false) {
 
 	return new TCheckbox(this, x, y, label, checked);
     }
@@ -824,7 +815,6 @@ public class TWidget {
      * Convenience function to add a radio group to this container/window.
      *
      * Params:
-     *    parent = parent widget
      *    x = column relative to parent
      *    y = row relative to parent
      *    label = label to display on the group box
@@ -858,7 +848,6 @@ public class TWidget {
      * Convenience function to add a progress bar to this container/window.
      *
      * Params:
-     *    parent = parent widget
      *    x = column relative to parent
      *    y = row relative to parent
      *    width = width of progress bar
@@ -872,7 +861,6 @@ public class TWidget {
      * Convenience function to add a tree view to this container/window.
      *
      * Params:
-     *    parent = parent widget
      *    x = column relative to parent
      *    y = row relative to parent
      *    width = width of tree view
@@ -886,7 +874,6 @@ public class TWidget {
      * Convenience function to add a tree view to this container/window.
      *
      * Params:
-     *    parent = parent widget
      *    x = column relative to parent
      *    y = row relative to parent
      *    width = width of tree view
@@ -903,7 +890,6 @@ public class TWidget {
      * Convenience function to add a tree view to this container/window.
      *
      * Params:
-     *    parent = parent widget
      *    x = column relative to parent
      *    y = row relative to parent
      *    width = width of tree view
@@ -928,7 +914,6 @@ public class TWidget {
      *    height = height of text area
      */
     public TDirectoryList addDirectoryList(dstring path, uint x, uint y, uint width, uint height) {
-
 	return new TDirectoryList(this, path, x, y, width, height);
     }
 

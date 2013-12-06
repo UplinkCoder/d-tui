@@ -521,7 +521,7 @@ public class ECMATerminal {
      * Emit something to output, either stdout or socket
      *
      * Params:
-     *    args... = arguments to writef
+     *    args = arguments to writef
      */
     public void writef(T...)(T args) {
 	if (socket is null) {
@@ -1718,6 +1718,7 @@ public class ECMATerminal {
      *    bold = if true, set bold
      *    reverse = if true, set reverse
      *    blink = if true, set blink
+     *    underline = if true, set underline
      *
      * Returns:
      *    the string to emit to an ANSI / ECMA-style terminal, e.g. "\033[0;1;31;42m"

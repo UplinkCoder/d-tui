@@ -151,10 +151,8 @@ public class TEditorWidget : TWidget {
      *    y = row relative to parent
      *    width = width of text area
      *    height = height of text area
-     *    colorKey = ColorTheme key color to use for foreground text.  Default is "ttext"
      */
-    public this(TWidget parent, uint x, uint y, uint width,
-	uint height) {
+    public this(TWidget parent, uint x, uint y, uint width, uint height) {
 
 	// Set parent and window
 	super(parent);
@@ -424,7 +422,7 @@ public class TEditorWidget : TWidget {
      * Handle keystrokes.
      *
      * Params:
-     *    event = keystroke event
+     *    keypress = keystroke event
      */
     override protected void onKeypress(TKeypressEvent keypress) {
 	TKeypress key = keypress.key;

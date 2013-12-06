@@ -241,7 +241,7 @@ public class TText : TWidget {
      * Handle keystrokes.
      *
      * Params:
-     *    event = keystroke event
+     *    keypress = keystroke event
      */
     override protected void onKeypress(TKeypressEvent keypress) {
 	TKeypress key = keypress.key;

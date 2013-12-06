@@ -91,7 +91,7 @@ public class TMenu : TWindow {
      *    parent = parent application
      *    x = column relative to parent
      *    y = row relative to parent
-     *    title = menu title.  Title must contain a keyboard shortcut, denoted by prefixing a letter with "&", e.g. "&File"
+     *    label = mnemonic menu title.  Label must contain a keyboard shortcut (mnemonic), denoted by prefixing a letter with "&", e.g. "&File"
      */
     public this(TApplication parent, uint x, uint y, dstring label) {
 	super(parent, label, x, y, parent.backend.screen.getWidth(),
@@ -236,7 +236,7 @@ public class TMenu : TWindow {
      * Handle keystrokes.
      *
      * Params:
-     *    event = keystroke event
+     *    keypress = keystroke event
      */
     override protected void onKeypress(TKeypressEvent keypress) {
 	if (activeChild !is null) {

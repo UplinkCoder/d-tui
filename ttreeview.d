@@ -377,12 +377,6 @@ public class TTreeItem : TWidget {
 
     /**
      * Draw this item to a window
-     *
-     * Params:
-     *    window = window to draw to
-     *    x = column to draw at
-     *    y = row to draw at
-     *    color = color to use for text
      */
     override public void draw() {
 	if (invisible) {
@@ -480,10 +474,8 @@ public class TTreeView : TWidget {
      * Set treeRoot
      *
      * Params:
-     *    x = column relative to parent
-     *    y = row relative to parent
-     *    width = width of tree view
-     *    height = height of tree view
+     *    treeRoot = ultimate root of tree
+     *    centerWindow = if true, move the window to put the root in view
      */
     public void setTreeRoot(TTreeItem treeRoot, bool centerWindow = false) {
 	this.treeRoot = treeRoot;
@@ -750,7 +742,7 @@ public class TTreeView : TWidget {
      * Handle keystrokes.
      *
      * Params:
-     *    event = keystroke event
+     *    keypress = keystroke event
      */
     override protected void onKeypress(TKeypressEvent keypress) {
 	TKeypress key = keypress.key;

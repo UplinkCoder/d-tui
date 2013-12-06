@@ -49,4 +49,4 @@ clean:
 	rm libtui.o core *.o demo1
 
 tui:	$(TUI_SRC)
-	$(DC) $(LDFLAGS) -oflibtui $(TUI_SRC)
+	$(DC) $(DFLAGS) $(LDFLAGS) -oflibtui $(TUI_SRC)
