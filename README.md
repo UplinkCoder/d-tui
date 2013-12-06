@@ -16,8 +16,7 @@ Three platforms are available:
   tracking using UTF8 coordinates is supported.
 
 * Windows console mode (tested on Windows XP).  Input/output is
-  handled via Win32 console functions.  (WARNING: CTFE is complaining
-  on Windows when referencing std.socket.  I will try to fix shortly.)
+  handled via Win32 console functions.
 
 * As an X11-style terminal communicating over a non-blocking socket.
 
@@ -96,7 +95,6 @@ version 1.0:
   - [ ] TTreeView cannot be navigated only with keyboard
   - [ ] RangeViolation after dragging scrollbar up/down
   - [ ] TSubMenu keyboard mnemonic not working
-  - [ ] Can't reference ECMABackend(socket) on Windows
   - [ ] kbDel assertion failure in TMenu (MID_CLEAR)
 
 Wishlist features (2.0):

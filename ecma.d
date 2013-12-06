@@ -56,6 +56,13 @@ version(Posix) {
     import core.sys.posix.unistd;
 }
 
+version(Windows) {
+    pragma (lib, "ws2_32.lib");
+    pragma (lib, "wsock32.lib");
+
+    private import std.c.windows.windows, std.c.windows.winsock, std.windows.syserror;
+}
+
 // Defines -------------------------------------------------------------------
 
 // Globals -------------------------------------------------------------------
@@ -351,6 +358,10 @@ public class TTYSessionInfo : SessionInfo {
 	    }
 	    return consoleSize.ws_col;
 	}
+	version(Windows) {
+	    // Always use 80x25 for Windows
+	    return 80;
+	}
     }
 
     /// Text window height getter
@@ -368,13 +379,22 @@ public class TTYSessionInfo : SessionInfo {
 	    }
 	    return consoleSize.ws_row;
 	}
+	version(Windows) {
+	    // Always use 80x25 for Windows
+	    return 25;
+	}
     }
 
     /// Public constructor
     public this() {
 	// Populate lang and user from the environment
 	lang = environment["LANG"];
-	user = to!string(getpwuid(geteuid()).pw_name);
+	version(Posix) {
+	    user = to!string(getpwuid(geteuid()).pw_name);
+	}
+	version(Windows) {
+	    user = environment["USERNAME"];
+	}
     }
 }
 
@@ -475,8 +495,8 @@ public class ECMATerminal {
 		cfmakeraw(&newTermios);
 		tcsetattr(std.stdio.stdin.fileno(), TCSANOW, &newTermios);
 		session = new TTYSessionInfo();
+		setRawMode = true;
 	    }
-	    setRawMode = true;
 	} else {
 	    assert(socket.blocking == true);
 	    socketAlive = socket.isAlive();
@@ -807,8 +827,15 @@ public class ECMATerminal {
 	    return 0;
 	}
 	if (rc < 0) {
-	    if (errno == EAGAIN) {
-		return 0;
+	    version(Posix) {
+		if (errno == EAGAIN) {
+		    return 0;
+		}
+	    }
+	    version(Windows) {
+		if (WSAGetLastError() == WSAEWOULDBLOCK) {
+		    return 0;
+		}
 	    }
 
 	    // Some other error.  Let ECMABackend report that the socket
@@ -2014,6 +2041,11 @@ public class ECMABackend : Backend {
 	// Clear the screen
 	terminal.writef(terminal.clearAll());
 	terminal.flush();
+
+	// Setup for select()
+	readSockets = new SocketSet();
+	writeSockets = new SocketSet();
+	exceptSockets = new SocketSet();
     }
 
     /**
@@ -2024,9 +2056,9 @@ public class ECMABackend : Backend {
     }
 
     // We use select() in getEvents()
-    SocketSet readSockets = new SocketSet();
-    SocketSet writeSockets = new SocketSet();
-    SocketSet exceptSockets = new SocketSet();
+    SocketSet readSockets;
+    SocketSet writeSockets;
+    SocketSet exceptSockets;
 
     /**
      * Get keyboard, mouse, and screen resize events.
@@ -2078,10 +2110,19 @@ public class ECMABackend : Backend {
 		exceptSockets, dur!("msecs")(timeout));
 
 	    if (rc < 0) {
-		if (errno != EAGAIN) {
-		    // Interrupt or other error
-		    // std.stdio.stderr.writefln("ERROR select(): %d %s", errno, to!string(strerror(errno)));
-		    // std.stdio.stderr.flush();
+		version(Posix) {
+		    if (errno != EAGAIN) {
+			// Interrupt or other error
+			// std.stdio.stderr.writefln("ERROR select(): %d %s", errno, to!string(strerror(errno)));
+			// std.stdio.stderr.flush();
+		    }
+		}
+		version(Windows) {
+		    if (WSAGetLastError() == WSAEWOULDBLOCK) {
+			// Interrupt or other error
+			// std.stdio.stderr.writefln("ERROR select(): %d %s", WSAGetLastError());
+			// std.stdio.stderr.flush();
+		    }
 		}
 	    }
 

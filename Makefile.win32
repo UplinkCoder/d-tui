@@ -30,7 +30,7 @@ default:	all
 TUI_SRC =	tui.d base.d codepage.d twidget.d tapplication.d twindow.d \
 		tmessagebox.d tbutton.d tlabel.d tfield.d tcheckbox.d tradio.d \
 		tmenu.d ttimer.d ttext.d tprogress.d tscroll.d \
-		ttreeview.d teditor.d tfileopen.d tdirlist.d win32.d
+		ttreeview.d teditor.d tfileopen.d tdirlist.d win32.d ecma.d
 
 DC = dmd
 INC = -I@srcdir@
@@ -52,6 +52,3 @@ tui:	libtui.lib
 
 libtui.lib:	$(TUI_SRC)
 	$(DC) $(LDFLAGS) -oflibtui $(TUI_SRC)
-
-# .d.obj:
-#	$(DC) $(DFLAGS) -Dd$(DDOCDIR) -of$@ -c $<
