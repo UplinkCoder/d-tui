@@ -1477,7 +1477,7 @@ public struct TCommand {
 	/// Close window
 	WINDOW_CLOSE,
 
-    };
+    }
 
     /// Type of command, one of EXIT, etc.
     public Type type;
@@ -1539,7 +1539,7 @@ public class TMouseEvent : TInputEvent {
 	MOUSE_DOWN,
 
 	/// Mouse button up.  X and Y will have screen coordinates.
-	MOUSE_UP, };
+	MOUSE_UP, }
 
     /// Type of event, one of MOUSE_MOTION, MOUSE_UP, or MOUSE_DOWN, or KEYPRESS
     public Type type;
@@ -1602,7 +1602,7 @@ public class TResizeEvent : TInputEvent {
     /// widget/window resize.
     public enum Type {
 	Screen,
-	Widget, };
+	Widget, }
 
     /// The type of resize
     public Type type;

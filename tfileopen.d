@@ -70,7 +70,7 @@ public class TFileOpenBox : TWindow {
 
     public enum Type {
 	OPEN,
-	SAVE };
+	SAVE }
 
     /// String to return, or null if the user canceled
     public dstring filename = null;

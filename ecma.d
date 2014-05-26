@@ -2009,7 +2009,7 @@ public class ECMATerminal {
 	return "\033[?1003;1005l\033[?1049l";
     }
 
-};
+}
 
 /**
  * This class uses an xterm/ANSI/ECMA-type terminal to provide a

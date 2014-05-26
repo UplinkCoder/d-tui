@@ -67,13 +67,13 @@ public class TMessageBox : TWindow {
 	OK,
 	OKCANCEL,
 	YESNO,
-	YESNOCANCEL };
+	YESNOCANCEL }
 
     public enum Result {
 	OK,
 	CANCEL,
 	YES,
-	NO };
+	NO }
 
     /// Which button was clicked: OK, CANCEL, YES, or NO.
     public Result result = Result.OK;

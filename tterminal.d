@@ -401,7 +401,7 @@ private class ECMA48 {
 	VT100,
 	VT102,
 	VT220,
-	XTERM };
+	XTERM }
 
     /**
      * Return the proper primary Device Attributes string
@@ -515,7 +515,7 @@ private class ECMA48 {
 		chars[i].setTo(currentState.attr);
 	    }
 	}
-    };
+    }
 
     /**
      * Obtain a new blank display line for an external client.
@@ -549,7 +549,7 @@ private class ECMA48 {
 	DCS_IGNORE,
 	SOSPMAPC_STRING,
 	OSC_STRING,
-	VT52_DIRECT_CURSOR_ADDRESS };
+	VT52_DIRECT_CURSOR_ADDRESS }
 
     /// Current scanning state
     private ScanState scanState;
@@ -559,13 +559,13 @@ private class ECMA48 {
     /// events from Terminal.processEvents().
     enum KeypadMode {
 	Application,
-	Numeric };
+	Numeric }
 
     /// Arrow keys can emit three different sequences (DECCKM or VT52 submode)
     enum ArrowKeyMode {
 	VT52,
 	ANSI,
-	VT100 };
+	VT100 }
 
     /// Available character sets for GL, GR, G0, G1, G2, G3
     enum CharacterSet {
@@ -585,14 +585,14 @@ private class ECMA48 {
 	NRC_NORWEGIAN,
 	NRC_SPANISH,
 	NRC_SWEDISH,
-	NRC_SWISS };
+	NRC_SWISS }
 
     /// Single-shift states used by the C1 control characters SS2 (0x8E) and
     /// SS3 (0x8F)
     enum Singleshift {
 	NONE,
 	SS2,
-	SS3 };
+	SS3 }
 
     /// VT220+ lockshift states
     enum LockshiftMode {
@@ -601,7 +601,7 @@ private class ECMA48 {
 	G2_GR,
 	G2_GL,
 	G3_GR,
-	G3_GL };
+	G3_GL }
 
     /// Physical display width.  We start at 80x24, but the user can resize
     /// us bigger/smaller.

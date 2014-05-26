@@ -80,7 +80,7 @@ public class TWindow : TWidget {
 	/// Window is centered
 	CENTERED = 0x04,
 
-	};
+	}
 
     /// Window flags
     private Flag flags = Flag.RESIZABLE;
