@@ -390,10 +390,7 @@ public class TTYSessionInfo : SessionInfo {
     /// Public constructor
     public this() {
 	// Populate lang and user from the environment
-	lang = environment.get("LANG");
-	if (lang is null) {
-	    lang = "";
-	}
+	lang = environment.get("LANG", "");
 	version(Posix) {
 	    user = to!string(getpwuid(geteuid()).pw_name);
 	}
