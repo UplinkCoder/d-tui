@@ -1,0 +1,31 @@
+{
+	"name": "d-tui",
+	"description": "D Text User Interface Library",
+	"homepage": "https://github.com/klamonte/d-tui",
+	"copyright": "Copyright © 2014, Kevin Lamonte",
+	"authors": ["Kevin Lamonte"],
+	"license": "LGPL-3.0 or later",
+	"dependencies": {
+	},
+	"sourcePaths": ["tui"],
+	"importPaths": ["tui"],
+	"configurations": [
+		{
+			"__comment": "Default build is libtui.a",
+			"name": "library",
+			"targetType": "sourceLibrary",
+			"versions": [ ],
+		},
+		{
+			"name": "demo1",
+			"dflags-dmd": ["-gc", "-gs"],
+			"dflags-gdc": [],
+			"versions": [ ],
+			"targetType": "executable",
+			"sourcePaths": ["tui", "demo"],
+			"targetPath": "demo/",
+			"targetName": "demo1",
+			"libs-posix": [ "util" ],
+		},
+	]
+}

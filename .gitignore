@@ -1,0 +1,17 @@
+# Build artifacts
+*.a
+*.o
+*.so
+*.sw[po]
+.dub/
+
+# Executables
+demo/demo1
+
+# Editor backup files
+*.d~
+
+# Other
+ddoc/
+*.pdf
+*.cfg
