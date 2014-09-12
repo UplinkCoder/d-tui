@@ -81,42 +81,51 @@ Roadmap
 This is a work in progress.  Many tasks remain before calling this
 version 1.0:
 
-- [ ] TEditor
-  - [ ] Word wrap
-  - [ ] Forward/backward word
-  - [ ] Search
-  - [ ] Replace
-  - [ ] Cut/Copy/Paste
-- [ ] ECMATerminal
-  - [ ] Mouse 1006 mode parsing
-  - [ ] Win32 support (used for reading/writing sockets)
-- [ ] Bugs
-  - [ ] TDirectoryList cannot be navigated only with keyboard
-  - [ ] TTreeView cannot be navigated only with keyboard
-  - [ ] RangeViolation after dragging scrollbar up/down
-  - [ ] TSubMenu keyboard mnemonic not working
-  - [ ] kbDel assertion failure in TMenu (MID_CLEAR)
+0.0.1:
+
+- Bugs
+  - TSubMenu keyboard mnemonic not working
+  - kbDel assertion failure in TMenu (MID_CLEAR)
+
+0.0.2:
+
+- TEditor
+  - Word wrap
+  - Forward/backward word
+  - Search
+  - Replace
+  - Cut/Copy/Paste
+
+0.0.3:
+
+- ECMATerminal
+  - Mouse 1006 mode parsing
+  - Win32 support (used for reading/writing sockets)
+- Bugs
+  - TDirectoryList cannot be navigated only with keyboard
+  - TTreeView cannot be navigated only with keyboard
+  - RangeViolation after dragging scrollbar up/down
 
 Wishlist features (2.0):
 
-- [ ] TTerminal
-  - [ ] Handle resize events (pass to child process)
-  - [ ] xterm mouse handling
-- [ ] TWindow
-  - [ ] "Smart placement" for new windows
-- [ ] Screen
-  - [ ] Allow complex characters in putCharXY() and detect them in putStrXY().
-- [ ] TComboBox
-- [ ] TListBox
-- [ ] TSpinner
-- [ ] TCalendar widget
-- [ ] TColorPicker widget
-- [ ] Drag and drop
-  - [ ] TEditor
-  - [ ] TField
-  - [ ] TText
-  - [ ] TTerminal
-  - [ ] TComboBox
-- [ ] GTKBackend (use GtkD)
-- [ ] ECMABackend
-  - [ ] libgpm support
+- TTerminal
+  - Handle resize events (pass to child process)
+  - xterm mouse handling
+- TWindow
+  - "Smart placement" for new windows
+- Screen
+  - Allow complex characters in putCharXY() and detect them in putStrXY().
+- TComboBox
+- TListBox
+- TSpinner
+- TCalendar widget
+- TColorPicker widget
+- Drag and drop
+  - TEditor
+  - TField
+  - TText
+  - TTerminal
+  - TComboBox
+- GTKBackend (use GtkD)
+- ECMABackend
+  - libgpm support
