@@ -31,6 +31,8 @@
  * 02110-1301 USA
  */
 
+module tui.base;
+
 // Description ---------------------------------------------------------------
 
 // Imports -------------------------------------------------------------------
@@ -39,7 +41,7 @@ import std.array;
 import std.datetime;
 import std.format;
 import std.stdio;
-import codepage;
+import tui.codepage;
 
 // Defines -------------------------------------------------------------------
 

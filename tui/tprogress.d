@@ -31,14 +31,16 @@
  * 02110-1301 USA
  */
 
+module tui.tprogress;
+
 // Description ---------------------------------------------------------------
 
 // Imports -------------------------------------------------------------------
 
 import std.utf;
-import base;
-import codepage;
-import twidget;
+import tui.base;
+import tui.codepage;
+import tui.twidget;
 
 // Defines -------------------------------------------------------------------
 

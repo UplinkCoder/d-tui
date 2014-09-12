@@ -31,6 +31,8 @@
  * 02110-1301 USA
  */
 
+module tui.tfileopen;
+
 // Description ---------------------------------------------------------------
 
 // Imports -------------------------------------------------------------------
@@ -40,14 +42,14 @@ import std.file;
 import std.path;
 import std.string;
 import std.utf;
-import base;
-import codepage;
-import tapplication;
-import tbutton;
-import tdirlist;
-import tfield;
-import ttreeview;
-import twindow;
+import tui.base;
+import tui.codepage;
+import tui.tapplication;
+import tui.tbutton;
+import tui.tdirlist;
+import tui.tfield;
+import tui.ttreeview;
+import tui.twindow;
 
 // Defines -------------------------------------------------------------------
 

@@ -27,26 +27,42 @@ default:	all
 
 .SUFFIXES: .o .d
 
-TUI_SRC =	tui.d base.d codepage.d twidget.d tapplication.d twindow.d \
-		tmessagebox.d tbutton.d tlabel.d tfield.d tcheckbox.d tradio.d \
-		tmenu.d ttimer.d ttext.d tterminal.d tprogress.d tscroll.d \
-		ttreeview.d teditor.d ecma.d tfileopen.d tdirlist.d win32.d
+TUI_DIR = tui
+
+TUI_SRC =	$(TUI_DIR)/package.d $(TUI_DIR)/base.d $(TUI_DIR)/codepage.d $(TUI_DIR)/twidget.d \
+		$(TUI_DIR)/tapplication.d $(TUI_DIR)/twindow.d $(TUI_DIR)/tmessagebox.d \
+		$(TUI_DIR)/tbutton.d $(TUI_DIR)/tlabel.d $(TUI_DIR)/tfield.d $(TUI_DIR)/tcheckbox.d \
+		$(TUI_DIR)/tradio.d $(TUI_DIR)/tmenu.d $(TUI_DIR)/ttimer.d $(TUI_DIR)/ttext.d \
+		$(TUI_DIR)/tterminal.d $(TUI_DIR)/tprogress.d $(TUI_DIR)/tscroll.d $(TUI_DIR)/ttreeview.d \
+		$(TUI_DIR)/teditor.d $(TUI_DIR)/ecma.d $(TUI_DIR)/tfileopen.d $(TUI_DIR)/tdirlist.d \
+		$(TUI_DIR)/win32.d
 
 DC = dmd
 INC = -I@srcdir@
 DDOCDIR = ./ddoc
 # DFLAGS = -w -wi $(INC) -release
 DFLAGS = -w -wi -g $(INC) -debug -de -Dd$(DDOCDIR)
-LDLIBS = -L-lutil -defaultlib=libphobos2.so
-LDFLAGS = -shared -fPIC $(LDLIBS)
+LDFLAGS_A = -lib -fPIC
+LDFLAGS_SO = -shared -fPIC
+LDLIBS_A = -L-lutil libtui.a
+LDLIBS_SO = -L-lutil -defaultlib=libphobos2.so -L-L. -L-ltui
 
-all:	tui demo1
+all:	libtui.a libtui.so demos
 
-demo1:	tui demo1.d
-	$(DC) $(DFLAGS) $(LDLIBS) -ofdemo1 demo1.d libtui.o
+demos:	demo/demo1
 
-clean:
-	rm libtui.o core *.o demo1
+demo/demo1:	tui demo/demo1.d
+	$(DC) $(DFLAGS) $(LDLIBS_A) -ofdemo/demo1 demo/demo1.d
+#	$(DC) $(DFLAGS) $(LDLIBS_SO) -ofdemo/demo1 demo/demo1.d
 
-tui:	$(TUI_SRC)
-	$(DC) $(DFLAGS) $(LDFLAGS) -oflibtui $(TUI_SRC)
+clean:	clean-demos
+	-rm libtui.o libtui.a libtui.so core *.o
+
+clean-demos:
+	-rm demo/demo1.o demo/demo1
+
+libtui.a:	$(TUI_SRC)
+	$(DC) $(DFLAGS) $(LDFLAGS_A) -oflibtui $(TUI_SRC)
+
+libtui.so:	$(TUI_SRC)
+	$(DC) $(DFLAGS) $(LDFLAGS_SO) -oflibtui.so $(TUI_SRC)

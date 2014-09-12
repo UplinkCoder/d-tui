@@ -39,6 +39,8 @@
  *
  */
 
+module tui.tterminal;
+
 // Description ---------------------------------------------------------------
 
 // Imports -------------------------------------------------------------------
@@ -49,13 +51,13 @@ import std.file;
 import std.format;
 import std.string;
 import std.utf;
-import base;
-import ecma;
-import codepage;
-import tapplication;
-import tscroll;
-import twidget;
-import twindow;
+import tui.base;
+import tui.ecma;
+import tui.codepage;
+import tui.tapplication;
+import tui.tscroll;
+import tui.twidget;
+import tui.twindow;
 
 // Defines -------------------------------------------------------------------
 

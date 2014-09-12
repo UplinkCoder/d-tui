@@ -31,6 +31,8 @@
  * 02110-1301 USA
  */
 
+module tui.tapplication;
+
 // Description ---------------------------------------------------------------
 
 // Imports -------------------------------------------------------------------
@@ -40,20 +42,20 @@ import std.conv;
 import std.datetime;
 import std.math;
 import std.socket;
-import base;
-import codepage;
+import tui.base;
+import tui.codepage;
 version(Posix) {
-    import ecma;
-    import tterminal;
+    import tui.ecma;
+    import tui.tterminal;
 }
-import win32;
-import twidget;
-import twindow;
-import teditor;
-import tfileopen;
-import tmessagebox;
-import tmenu;
-import ttimer;
+import tui.win32;
+import tui.twidget;
+import tui.twindow;
+import tui.teditor;
+import tui.tfileopen;
+import tui.tmessagebox;
+import tui.tmenu;
+import tui.ttimer;
 
 // Defines -------------------------------------------------------------------
 

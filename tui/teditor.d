@@ -31,6 +31,8 @@
  * 02110-1301 USA
  */
 
+module tui.teditor;
+
 // Description ---------------------------------------------------------------
 
 // Imports -------------------------------------------------------------------
@@ -39,12 +41,12 @@ import std.array;
 import std.format;
 import std.string;
 import std.utf;
-import base;
-import codepage;
-import tapplication;
-import tscroll;
-import twindow;
-import twidget;
+import tui.base;
+import tui.codepage;
+import tui.tapplication;
+import tui.tscroll;
+import tui.twindow;
+import tui.twidget;
 
 // Defines -------------------------------------------------------------------
 

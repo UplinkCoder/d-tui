@@ -31,16 +31,18 @@
  * 02110-1301 USA
  */
 
+module tui.ttext;
+
 // Description ---------------------------------------------------------------
 
 // Imports -------------------------------------------------------------------
 
 import std.string;
 import std.utf;
-import base;
-import codepage;
-import twidget;
-import tscroll;
+import tui.base;
+import tui.codepage;
+import tui.twidget;
+import tui.tscroll;
 
 // Defines -------------------------------------------------------------------
 

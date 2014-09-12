@@ -31,6 +31,8 @@
  * 02110-1301 USA
  */
 
+module tui.tmessagebox;
+
 // Description ---------------------------------------------------------------
 
 // Imports -------------------------------------------------------------------
@@ -38,10 +40,10 @@
 import core.thread;
 import std.string;
 import std.utf;
-import tapplication;
-import twindow;
-import tbutton;
-import tfield;
+import tui.tapplication;
+import tui.twindow;
+import tui.tbutton;
+import tui.tfield;
 
 // Defines -------------------------------------------------------------------
 

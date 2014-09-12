@@ -31,25 +31,27 @@
  * 02110-1301 USA
  */
 
+module tui.twidget;
+
 // Description ---------------------------------------------------------------
 
 // Imports -------------------------------------------------------------------
 
-import base;
-import tmenu;
-import tscroll;
-import twindow;
+import tui.base;
+import tui.tmenu;
+import tui.tscroll;
+import tui.twindow;
 
 // Convenience constructors
-import tbutton;
-import tcheckbox;
-import tdirlist;
-import tfield;
-import tlabel;
-import tprogress;
-import tradio;
-import ttext;
-import ttreeview;
+import tui.tbutton;
+import tui.tcheckbox;
+import tui.tdirlist;
+import tui.tfield;
+import tui.tlabel;
+import tui.tprogress;
+import tui.tradio;
+import tui.ttext;
+import tui.ttreeview;
 
 // Defines -------------------------------------------------------------------
 

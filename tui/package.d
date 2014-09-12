@@ -31,29 +31,31 @@
  * 02110-1301 USA
  */
 
+module tui;
+
 // Description ---------------------------------------------------------------
 
 // Imports -------------------------------------------------------------------
 
-public import codepage;
-public import base;
-public import tapplication;
-public import tbutton;
-public import tcheckbox;
-public import tdirlist;
-public import teditor;
-public import tfield;
-public import tfileopen;
-public import tlabel;
-public import tmenu;
-public import tmessagebox;
-public import tprogress;
-public import tradio;
+public import tui.codepage;
+public import tui.base;
+public import tui.tapplication;
+public import tui.tbutton;
+public import tui.tcheckbox;
+public import tui.tdirlist;
+public import tui.teditor;
+public import tui.tfield;
+public import tui.tfileopen;
+public import tui.tlabel;
+public import tui.tmenu;
+public import tui.tmessagebox;
+public import tui.tprogress;
+public import tui.tradio;
 version(Posix) {
-    public import tterminal;
+    public import tui.tterminal;
 }
-public import ttext;
-public import ttimer;
-public import ttreeview;
-public import twidget;
-public import twindow;
+public import tui.ttext;
+public import tui.ttimer;
+public import tui.ttreeview;
+public import tui.twidget;
+public import tui.twindow;

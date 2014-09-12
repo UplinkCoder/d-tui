@@ -31,16 +31,18 @@
  * 02110-1301 USA
  */
 
+module tui.tmenu;
+
 // Description ---------------------------------------------------------------
 
 // Imports -------------------------------------------------------------------
 
 import std.utf;
-import base;
-import codepage;
-import tapplication;
-import twidget;
-import twindow;
+import tui.base;
+import tui.codepage;
+import tui.tapplication;
+import tui.twidget;
+import tui.twindow;
 
 // Defines -------------------------------------------------------------------
 

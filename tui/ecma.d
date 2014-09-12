@@ -31,6 +31,8 @@
  * 02110-1301 USA
  */
 
+module tui.ecma;
+
 // Description ---------------------------------------------------------------
 
 // Imports -------------------------------------------------------------------
@@ -43,8 +45,8 @@ import std.format;
 import std.process;
 import std.socket;
 import std.utf;
-import base;
-import codepage;
+import tui.base;
+import tui.codepage;
 
 version(Posix) {
     import core.stdc.errno;

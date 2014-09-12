@@ -31,6 +31,8 @@
  * 02110-1301 USA
  */
 
+module tui.ttreeview;
+
 // Description ---------------------------------------------------------------
 
 // Imports -------------------------------------------------------------------
@@ -41,11 +43,11 @@ import std.format;
 import std.path;
 import std.string;
 import std.utf;
-import base;
-import codepage;
-import tscroll;
-import twidget;
-import twindow;
+import tui.base;
+import tui.codepage;
+import tui.tscroll;
+import tui.twidget;
+import tui.twindow;
 
 // Defines -------------------------------------------------------------------
 
