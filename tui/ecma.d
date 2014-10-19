@@ -666,8 +666,8 @@ public class ECMATerminal {
 	    }
 	    rc = read(fileno, cast(void *)(buffer.ptr) + 1, len);
 
-	    size_t i;
-	    return decode(buffer, i);
+	    size_t index = 0;
+	    return decode(to!string(buffer), index);
 	}
 
 	/**
@@ -699,8 +699,8 @@ public class ECMATerminal {
 		    len = 1;
 		}
 		read(std.stdio.stdin.fileno(), cast(void *)(buffer.ptr) + 1, len);
-		size_t i;
-		return decode(buffer, i);
+		size_t index = 0;
+		return decode(to!string(buffer), index);
 	    } catch (UTFException e) {
 		if (state == STATE.MOUSE) {
 		    // The terminal we are using (e.g. gnome-terminal,
@@ -784,8 +784,8 @@ public class ECMATerminal {
 	    }
 	    buffer[0 .. len] = socketReadBuffer[0 .. len];
 	    try {
-		size_t i;
-		socketChars ~= decode(buffer, i);
+		size_t index = 0;
+		socketChars ~= decode(to!string(buffer), index);
 		// std.stdio.stderr.writefln("appended: %02x %c", socketChars[$ - 1], socketChars[$ - 1]);
 	    } catch (UTFException e) {
 		if (state == STATE.MOUSE) {

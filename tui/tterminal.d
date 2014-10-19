@@ -5406,12 +5406,12 @@ public class TTerminal : TWindow {
 		auto writer = appender!string();
 		formattedWrite(writer, "COLUMNS=%d", emulator.width);
 		core.sys.posix.stdlib.putenv(cast(char *)toStringz(writer.data));
-		writer.clear();
+		writer = appender!string();
 
 		// Set LINES
 		formattedWrite(writer, "LINES=%d", emulator.height);
 		core.sys.posix.stdlib.putenv(cast(char *)toStringz(writer.data));
-		writer.clear();
+		writer = appender!string();
 
 		// Set window size
 		winsize terminalSize;

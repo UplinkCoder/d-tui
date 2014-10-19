@@ -817,8 +817,12 @@ public class Screen {
 	// Shadows do not honor clipping but they DO honor offset.
 	int oldClipRight = clipRight;
 	int oldClipBottom = clipBottom;
+	/+
 	clipRight = boxWidth + 2;
 	clipBottom = boxHeight + 1;
+	 +/
+	clipRight = width;
+	clipBottom = height;
 
 	for (auto i = 0; i < boxHeight; i++) {
 	    putAttrXY(boxLeft + boxWidth, boxTop + 1 + i, shadowAttr);
@@ -946,17 +950,6 @@ public struct TKeypress {
 	this.alt = alt;
 	this.ctrl = ctrl;
 	this.shift = shift;
-    }
-
-    /// Comparison.  All fields must match to return true.
-    const bool opEquals(ref const TKeypress that) {
-	return ((isKey == that.isKey) &&
-	    (fnKey == that.fnKey) &&
-	    (ch == that.ch) &&
-	    (alt == that.alt) &&
-	    (ctrl == that.ctrl) &&
-	    (shift == that.shift)
-	);
     }
 
     /// Make human-readable description of this Keystroke.

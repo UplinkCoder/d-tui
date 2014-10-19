@@ -47,7 +47,7 @@ LDFLAGS_SO = -shared -fPIC
 LDLIBS_A = -L-lutil libtui.a
 LDLIBS_SO = -L-lutil -defaultlib=libphobos2.so -L-L. -L-ltui
 
-all:	libtui.a libtui.so demos
+all:	libtui.a demos
 
 demos:	demo/demo1
 
