@@ -15,12 +15,14 @@
 	    "__comment": "Default build is libtui.a",
 	    "name": "library",
 	    "targetType": "library",
+            "targetName": "tui"
 	},
 	{
 	    "name": "demo1",
 	    "dflags-dmd": ["-gc", "-gs"],
             "mainSourceFile": "demo/demo1.d",
-            "targetType": "executable"
+            "targetType": "executable",
+            "targetName": "demo1" 
 	},
     ]
 }

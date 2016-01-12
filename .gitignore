@@ -17,3 +17,4 @@ ddoc/
 *.cfg
 dub.selections.json
 d-tui
+demo1
