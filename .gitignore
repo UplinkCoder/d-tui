@@ -15,3 +15,6 @@ demo/demo1
 ddoc/
 *.pdf
 *.cfg
+dub.selections.json
+d-tui
+demo1
