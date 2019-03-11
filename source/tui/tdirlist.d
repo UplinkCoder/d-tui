@@ -131,7 +131,7 @@ public class TDirectoryList : TWidget {
 	    if (baseName(name)[0] == '.') {
 		continue;
 	    }
-	    if (isDir(DirEntry(name))) {
+	    if (isDir(name)) {
 		continue;
 	    }
 	    auto child = DirEntry(name);

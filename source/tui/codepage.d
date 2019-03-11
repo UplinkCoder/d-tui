@@ -61,7 +61,7 @@ public static immutable ubyte C_ESC	= 0x1B;		/// ESC
 // Globals -------------------------------------------------------------------
 
 /// CP437 translation map
-public static immutable wchar cp437_chars[256] = [
+public static immutable wchar[256] cp437_chars = [
     '\u2007', '\u263A', '\u263B', '\u2665', '\u2666', '\u2663', '\u2660', '\u2022',
     '\u25D8', '\u25CB', '\u25D9', '\u2642', '\u2640', '\u266A', '\u266B', '\u263C',
     '\u25BA', '\u25C4', '\u2195', '\u203C', '\u00B6', '\u00A7', '\u25AC', '\u21A8',

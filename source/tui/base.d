@@ -37,11 +37,15 @@ module tui.base;
 
 // Imports -------------------------------------------------------------------
 
+import std.algorithm : sort;
+import std.range : reverse = retro;
 import std.array;
 import std.datetime;
 import std.format;
-import std.stdio;
+static import std.stdio;
 import tui.codepage;
+static import std.string;
+static import std.file;
 
 // Defines -------------------------------------------------------------------
 
@@ -1897,7 +1901,7 @@ public class ColorTheme {
      *    filename = file to write to
      */
     public void save(string filename) {
-	auto file = File(filename, "wt");
+	auto file = std.stdio.File(filename, "wt");
 	foreach (string key; colors.keys.sort) {
 	    CellAttributes color = colors[key];
 	    file.writefln("%s = %s", key, color);

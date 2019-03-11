@@ -37,6 +37,9 @@ module tui.tapplication;
 
 // Imports -------------------------------------------------------------------
 
+import std.algorithm : sort;
+import std.range : reverse = retro;
+
 import core.thread;
 import std.conv;
 import std.datetime;

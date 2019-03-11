@@ -37,6 +37,9 @@ module tui.ttreeview;
 
 // Imports -------------------------------------------------------------------
 
+import std.algorithm : sort;
+import std.range : reverse = retro;
+
 import std.array;
 import std.file;
 import std.format;
@@ -100,7 +103,7 @@ public class TDirTreeItem : TTreeItem {
 	    if (baseName(name)[0] == '.') {
 		continue;
 	    }
-	    if (!isDir(DirEntry(name))) {
+	    if (!isDir(name)) {
 		continue;
 	    }
 
