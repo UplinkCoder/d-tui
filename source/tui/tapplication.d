@@ -991,7 +991,7 @@ public class TApplication {
 	    repaint = true;
 	    return true;
 	}
-
+/+
 	version(Posix) {
 	    if (cmd.cmd == cmShell) {
 		openTerminal(0, 0, TWindow.Flag.RESIZABLE);
@@ -999,7 +999,7 @@ public class TApplication {
 		return true;
 	    }
 	}
-
++/
 	if (cmd.cmd == cmTile) {
 	    tileWindows();
 	    repaint = true;
@@ -1040,7 +1040,7 @@ public class TApplication {
 	    repaint = true;
 	    return true;
 	}
-
+/+
 	version(Posix) {
 	    if (menu.id == TMenu.MID_SHELL) {
 		openTerminal(0, 0, TWindow.Flag.RESIZABLE);
@@ -1048,7 +1048,7 @@ public class TApplication {
 		return true;
 	    }
 	}
-
++/
 	if (menu.id == TMenu.MID_TILE) {
 	    tileWindows();
 	    repaint = true;
@@ -1233,7 +1233,7 @@ public class TApplication {
 
 	return new TWindow(this, title, x, y, width, height, flags);
     }
-
+/+
     version(Posix) {
 	/**
 	 * Convenience function to open a terminal window.
@@ -1252,7 +1252,7 @@ public class TApplication {
 	    return new TTerminal(this, x, y, flags);
 	}
     }
-
++/
     /**
      * Convenience function to load a text file in a new editor window.
      *

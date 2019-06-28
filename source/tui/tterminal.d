@@ -5347,7 +5347,7 @@ version (Posix) {
 	    winsize * winp);
     }
 }
-
+/+
 /**
  * TTerminal exposes a ECMA-48 / ANSI X3.64 style terminal in a window.
  */
@@ -5758,5 +5758,5 @@ public class TTerminal : TWindow {
     }
 
 }
-
++/
 // Functions -----------------------------------------------------------------

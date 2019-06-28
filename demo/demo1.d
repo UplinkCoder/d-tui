@@ -385,7 +385,7 @@ private class DemoMainWindow : TWindow {
 	    );
 	}
 	row += 2;
-
+/+
 	version(Posix) {
 	    if (!isModal) {
 		addLabel("Terminal", 1, row);
@@ -397,7 +397,7 @@ private class DemoMainWindow : TWindow {
 	    }
 	    row += 2;
 	}
-
++/
 	TProgressBar bar = addProgressBar(1, row, 22);
 	row++;
 	TLabel timerLabel = addLabel("Timer", 1, row);
